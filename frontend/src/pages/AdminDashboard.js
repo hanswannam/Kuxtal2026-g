@@ -9,9 +9,10 @@ import { Badge } from '../components/ui/badge';
 import {
   LayoutDashboard, Users, Package, FileText, Bell, MessageSquare, Settings,
   Plus, Trash2, Edit, Eye, Search, X, Send, Phone, CheckCircle2, Clock, BarChart3,
-  Store, Upload, Image
+  Store, Upload, Image, TrendingUp, Gift, PieChart
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RechartPie, Pie, Cell } from 'recharts';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 const ax = axios.create({ baseURL: `${API}/api`, withCredentials: true });
@@ -33,6 +34,8 @@ export default function AdminDashboard() {
   const [pushForm, setPushForm] = useState({ title: '', message: '', link: '/' });
   const [pushHistory, setPushHistory] = useState([]);
   const [uploading, setUploading] = useState(false);
+  const [analytics, setAnalytics] = useState(null);
+  const [referrals, setReferrals] = useState([]);
 
   // Modals
   const [showMemberForm, setShowMemberForm] = useState(false);
@@ -61,6 +64,8 @@ export default function AdminDashboard() {
       ax.get('/commerce').then(r => setCommerces(r.data)).catch(() => {});
       ax.get('/commerce/categories').then(r => setCommerceCategories(r.data)).catch(() => {});
       ax.get('/push/history').then(r => setPushHistory(r.data)).catch(() => {});
+      ax.get('/analytics').then(r => setAnalytics(r.data)).catch(() => {});
+      ax.get('/referrals').then(r => setReferrals(r.data)).catch(() => {});
     } catch (e) { console.error(e); }
   }, []);
 
@@ -179,10 +184,12 @@ export default function AdminDashboard() {
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'analytics', label: 'Analytics', icon: TrendingUp },
     { id: 'members', label: 'Socios', icon: Users },
     { id: 'packages', label: 'Paquetes', icon: Package },
     { id: 'commerce', label: 'Comercios', icon: Store },
     { id: 'quotations', label: 'Cotizaciones', icon: FileText },
+    { id: 'referrals', label: 'Referidos', icon: Gift },
     { id: 'announcements', label: 'Anuncios', icon: Bell },
     { id: 'push', label: 'Push', icon: Send },
     { id: 'requests', label: 'Solicitudes', icon: MessageSquare },
@@ -222,6 +229,8 @@ export default function AdminDashboard() {
                 { label: 'Cotizaciones Pendientes', value: stats.pending_quotations || 0, icon: FileText, color: 'text-amber-600' },
                 { label: 'Solicitudes Pendientes', value: stats.pending_requests || 0, icon: MessageSquare, color: 'text-purple-600' },
                 { label: 'Anuncios Activos', value: stats.total_announcements || 0, icon: Bell, color: 'text-rose-600' },
+                { label: 'Referidos', value: stats.total_referrals || 0, icon: Gift, color: 'text-indigo-600' },
+                { label: 'Chats sin leer', value: stats.unread_chats || 0, icon: MessageSquare, color: 'text-cyan-600' },
                 { label: 'Total Socios', value: stats.total_members || 0, icon: BarChart3, color: 'text-primary' },
               ].map((s, i) => (
                 <div key={i} className="bg-white rounded-2xl p-5 border border-border" data-testid={`stat-${i}`}>
@@ -235,6 +244,149 @@ export default function AdminDashboard() {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* ANALYTICS */}
+        {tab === 'analytics' && analytics && (
+          <div className="space-y-6 animate-fade-in" data-testid="admin-analytics">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Member Growth Chart */}
+              <div className="bg-white rounded-2xl p-6 border border-border">
+                <h3 className="font-heading text-lg font-semibold mb-4">Crecimiento de Socios</h3>
+                <ResponsiveContainer width="100%" height={250}>
+                  <AreaChart data={analytics.member_growth}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#EAE4E4" />
+                    <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} />
+                    <Tooltip />
+                    <Area type="monotone" dataKey="members" stroke="#C1121F" fill="#C1121F" fillOpacity={0.1} strokeWidth={2} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Quotation Trends */}
+              <div className="bg-white rounded-2xl p-6 border border-border">
+                <h3 className="font-heading text-lg font-semibold mb-4">Tendencia de Cotizaciones</h3>
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={analytics.quotation_trends}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#EAE4E4" />
+                    <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} />
+                    <Tooltip />
+                    <Bar dataKey="total" fill="#C1121F" radius={[4,4,0,0]} name="Total" />
+                    <Bar dataKey="responded" fill="#10B981" radius={[4,4,0,0]} name="Respondidas" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Top Packages */}
+              {analytics.top_packages?.length > 0 && (
+                <div className="bg-white rounded-2xl p-6 border border-border">
+                  <h3 className="font-heading text-lg font-semibold mb-4">Top Paquetes por Cotizaciones</h3>
+                  <div className="space-y-3">
+                    {analytics.top_packages.map((p, i) => (
+                      <div key={i} className="flex items-center justify-between" data-testid={`top-pkg-${i}`}>
+                        <div className="flex items-center gap-3">
+                          <span className="w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center">{i + 1}</span>
+                          <span className="text-sm font-medium line-clamp-1">{p.name}</span>
+                        </div>
+                        <Badge variant="secondary" className="rounded-full">{p.quotations} cotizaciones</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Country Distribution */}
+              {analytics.country_distribution?.length > 0 && (
+                <div className="bg-white rounded-2xl p-6 border border-border">
+                  <h3 className="font-heading text-lg font-semibold mb-4">Distribución por País</h3>
+                  <ResponsiveContainer width="100%" height={250}>
+                    <RechartPie>
+                      <Pie data={analytics.country_distribution} dataKey="count" nameKey="country" cx="50%" cy="50%" outerRadius={80} label={({ country, count }) => `${country} (${count})`}>
+                        {analytics.country_distribution.map((_, i) => (
+                          <Cell key={i} fill={['#C1121F','#1E40AF','#059669','#D97706','#7C3AED','#DB2777'][i % 6]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </RechartPie>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
+
+            {/* Summary Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="bg-white rounded-2xl p-5 border border-border">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Referidos Totales</p>
+                <p className="text-2xl font-bold">{analytics.referrals?.total || 0}</p>
+                <p className="text-xs text-emerald-600 mt-1">{analytics.referrals?.converted || 0} convertidos</p>
+              </div>
+              <div className="bg-white rounded-2xl p-5 border border-border">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Visitas en Comercios</p>
+                <p className="text-2xl font-bold">{analytics.commerce_visits || 0}</p>
+              </div>
+              <div className="bg-white rounded-2xl p-5 border border-border">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Comercios Activos</p>
+                <p className="text-2xl font-bold">{stats.total_commerce || 0}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* REFERRALS */}
+        {tab === 'referrals' && (
+          <div className="animate-fade-in" data-testid="admin-referrals">
+            <h2 className="font-heading text-lg font-semibold mb-4">Referidos ({referrals.length})</h2>
+            {referrals.length === 0 ? (
+              <div className="bg-white rounded-2xl p-12 border border-border text-center">
+                <Gift className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="font-heading text-lg font-semibold mb-2">Sin referidos</h3>
+                <p className="text-sm text-muted-foreground">Los referidos de los socios aparecerán aquí</p>
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl border border-border overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-secondary/50">
+                    <tr>
+                      <th className="text-left p-3 font-medium">Nombre</th>
+                      <th className="text-left p-3 font-medium hidden sm:table-cell">Email</th>
+                      <th className="text-left p-3 font-medium hidden md:table-cell">Referido por</th>
+                      <th className="text-left p-3 font-medium">Estado</th>
+                      <th className="text-right p-3 font-medium">Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {referrals.map((r, i) => (
+                      <tr key={r._id} className="border-t border-border" data-testid={`referral-row-${i}`}>
+                        <td className="p-3 font-medium">{r.name}</td>
+                        <td className="p-3 hidden sm:table-cell text-muted-foreground">{r.email}</td>
+                        <td className="p-3 hidden md:table-cell text-muted-foreground">{r.referrer_name}</td>
+                        <td className="p-3">
+                          <Badge variant={r.status === 'converted' ? 'default' : r.status === 'contacted' ? 'secondary' : 'outline'} className="rounded-full text-xs">
+                            {r.status === 'pending' ? 'Pendiente' : r.status === 'contacted' ? 'Contactado' : r.status === 'converted' ? 'Convertido' : r.status}
+                          </Badge>
+                        </td>
+                        <td className="p-3 text-right">
+                          <select
+                            value={r.status}
+                            onChange={async (e) => { await ax.put(`/referrals/${r._id}/status`, { status: e.target.value }); loadData(); toast.success('Estado actualizado'); }}
+                            className="text-xs rounded-lg border border-input px-2 py-1"
+                            data-testid={`referral-status-${i}`}
+                          >
+                            <option value="pending">Pendiente</option>
+                            <option value="contacted">Contactado</option>
+                            <option value="converted">Convertido</option>
+                            <option value="rejected">Rechazado</option>
+                          </select>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 
@@ -659,6 +811,13 @@ export default function AdminDashboard() {
                 <Button onClick={saveWhatsApp} className="rounded-xl bg-primary hover:bg-primary/90" data-testid="save-whatsapp-btn">Guardar</Button>
               </div>
             </div>
+            <a href="/chat" className="block">
+              <div className="bg-white rounded-2xl p-6 border border-border hover:border-primary/30 transition-colors">
+                <h2 className="font-heading text-lg font-semibold mb-2 flex items-center gap-2"><MessageSquare className="w-5 h-5 text-primary" /> Centro de Mensajes</h2>
+                <p className="text-sm text-muted-foreground">Ver y responder conversaciones con socios</p>
+                {(stats.unread_chats || 0) > 0 && <Badge className="rounded-full bg-primary mt-2">{stats.unread_chats} sin leer</Badge>}
+              </div>
+            </a>
           </div>
         )}
       </div>

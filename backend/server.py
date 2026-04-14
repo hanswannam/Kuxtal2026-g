@@ -241,6 +241,15 @@ class FamilyMemberCreate(BaseModel):
     dpi: str
     relationship: str = "familiar"
 
+class ChatMessageCreate(BaseModel):
+    text: str
+
+class ReferralSubmit(BaseModel):
+    name: str
+    email: str
+    phone: str
+    message: Optional[str] = ""
+
 # ── Auth Routes ──
 
 @api_router.post("/auth/login")
@@ -927,7 +936,7 @@ async def get_quotation_share(quotation_id: str, request: Request):
         "share_text": share_text
     }
 
-# ── Stats ──
+# ── Stats & Analytics ──
 
 @api_router.get("/stats")
 async def get_stats(request: Request):
@@ -938,6 +947,8 @@ async def get_stats(request: Request):
     pending_quotations = await db.quotations.count_documents({"status": "pending"})
     pending_requests = await db.vacation_requests.count_documents({"status": "pending"})
     total_announcements = await db.announcements.count_documents({"status": "active"})
+    total_referrals = await db.referrals.count_documents({})
+    unread_chats = await db.chat_messages.count_documents({"read_by_admin": False})
     return {
         "total_members": total_members,
         "active_members": active_members,
@@ -945,8 +956,203 @@ async def get_stats(request: Request):
         "pending_quotations": pending_quotations,
         "pending_requests": pending_requests,
         "total_announcements": total_announcements,
-        "total_commerce": await db.commerce.count_documents({"status": "active"})
+        "total_commerce": await db.commerce.count_documents({"status": "active"}),
+        "total_referrals": total_referrals,
+        "unread_chats": unread_chats
     }
+
+@api_router.get("/analytics")
+async def get_analytics(request: Request):
+    user = await require_role("super_admin", "admin")(request)
+    now = datetime.now(timezone.utc)
+    # Monthly member growth (last 6 months)
+    member_growth = []
+    for i in range(5, -1, -1):
+        month_start = (now.replace(day=1) - timedelta(days=30*i)).replace(day=1)
+        month_end = (month_start + timedelta(days=32)).replace(day=1)
+        count = await db.members.count_documents({"created_at": {"$lte": month_end.isoformat()}})
+        member_growth.append({"month": month_start.strftime("%b %Y"), "members": count})
+    # Quotation trends (last 6 months)
+    quotation_trends = []
+    for i in range(5, -1, -1):
+        month_start = (now.replace(day=1) - timedelta(days=30*i)).replace(day=1)
+        month_end = (month_start + timedelta(days=32)).replace(day=1)
+        total = await db.quotations.count_documents({"created_at": {"$gte": month_start.isoformat(), "$lt": month_end.isoformat()}})
+        responded = await db.quotations.count_documents({"created_at": {"$gte": month_start.isoformat(), "$lt": month_end.isoformat()}, "status": "responded"})
+        quotation_trends.append({"month": month_start.strftime("%b %Y"), "total": total, "responded": responded})
+    # Top packages by quotations
+    top_packages = []
+    pipeline = [
+        {"$match": {"package_id": {"$ne": ""}}},
+        {"$group": {"_id": "$package_id", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}},
+        {"$limit": 5}
+    ]
+    async for item in db.quotations.aggregate(pipeline):
+        pkg = None
+        try:
+            pkg = await db.packages.find_one({"_id": ObjectId(item["_id"])})
+        except Exception:
+            pass
+        top_packages.append({"name": pkg["title"] if pkg else "Desconocido", "quotations": item["count"]})
+    # Country distribution
+    country_dist = []
+    async for item in db.packages.aggregate([{"$match": {"status": "active"}}, {"$group": {"_id": "$country", "count": {"$sum": 1}}}, {"$sort": {"count": -1}}]):
+        country_dist.append({"country": item["_id"], "count": item["count"]})
+    # Referral stats
+    referral_count = await db.referrals.count_documents({})
+    referral_converted = await db.referrals.count_documents({"status": "converted"})
+    # Commerce visits
+    total_visits = await db.loyalty_visits.count_documents({})
+    return {
+        "member_growth": member_growth,
+        "quotation_trends": quotation_trends,
+        "top_packages": top_packages,
+        "country_distribution": country_dist,
+        "referrals": {"total": referral_count, "converted": referral_converted},
+        "commerce_visits": total_visits
+    }
+
+# ── Referral System ──
+
+@api_router.get("/referral/my-code")
+async def get_my_referral_code(request: Request):
+    user = await get_current_user(request)
+    member_id = user.get("member_id")
+    if not member_id:
+        raise HTTPException(status_code=403, detail="Solo socios pueden tener código de referido")
+    member = await db.members.find_one({"_id": ObjectId(member_id)})
+    if not member:
+        raise HTTPException(status_code=404, detail="Socio no encontrado")
+    code = member.get("referral_code")
+    if not code:
+        code = f"KT-{member['contract_number'].replace('KT-','')}-{str(uuid.uuid4())[:4].upper()}"
+        await db.members.update_one({"_id": ObjectId(member_id)}, {"$set": {"referral_code": code}})
+    referrals = []
+    async for r in db.referrals.find({"referrer_member_id": member_id}).sort("created_at", -1):
+        referrals.append(serialize_doc(r))
+    return {"code": code, "referrals": referrals, "total": len(referrals)}
+
+@api_router.get("/referral/{code}")
+async def get_referral_info(code: str):
+    member = await db.members.find_one({"referral_code": code})
+    if not member:
+        raise HTTPException(status_code=404, detail="Código de referido inválido")
+    return {"referrer_name": member["name"], "code": code, "valid": True}
+
+@api_router.post("/referral/{code}/submit")
+async def submit_referral(code: str, req: ReferralSubmit):
+    member = await db.members.find_one({"referral_code": code})
+    if not member:
+        raise HTTPException(status_code=404, detail="Código de referido inválido")
+    doc = req.model_dump()
+    doc["referrer_member_id"] = str(member["_id"])
+    doc["referrer_name"] = member["name"]
+    doc["referral_code"] = code
+    doc["status"] = "pending"
+    doc["created_at"] = datetime.now(timezone.utc).isoformat()
+    result = await db.referrals.insert_one(doc)
+    doc["_id"] = str(result.inserted_id)
+    return doc
+
+@api_router.get("/referrals")
+async def list_referrals(request: Request):
+    user = await require_role("super_admin", "admin")(request)
+    referrals = []
+    async for r in db.referrals.find().sort("created_at", -1):
+        referrals.append(serialize_doc(r))
+    return referrals
+
+@api_router.put("/referrals/{ref_id}/status")
+async def update_referral_status(ref_id: str, request: Request):
+    user = await require_role("super_admin", "admin")(request)
+    body = await request.json()
+    await db.referrals.update_one({"_id": ObjectId(ref_id)}, {"$set": {"status": body.get("status", "pending"), "updated_at": datetime.now(timezone.utc).isoformat()}})
+    return {"message": "Estado actualizado"}
+
+# ── Chat System ──
+
+@api_router.get("/chat/conversations")
+async def list_conversations(request: Request):
+    user = await get_current_user(request)
+    if user["role"] in ["super_admin", "admin"]:
+        convs = []
+        async for c in db.chat_conversations.find().sort("updated_at", -1):
+            last_msg = await db.chat_messages.find_one({"conversation_id": str(c["_id"])}, sort=[("created_at", -1)])
+            unread = await db.chat_messages.count_documents({"conversation_id": str(c["_id"]), "read_by_admin": False, "sender_role": "member"})
+            conv = serialize_doc(c)
+            conv["last_message"] = last_msg.get("text", "") if last_msg else ""
+            conv["last_message_at"] = last_msg.get("created_at", "") if last_msg else ""
+            conv["unread_count"] = unread
+            convs.append(conv)
+        return convs
+    else:
+        convs = []
+        async for c in db.chat_conversations.find({"user_id": user["_id"]}).sort("updated_at", -1):
+            last_msg = await db.chat_messages.find_one({"conversation_id": str(c["_id"])}, sort=[("created_at", -1)])
+            unread = await db.chat_messages.count_documents({"conversation_id": str(c["_id"]), "read_by_member": False, "sender_role": {"$in": ["admin", "super_admin"]}})
+            conv = serialize_doc(c)
+            conv["last_message"] = last_msg.get("text", "") if last_msg else ""
+            conv["unread_count"] = unread
+            convs.append(conv)
+        return convs
+
+@api_router.post("/chat/conversations")
+async def create_conversation(request: Request):
+    user = await get_current_user(request)
+    body = await request.json()
+    existing = await db.chat_conversations.find_one({"user_id": user["_id"], "status": "open"})
+    if existing:
+        return serialize_doc(existing)
+    doc = {
+        "user_id": user["_id"],
+        "user_name": user.get("name", ""),
+        "user_role": user.get("role", ""),
+        "subject": body.get("subject", "Conversación"),
+        "status": "open",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    result = await db.chat_conversations.insert_one(doc)
+    doc["_id"] = str(result.inserted_id)
+    return doc
+
+@api_router.get("/chat/conversations/{conv_id}/messages")
+async def get_messages(conv_id: str, request: Request):
+    user = await get_current_user(request)
+    messages = []
+    async for m in db.chat_messages.find({"conversation_id": conv_id}).sort("created_at", 1):
+        messages.append(serialize_doc(m))
+    # Mark messages as read
+    if user["role"] in ["super_admin", "admin"]:
+        await db.chat_messages.update_many({"conversation_id": conv_id, "sender_role": "member"}, {"$set": {"read_by_admin": True}})
+    else:
+        await db.chat_messages.update_many({"conversation_id": conv_id, "sender_role": {"$in": ["admin", "super_admin"]}}, {"$set": {"read_by_member": True}})
+    return messages
+
+@api_router.post("/chat/conversations/{conv_id}/messages")
+async def send_message(conv_id: str, req: ChatMessageCreate, request: Request):
+    user = await get_current_user(request)
+    doc = {
+        "conversation_id": conv_id,
+        "sender_id": user["_id"],
+        "sender_name": user.get("name", ""),
+        "sender_role": user.get("role", ""),
+        "text": req.text,
+        "read_by_admin": user["role"] in ["super_admin", "admin"],
+        "read_by_member": user["role"] == "member",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    result = await db.chat_messages.insert_one(doc)
+    doc["_id"] = str(result.inserted_id)
+    await db.chat_conversations.update_one({"_id": ObjectId(conv_id)}, {"$set": {"updated_at": datetime.now(timezone.utc).isoformat()}})
+    return doc
+
+@api_router.put("/chat/conversations/{conv_id}/close")
+async def close_conversation(conv_id: str, request: Request):
+    user = await require_role("super_admin", "admin")(request)
+    await db.chat_conversations.update_one({"_id": ObjectId(conv_id)}, {"$set": {"status": "closed", "updated_at": datetime.now(timezone.utc).isoformat()}})
+    return {"message": "Conversación cerrada"}
 
 # ── Countries list ──
 

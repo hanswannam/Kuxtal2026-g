@@ -626,9 +626,200 @@ class KuxtalTravelAPITester:
             self.log_test("Quotation Sharing", False, str(e))
         return False
 
+    def test_analytics_endpoint(self):
+        """Test analytics endpoint (Phase 4)"""
+        try:
+            response = self.session.get(f"{self.base_url}/api/analytics")
+            if response.status_code == 200:
+                analytics = response.json()
+                required_fields = ["member_growth", "quotation_trends", "top_packages", "country_distribution"]
+                
+                if all(field in analytics for field in required_fields):
+                    # Check data structure
+                    member_growth_valid = isinstance(analytics["member_growth"], list)
+                    quotation_trends_valid = isinstance(analytics["quotation_trends"], list)
+                    top_packages_valid = isinstance(analytics["top_packages"], list)
+                    country_dist_valid = isinstance(analytics["country_distribution"], list)
+                    
+                    if all([member_growth_valid, quotation_trends_valid, top_packages_valid, country_dist_valid]):
+                        self.log_test("Analytics Endpoint", True, f"All required fields present with correct structure")
+                        return True
+                    else:
+                        self.log_test("Analytics Endpoint", False, "Invalid data structure in analytics response")
+                else:
+                    missing = [f for f in required_fields if f not in analytics]
+                    self.log_test("Analytics Endpoint", False, f"Missing fields: {missing}")
+            else:
+                self.log_test("Analytics Endpoint", False, f"Status {response.status_code}")
+        except Exception as e:
+            self.log_test("Analytics Endpoint", False, str(e))
+        return False
+
+    def test_referral_my_code(self):
+        """Test member referral code endpoint (Phase 4)"""
+        try:
+            response = self.session.get(f"{self.base_url}/api/referral/my-code")
+            if response.status_code == 200:
+                data = response.json()
+                if "code" in data and "referrals" in data and "total" in data:
+                    self.log_test("Referral My Code", True, f"Code: {data['code']}, Total: {data['total']}")
+                    return True
+                else:
+                    self.log_test("Referral My Code", False, "Missing required fields in response")
+            else:
+                self.log_test("Referral My Code", False, f"Status {response.status_code}")
+        except Exception as e:
+            self.log_test("Referral My Code", False, str(e))
+        return False
+
+    def test_referral_public_endpoints(self):
+        """Test public referral endpoints (Phase 4)"""
+        test_code = "KT-001-9462"  # Test referral code from credentials
+        
+        # Test GET /api/referral/{code}
+        try:
+            response = self.session.get(f"{self.base_url}/api/referral/{test_code}")
+            if response.status_code == 200:
+                data = response.json()
+                if "referrer_name" in data and "code" in data and "valid" in data:
+                    self.log_test("Referral Info Endpoint", True, f"Referrer: {data['referrer_name']}")
+                    
+                    # Test POST /api/referral/{code}/submit
+                    test_referral = {
+                        "name": "Test User API",
+                        "email": "testapi@example.com",
+                        "phone": "+502 1234-5678",
+                        "message": "API test referral submission"
+                    }
+                    
+                    submit_response = self.session.post(f"{self.base_url}/api/referral/{test_code}/submit", json=test_referral)
+                    if submit_response.status_code == 200:
+                        submit_data = submit_response.json()
+                        if "referrer_name" in submit_data and "status" in submit_data:
+                            self.log_test("Referral Submit Endpoint", True, f"Status: {submit_data['status']}")
+                            return True
+                        else:
+                            self.log_test("Referral Submit Endpoint", False, "Missing fields in submit response")
+                    else:
+                        self.log_test("Referral Submit Endpoint", False, f"Submit status {submit_response.status_code}")
+                else:
+                    self.log_test("Referral Info Endpoint", False, "Missing required fields")
+            else:
+                self.log_test("Referral Info Endpoint", False, f"Status {response.status_code}")
+        except Exception as e:
+            self.log_test("Referral Public Endpoints", False, str(e))
+        return False
+
+    def test_admin_referrals(self):
+        """Test admin referral management (Phase 4)"""
+        try:
+            # Test GET /api/referrals
+            response = self.session.get(f"{self.base_url}/api/referrals")
+            if response.status_code == 200:
+                referrals = response.json()
+                if isinstance(referrals, list):
+                    self.log_test("Admin Referrals List", True, f"Found {len(referrals)} referrals")
+                    
+                    # Test status update if referrals exist
+                    if len(referrals) > 0:
+                        referral_id = referrals[0]["_id"]
+                        status_response = self.session.put(f"{self.base_url}/api/referrals/{referral_id}/status", 
+                                                         json={"status": "contacted"})
+                        if status_response.status_code == 200:
+                            self.log_test("Referral Status Update", True, "Status updated successfully")
+                            return True
+                        else:
+                            self.log_test("Referral Status Update", False, f"Status {status_response.status_code}")
+                    else:
+                        self.log_test("Referral Status Update", True, "No referrals to test status update")
+                        return True
+                else:
+                    self.log_test("Admin Referrals List", False, "Response is not a list")
+            else:
+                self.log_test("Admin Referrals List", False, f"Status {response.status_code}")
+        except Exception as e:
+            self.log_test("Admin Referrals", False, str(e))
+        return False
+
+    def test_chat_system(self):
+        """Test chat system endpoints (Phase 4)"""
+        try:
+            # Test GET /api/chat/conversations
+            response = self.session.get(f"{self.base_url}/api/chat/conversations")
+            if response.status_code == 200:
+                conversations = response.json()
+                if isinstance(conversations, list):
+                    self.log_test("Chat Conversations List", True, f"Found {len(conversations)} conversations")
+                    
+                    # Test POST /api/chat/conversations (create new conversation)
+                    new_conv_response = self.session.post(f"{self.base_url}/api/chat/conversations", 
+                                                        json={"subject": "API Test Conversation"})
+                    if new_conv_response.status_code == 200:
+                        conv_data = new_conv_response.json()
+                        if "_id" in conv_data:
+                            conv_id = conv_data["_id"]
+                            self.log_test("Chat Conversation Create", True, f"Created conversation {conv_id}")
+                            
+                            # Test POST /api/chat/conversations/{id}/messages
+                            message_response = self.session.post(f"{self.base_url}/api/chat/conversations/{conv_id}/messages",
+                                                               json={"text": "Test message from API"})
+                            if message_response.status_code == 200:
+                                self.log_test("Chat Send Message", True, "Message sent successfully")
+                                
+                                # Test GET /api/chat/conversations/{id}/messages
+                                get_messages_response = self.session.get(f"{self.base_url}/api/chat/conversations/{conv_id}/messages")
+                                if get_messages_response.status_code == 200:
+                                    messages = get_messages_response.json()
+                                    if isinstance(messages, list) and len(messages) > 0:
+                                        self.log_test("Chat Get Messages", True, f"Retrieved {len(messages)} messages")
+                                        return True
+                                    else:
+                                        self.log_test("Chat Get Messages", False, "No messages found")
+                                else:
+                                    self.log_test("Chat Get Messages", False, f"Status {get_messages_response.status_code}")
+                            else:
+                                self.log_test("Chat Send Message", False, f"Status {message_response.status_code}")
+                        else:
+                            self.log_test("Chat Conversation Create", False, "No conversation ID in response")
+                    else:
+                        self.log_test("Chat Conversation Create", False, f"Status {new_conv_response.status_code}")
+                else:
+                    self.log_test("Chat Conversations List", False, "Response is not a list")
+            else:
+                self.log_test("Chat Conversations List", False, f"Status {response.status_code}")
+        except Exception as e:
+            self.log_test("Chat System", False, str(e))
+        return False
+
+    def test_chat_admin_features(self):
+        """Test admin chat features (Phase 4)"""
+        try:
+            # Get conversations first
+            response = self.session.get(f"{self.base_url}/api/chat/conversations")
+            if response.status_code == 200:
+                conversations = response.json()
+                if len(conversations) > 0:
+                    conv_id = conversations[0]["_id"]
+                    
+                    # Test PUT /api/chat/conversations/{id}/close
+                    close_response = self.session.put(f"{self.base_url}/api/chat/conversations/{conv_id}/close")
+                    if close_response.status_code == 200:
+                        self.log_test("Chat Close Conversation", True, "Conversation closed successfully")
+                        return True
+                    else:
+                        self.log_test("Chat Close Conversation", False, f"Status {close_response.status_code}")
+                else:
+                    self.log_test("Chat Close Conversation", True, "No conversations to close")
+                    return True
+            else:
+                self.log_test("Chat Admin Features", False, f"Failed to get conversations: {response.status_code}")
+        except Exception as e:
+            self.log_test("Chat Admin Features", False, str(e))
+        return False
+
     def run_all_tests(self):
         """Run all API tests"""
-        print("🚀 Starting Kuxtal Travel API Tests (Phase 1 + Phase 2 + Phase 3)...")
+        print("🚀 Starting Kuxtal Travel API Tests (Phase 1 + Phase 2 + Phase 3 + Phase 4)...")
         print(f"Testing against: {self.base_url}")
         print("=" * 50)
 
@@ -657,6 +848,11 @@ class KuxtalTravelAPITester:
             self.test_file_upload()
             # Phase 3: Admin features
             self.test_quotation_sharing()
+            # Phase 4: Admin features
+            self.test_analytics_endpoint()
+            self.test_admin_referrals()
+            self.test_chat_system()
+            self.test_chat_admin_features()
 
         member_login_success = self.test_member_login()
         if member_login_success:
@@ -668,12 +864,18 @@ class KuxtalTravelAPITester:
                 self.test_visit_validation()
             # Phase 3: Member features
             self.test_family_members()
+            # Phase 4: Member features
+            self.test_referral_my_code()
+            self.test_chat_system()
 
         # Phase 2: Commerce login
         self.test_commerce_login()
 
         # Phase 3: Family member login
         self.test_family_member_login()
+
+        # Phase 4: Public referral endpoints (no auth required)
+        self.test_referral_public_endpoints()
 
         # Logout test
         self.test_logout()

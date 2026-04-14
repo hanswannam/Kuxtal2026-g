@@ -15,6 +15,8 @@ import AdminDashboard from "./pages/AdminDashboard";
 import BenefitsPage from "./pages/BenefitsPage";
 import CommerceDetailPage from "./pages/CommerceDetailPage";
 import CommercePortal from "./pages/CommercePortal";
+import ReferralPage from "./pages/ReferralPage";
+import ChatPage from "./pages/ChatPage";
 
 // Register service worker for PWA
 if ('serviceWorker' in navigator) {
@@ -39,9 +41,15 @@ function App() {
                 <Route path="/trip/:id" element={<TripDetailPage />} />
                 <Route path="/benefits" element={<BenefitsPage />} />
                 <Route path="/commerce/:id" element={<CommerceDetailPage />} />
+                <Route path="/referral/:code" element={<ReferralPage />} />
                 <Route path="/member" element={
                   <ProtectedRoute roles={['member']}>
                     <MemberDashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/chat" element={
+                  <ProtectedRoute roles={['member', 'super_admin', 'admin']}>
+                    <ChatPage />
                   </ProtectedRoute>
                 } />
                 <Route path="/commerce-portal" element={

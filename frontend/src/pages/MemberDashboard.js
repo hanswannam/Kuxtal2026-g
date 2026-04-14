@@ -7,7 +7,7 @@ import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
 import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
-import { Calendar, MapPin, FileText, Bell, MessageSquare, Send, Clock, CheckCircle2, Package, Star, Store, Gift, Users, Plus, Trash2 } from 'lucide-react';
+import { Calendar, MapPin, FileText, Bell, MessageSquare, Send, Clock, CheckCircle2, Package, Star, Store, Gift, Users, Plus, Trash2, Share2, Copy, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -22,6 +22,7 @@ export default function MemberDashboard() {
   const [packages, setPackages] = useState([]);
   const [commerces, setCommerces] = useState([]);
   const [familyMembers, setFamilyMembers] = useState([]);
+  const [referralData, setReferralData] = useState(null);
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [showFamilyForm, setShowFamilyForm] = useState(false);
   const [familyForm, setFamilyForm] = useState({ name: '', dpi: '', relationship: 'familiar' });
@@ -42,6 +43,7 @@ export default function MemberDashboard() {
     if (memberId) {
       axios.get(`${API}/api/members/${memberId}/family`, { withCredentials: true }).then(r => setFamilyMembers(r.data)).catch(() => {});
     }
+    axios.get(`${API}/api/referral/my-code`, { withCredentials: true }).then(r => setReferralData(r.data)).catch(() => {});
   }, [user]);
 
   const submitRequest = async (e) => {
@@ -85,6 +87,7 @@ export default function MemberDashboard() {
     { id: 'announcements', label: 'Anuncios', icon: Bell },
     { id: 'requests', label: 'Solicitudes', icon: MessageSquare },
     { id: 'family', label: 'Familia', icon: Users },
+    { id: 'referral', label: 'Referidos', icon: Share2 },
     { id: 'benefits', label: 'Beneficios', icon: Store },
   ];
 
@@ -416,6 +419,76 @@ export default function MemberDashboard() {
           </div>
         )}
 
+        {/* Referral Tab */}
+        {tab === 'referral' && (
+          <div className="space-y-6 animate-fade-in" data-testid="member-referrals">
+            {/* Referral Code Card */}
+            <div className="bg-white rounded-2xl p-6 border border-border">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-accent rounded-xl"><Share2 className="w-5 h-5 text-primary" /></div>
+                <div>
+                  <h2 className="font-heading text-lg font-semibold">Tu Código de Referido</h2>
+                  <p className="text-xs text-muted-foreground">Comparte este enlace con amigos y familiares</p>
+                </div>
+              </div>
+              {referralData?.code ? (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 p-3 bg-secondary rounded-xl font-mono font-bold text-lg text-center text-primary" data-testid="referral-code">
+                      {referralData.code}
+                    </div>
+                    <Button variant="outline" className="rounded-xl shrink-0" onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/referral/${referralData.code}`);
+                      toast.success('Enlace copiado');
+                    }} data-testid="copy-referral">
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button className="flex-1 rounded-xl bg-[#25D366] hover:bg-[#25D366]/90 text-white" onClick={() => {
+                      window.open(`https://wa.me/?text=${encodeURIComponent(`Te invito a conocer Kuxtal Travel Club: ${window.location.origin}/referral/${referralData.code}`)}`, '_blank');
+                    }} data-testid="share-wa-referral">
+                      <MessageCircle className="w-4 h-4 mr-2" /> Compartir por WhatsApp
+                    </Button>
+                    <Button variant="outline" className="flex-1 rounded-xl" onClick={() => {
+                      window.open(`mailto:?subject=${encodeURIComponent('Invitación a Kuxtal Travel')}&body=${encodeURIComponent(`Te invito a conocer Kuxtal Travel Club: ${window.location.origin}/referral/${referralData.code}`)}`, '_blank');
+                    }} data-testid="share-email-referral">
+                      <Send className="w-4 h-4 mr-2" /> Email
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Cargando tu código...</p>
+              )}
+            </div>
+
+            {/* Referral Stats */}
+            <div className="bg-white rounded-2xl p-6 border border-border">
+              <h3 className="font-heading text-lg font-semibold mb-4">Mis Referidos ({referralData?.total || 0})</h3>
+              {(!referralData?.referrals || referralData.referrals.length === 0) ? (
+                <div className="text-center py-8">
+                  <Gift className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-sm text-muted-foreground">Aún no tienes referidos. ¡Comparte tu código!</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {referralData.referrals.map((r, i) => (
+                    <div key={r._id} className="flex items-center justify-between p-3 bg-secondary/50 rounded-xl" data-testid={`my-referral-${i}`}>
+                      <div>
+                        <p className="font-medium text-sm">{r.name}</p>
+                        <p className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleDateString('es')}</p>
+                      </div>
+                      <Badge variant={r.status === 'converted' ? 'default' : 'secondary'} className="rounded-full text-xs">
+                        {r.status === 'pending' ? 'Pendiente' : r.status === 'contacted' ? 'Contactado' : r.status === 'converted' ? 'Convertido' : r.status}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Benefits Tab */}
         {tab === 'benefits' && (
           <div className="space-y-4 animate-fade-in" data-testid="member-benefits">
@@ -457,6 +530,15 @@ export default function MemberDashboard() {
           </div>
         )}
       </div>
+
+      {/* Floating Chat Button */}
+      <Link
+        to="/chat"
+        className="fixed bottom-24 right-6 z-40 w-14 h-14 rounded-full bg-primary text-white flex items-center justify-center shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all"
+        data-testid="chat-fab"
+      >
+        <MessageSquare className="w-6 h-6" />
+      </Link>
     </div>
   );
 }
