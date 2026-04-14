@@ -9,7 +9,7 @@ import { Badge } from '../components/ui/badge';
 import {
   Store, Gift, Users, Plus, Trash2, Calendar, Star, Edit, Save,
   Play, Image, MapPin, Phone, Globe, Facebook, Instagram, Youtube,
-  X, ExternalLink, Sparkles
+  X, ExternalLink, Sparkles, Navigation
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -260,11 +260,46 @@ export default function CommercePortal() {
                   <div className="space-y-2">
                     <Input value={editForm.location || ''} onChange={e => setEditForm({...editForm, location: e.target.value})} placeholder="Ciudad, Zona" className="rounded-xl" />
                     <Input value={editForm.address || ''} onChange={e => setEditForm({...editForm, address: e.target.value})} placeholder="Dirección completa" className="rounded-xl" data-testid="edit-address" />
+                    <div>
+                      <Label className="text-xs flex items-center gap-1 mb-1"><Navigation className="w-3 h-3" /> Link Google Maps</Label>
+                      <Input value={editForm.google_maps_url || ''} onChange={e => setEditForm({...editForm, google_maps_url: e.target.value})} placeholder="https://maps.google.com/..." className="rounded-xl" data-testid="edit-gmaps" />
+                    </div>
+                    <div>
+                      <Label className="text-xs flex items-center gap-1 mb-1"><Navigation className="w-3 h-3" /> Link Waze</Label>
+                      <Input value={editForm.waze_url || ''} onChange={e => setEditForm({...editForm, waze_url: e.target.value})} placeholder="https://waze.com/ul/..." className="rounded-xl" data-testid="edit-waze" />
+                    </div>
                   </div>
                 ) : (
-                  <div className="space-y-1">
-                    <p className="font-medium">{commerce.location || 'Sin ubicación'}</p>
-                    {commerce.address && <p className="text-sm text-muted-foreground">{commerce.address}</p>}
+                  <div className="space-y-3">
+                    <div>
+                      <p className="font-medium">{commerce.location || 'Sin ubicación'}</p>
+                      {commerce.address && <p className="text-sm text-muted-foreground mt-1">{commerce.address}</p>}
+                    </div>
+                    {(commerce.google_maps_url || commerce.waze_url) && (
+                      <div className="flex flex-wrap gap-2 pt-2">
+                        {commerce.google_maps_url && (
+                          <a href={commerce.google_maps_url} target="_blank" rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-50 text-blue-700 border border-blue-100 text-sm font-medium hover:bg-blue-100 hover:shadow-md transition-all hover:-translate-y-0.5"
+                            data-testid="gmaps-btn">
+                            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                            Google Maps
+                            <ExternalLink className="w-3 h-3 opacity-50" />
+                          </a>
+                        )}
+                        {commerce.waze_url && (
+                          <a href={commerce.waze_url} target="_blank" rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-sky-50 text-sky-700 border border-sky-100 text-sm font-medium hover:bg-sky-100 hover:shadow-md transition-all hover:-translate-y-0.5"
+                            data-testid="waze-btn">
+                            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.5 2 12c0 2.3.8 4.4 2.1 6.1l-.7 2.5 2.6-.7C7.6 21.2 9.7 22 12 22c5.5 0 10-4.5 10-10S17.5 2 12 2zm-1 6c.6 0 1 .4 1 1s-.4 1-1 1-1-.4-1-1 .4-1 1-1zm4 0c.6 0 1 .4 1 1s-.4 1-1 1-1-.4-1-1 .4-1 1-1zm-5 7c-1.1 0-2-.4-2.8-1.1l1.4-1.4c.4.3.9.5 1.4.5s1-.2 1.4-.5l1.4 1.4C11.9 14.6 11 15 10 15z"/></svg>
+                            Waze
+                            <ExternalLink className="w-3 h-3 opacity-50" />
+                          </a>
+                        )}
+                      </div>
+                    )}
+                    {!commerce.google_maps_url && !commerce.waze_url && !commerce.location && (
+                      <p className="text-sm text-muted-foreground">Agrega tu ubicación desde "Editar Perfil"</p>
+                    )}
                   </div>
                 )}
               </div>

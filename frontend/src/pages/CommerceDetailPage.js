@@ -95,6 +95,26 @@ export default function CommerceDetailPage() {
               <a href={`mailto:${commerce.email}`} className="flex items-center gap-2 text-sm hover:text-primary transition-colors"><Mail className="w-4 h-4 text-primary" /> {commerce.email}</a>
             )}
           </div>
+          {(commerce.google_maps_url || commerce.waze_url) && (
+            <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-border">
+              {commerce.google_maps_url && (
+                <a href={commerce.google_maps_url} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-50 text-blue-700 border border-blue-100 text-sm font-medium hover:bg-blue-100 hover:shadow-md transition-all hover:-translate-y-0.5"
+                  data-testid="detail-gmaps-btn">
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                  Cómo llegar (Google Maps)
+                </a>
+              )}
+              {commerce.waze_url && (
+                <a href={commerce.waze_url} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-sky-50 text-sky-700 border border-sky-100 text-sm font-medium hover:bg-sky-100 hover:shadow-md transition-all hover:-translate-y-0.5"
+                  data-testid="detail-waze-btn">
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.5 2 12c0 2.3.8 4.4 2.1 6.1l-.7 2.5 2.6-.7C7.6 21.2 9.7 22 12 22c5.5 0 10-4.5 10-10S17.5 2 12 2zm-1 6c.6 0 1 .4 1 1s-.4 1-1 1-1-.4-1-1 .4-1 1-1zm4 0c.6 0 1 .4 1 1s-.4 1-1 1-1-.4-1-1 .4-1 1-1zm-5 7c-1.1 0-2-.4-2.8-1.1l1.4-1.4c.4.3.9.5 1.4.5s1-.2 1.4-.5l1.4 1.4C11.9 14.6 11 15 10 15z"/></svg>
+                  Cómo llegar (Waze)
+                </a>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Benefit */}

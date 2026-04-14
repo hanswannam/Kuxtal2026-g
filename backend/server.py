@@ -213,6 +213,8 @@ class CommerceCreate(BaseModel):
     category: str = "Servicios"
     location: Optional[str] = ""
     address: Optional[str] = ""
+    google_maps_url: Optional[str] = ""
+    waze_url: Optional[str] = ""
     phone: Optional[str] = ""
     email: Optional[str] = ""
     website: Optional[str] = ""
