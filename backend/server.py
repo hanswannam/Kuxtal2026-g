@@ -405,7 +405,7 @@ async def list_packages(category: Optional[str] = None, country: Optional[str] =
     if featured is not None:
         query["featured"] = featured
     packages = []
-    async for p in db.packages.find(query).sort("created_at", -1):
+    async for p in db.packages.find(query).sort("created_at", -1).limit(200):
         packages.append(serialize_doc(p))
     return packages
 
@@ -489,7 +489,7 @@ async def list_announcements(target: Optional[str] = None):
     if target:
         query["$or"] = [{"target": target}, {"target": "all"}]
     announcements = []
-    async for a in db.announcements.find(query).sort("created_at", -1):
+    async for a in db.announcements.find(query).sort("created_at", -1).limit(100):
         announcements.append(serialize_doc(a))
     return announcements
 
@@ -529,12 +529,12 @@ async def list_vacation_requests(request: Request):
     user = await get_current_user(request)
     if user["role"] in ["super_admin", "admin"]:
         reqs = []
-        async for r in db.vacation_requests.find().sort("created_at", -1):
+        async for r in db.vacation_requests.find().sort("created_at", -1).limit(200):
             reqs.append(serialize_doc(r))
         return reqs
     else:
         reqs = []
-        async for r in db.vacation_requests.find({"user_id": user["_id"]}).sort("created_at", -1):
+        async for r in db.vacation_requests.find({"user_id": user["_id"]}).sort("created_at", -1).limit(50):
             reqs.append(serialize_doc(r))
         return reqs
 
@@ -614,7 +614,7 @@ async def list_commerce(category: Optional[str] = None, search: Optional[str] = 
             {"description": {"$regex": search, "$options": "i"}}
         ]
     results = []
-    async for c in db.commerce.find(query).sort("name", 1):
+    async for c in db.commerce.find(query).sort("name", 1).limit(200):
         results.append(serialize_doc(c))
     return results
 
@@ -672,7 +672,7 @@ async def delete_commerce(commerce_id: str, request: Request):
 async def list_commerce_promotions(commerce_id: str):
     promos = []
     now = datetime.now(timezone.utc).isoformat()
-    async for p in db.commerce_promotions.find({"commerce_id": commerce_id, "status": "active"}).sort("created_at", -1):
+    async for p in db.commerce_promotions.find({"commerce_id": commerce_id, "status": "active"}).sort("created_at", -1).limit(50):
         promos.append(serialize_doc(p))
     return promos
 
@@ -769,11 +769,11 @@ async def get_commerce_visits(commerce_id: str, request: Request):
     user = await get_current_user(request)
     if user["role"] in ["super_admin", "admin"] or user.get("commerce_id") == commerce_id:
         visits = []
-        async for v in db.loyalty_visits.find({"commerce_id": commerce_id}).sort("validated_at", -1):
+        async for v in db.loyalty_visits.find({"commerce_id": commerce_id}).sort("validated_at", -1).limit(200):
             visits.append(serialize_doc(v))
         return visits
     visits = []
-    async for v in db.loyalty_visits.find({"commerce_id": commerce_id, "user_id": user["_id"]}).sort("validated_at", -1):
+    async for v in db.loyalty_visits.find({"commerce_id": commerce_id, "user_id": user["_id"]}).sort("validated_at", -1).limit(100):
         visits.append(serialize_doc(v))
     return visits
 
@@ -781,7 +781,7 @@ async def get_commerce_visits(commerce_id: str, request: Request):
 async def get_member_visits(request: Request):
     user = await get_current_user(request)
     visits = []
-    async for v in db.loyalty_visits.find({"user_id": user["_id"]}).sort("validated_at", -1):
+    async for v in db.loyalty_visits.find({"user_id": user["_id"]}).sort("validated_at", -1).limit(100):
         visits.append(serialize_doc(v))
     return visits
 
@@ -880,7 +880,7 @@ async def get_family_members(member_id: str, request: Request):
     if user["role"] not in ["super_admin", "admin"] and user.get("member_id") != member_id:
         raise HTTPException(status_code=403, detail="Acceso denegado")
     family = []
-    async for f in db.family_members.find({"member_id": member_id}):
+    async for f in db.family_members.find({"member_id": member_id}).limit(20):
         family.append(serialize_doc(f))
     return family
 
@@ -1044,7 +1044,7 @@ async def get_my_referral_code(request: Request):
         code = f"KT-{member['contract_number'].replace('KT-','')}-{str(uuid.uuid4())[:4].upper()}"
         await db.members.update_one({"_id": ObjectId(member_id)}, {"$set": {"referral_code": code}})
     referrals = []
-    async for r in db.referrals.find({"referrer_member_id": member_id}).sort("created_at", -1):
+    async for r in db.referrals.find({"referrer_member_id": member_id}).sort("created_at", -1).limit(100):
         referrals.append(serialize_doc(r))
     return {"code": code, "referrals": referrals, "total": len(referrals)}
 
@@ -1074,7 +1074,7 @@ async def submit_referral(code: str, req: ReferralSubmit):
 async def list_referrals(request: Request):
     user = await require_role("super_admin", "admin")(request)
     referrals = []
-    async for r in db.referrals.find().sort("created_at", -1):
+    async for r in db.referrals.find().sort("created_at", -1).limit(200):
         referrals.append(serialize_doc(r))
     return referrals
 
@@ -1136,7 +1136,7 @@ async def create_conversation(request: Request):
 async def get_messages(conv_id: str, request: Request):
     user = await get_current_user(request)
     messages = []
-    async for m in db.chat_messages.find({"conversation_id": conv_id}).sort("created_at", 1):
+    async for m in db.chat_messages.find({"conversation_id": conv_id}).sort("created_at", 1).limit(500):
         messages.append(serialize_doc(m))
     # Mark messages as read
     if user["role"] in ["super_admin", "admin"]:
@@ -1182,7 +1182,7 @@ async def list_countries():
 async def list_admin_users(request: Request):
     user = await require_role("super_admin")(request)
     users = []
-    async for u in db.users.find({"role": {"$in": ["super_admin", "admin"]}}).sort("created_at", -1):
+    async for u in db.users.find({"role": {"$in": ["super_admin", "admin"]}}).sort("created_at", -1).limit(100):
         u_doc = serialize_doc(u)
         u_doc.pop("password_hash", None)
         users.append(u_doc)
@@ -1192,7 +1192,7 @@ async def list_admin_users(request: Request):
 async def list_all_users(request: Request):
     user = await require_role("super_admin", "admin")(request)
     users = []
-    async for u in db.users.find().sort("created_at", -1):
+    async for u in db.users.find().sort("created_at", -1).limit(500):
         u_doc = serialize_doc(u)
         u_doc.pop("password_hash", None)
         users.append(u_doc)
