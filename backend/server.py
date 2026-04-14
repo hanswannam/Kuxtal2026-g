@@ -350,10 +350,8 @@ async def logout(response: Response):
 @api_router.get("/members")
 async def list_members(request: Request):
     user = await require_role("super_admin", "admin")(request)
-    members = await db.members.find({}, {"_id": 0, "id": {"$toString": "$_id"}}).to_list(1000)
-    # Manual serialization
     members_list = []
-    async for m in db.members.find():
+    async for m in db.members.find().limit(1000):
         members_list.append(serialize_doc(m))
     return members_list
 
@@ -460,7 +458,7 @@ async def list_quotations(request: Request):
     user = await get_current_user(request)
     if user["role"] in ["super_admin", "admin"]:
         quotations = []
-        async for q in db.quotations.find().sort("created_at", -1):
+        async for q in db.quotations.find().sort("created_at", -1).limit(200):
             quotations.append(serialize_doc(q))
         return quotations
     elif user["role"] == "member":
@@ -468,7 +466,7 @@ async def list_quotations(request: Request):
         if not member:
             return []
         quotations = []
-        async for q in db.quotations.find({"contract_number": member["contract_number"]}).sort("created_at", -1):
+        async for q in db.quotations.find({"contract_number": member["contract_number"]}).sort("created_at", -1).limit(50):
             quotations.append(serialize_doc(q))
         return quotations
     return []
@@ -1094,7 +1092,7 @@ async def list_conversations(request: Request):
     user = await get_current_user(request)
     if user["role"] in ["super_admin", "admin"]:
         convs = []
-        async for c in db.chat_conversations.find().sort("updated_at", -1):
+        async for c in db.chat_conversations.find().sort("updated_at", -1).limit(100):
             last_msg = await db.chat_messages.find_one({"conversation_id": str(c["_id"])}, sort=[("created_at", -1)])
             unread = await db.chat_messages.count_documents({"conversation_id": str(c["_id"]), "read_by_admin": False, "sender_role": "member"})
             conv = serialize_doc(c)
@@ -1105,7 +1103,7 @@ async def list_conversations(request: Request):
         return convs
     else:
         convs = []
-        async for c in db.chat_conversations.find({"user_id": user["_id"]}).sort("updated_at", -1):
+        async for c in db.chat_conversations.find({"user_id": user["_id"]}).sort("updated_at", -1).limit(50):
             last_msg = await db.chat_messages.find_one({"conversation_id": str(c["_id"])}, sort=[("created_at", -1)])
             unread = await db.chat_messages.count_documents({"conversation_id": str(c["_id"]), "read_by_member": False, "sender_role": {"$in": ["admin", "super_admin"]}})
             conv = serialize_doc(c)
