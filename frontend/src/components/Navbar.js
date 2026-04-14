@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/button';
-import { Menu, X, Plane, User, LogOut, LayoutDashboard } from 'lucide-react';
+import { Menu, X, User, LogOut, LayoutDashboard, Store } from 'lucide-react';
+
+const LOGO_URL = "https://customer-assets.emergentagent.com/job_vacation-club-portal/artifacts/ikgtmopq_logo%20kuxtal.avif";
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -30,7 +32,22 @@ export default function Navbar() {
     { to: '/search?category=alojamiento', label: 'Alojamientos' },
     { to: '/search?category=experiencia', label: 'Experiencias' },
     { to: '/search?category=paquete', label: 'Paquetes' },
+    { to: '/benefits', label: 'Beneficios' },
   ];
+
+  const getDashboardPath = () => {
+    if (!user || !user.role) return '/login';
+    if (user.role === 'member') return '/member';
+    if (user.role === 'commerce') return '/commerce-portal';
+    return '/admin';
+  };
+
+  const getDashboardLabel = () => {
+    if (!user || !user.role) return 'Acceder';
+    if (user.role === 'member') return 'Mi Portal';
+    if (user.role === 'commerce') return 'Mi Comercio';
+    return 'Admin';
+  };
 
   return (
     <nav
@@ -41,19 +58,18 @@ export default function Navbar() {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 lg:h-20">
-          {/* Logo */}
           <Link to="/" className="flex items-center gap-2 group" data-testid="nav-logo">
-            <Plane className={`w-7 h-7 transition-colors ${isTransparent ? 'text-white' : 'text-primary'}`} strokeWidth={1.5} />
-            <span className={`font-heading text-xl font-bold tracking-tight transition-colors ${isTransparent ? 'text-white' : 'text-foreground'}`}>
-              Kuxtal Travel
-            </span>
+            <img
+              src={LOGO_URL}
+              alt="Kuxtal Travel"
+              className={`h-10 lg:h-12 w-auto transition-all ${isTransparent ? 'brightness-0 invert' : ''}`}
+            />
           </Link>
 
-          {/* Desktop Links */}
           <div className="hidden lg:flex items-center gap-1">
             {navLinks.map(link => (
               <Link
-                key={link.to}
+                key={link.label}
                 to={link.to}
                 className={`px-4 py-2 text-sm font-medium rounded-full transition-all duration-200 hover:bg-primary/10 ${
                   isTransparent ? 'text-white/90 hover:text-white hover:bg-white/15' : 'text-foreground/70 hover:text-primary'
@@ -65,19 +81,18 @@ export default function Navbar() {
             ))}
           </div>
 
-          {/* Right Section */}
           <div className="hidden lg:flex items-center gap-3">
             {user && user.role ? (
               <>
-                <Link to={user.role === 'member' ? '/member' : '/admin'}>
+                <Link to={getDashboardPath()}>
                   <Button
                     variant={isTransparent ? 'outline' : 'secondary'}
                     size="sm"
                     className={`rounded-full ${isTransparent ? 'border-white/40 text-white hover:bg-white/15' : ''}`}
                     data-testid="nav-dashboard-btn"
                   >
-                    <LayoutDashboard className="w-4 h-4 mr-2" />
-                    {user.role === 'member' ? 'Mi Portal' : 'Admin'}
+                    {user.role === 'commerce' ? <Store className="w-4 h-4 mr-2" /> : <LayoutDashboard className="w-4 h-4 mr-2" />}
+                    {getDashboardLabel()}
                   </Button>
                 </Link>
                 <Button
@@ -106,7 +121,6 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Mobile Toggle */}
           <button
             className={`lg:hidden p-2 rounded-lg ${isTransparent ? 'text-white' : 'text-foreground'}`}
             onClick={() => setMobileOpen(!mobileOpen)}
@@ -117,27 +131,21 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile Menu */}
       {mobileOpen && (
         <div className="lg:hidden bg-white border-t border-border animate-fade-in">
           <div className="px-4 py-4 space-y-2">
             {navLinks.map(link => (
-              <Link
-                key={link.to}
-                to={link.to}
-                onClick={() => setMobileOpen(false)}
-                className="block px-4 py-3 text-sm font-medium rounded-xl hover:bg-secondary transition-colors"
-              >
+              <Link key={link.label} to={link.to} onClick={() => setMobileOpen(false)}
+                className="block px-4 py-3 text-sm font-medium rounded-xl hover:bg-secondary transition-colors">
                 {link.label}
               </Link>
             ))}
             <div className="pt-3 border-t border-border">
               {user && user.role ? (
                 <>
-                  <Link to={user.role === 'member' ? '/member' : '/admin'} onClick={() => setMobileOpen(false)}>
+                  <Link to={getDashboardPath()} onClick={() => setMobileOpen(false)}>
                     <Button className="w-full rounded-xl mb-2" data-testid="nav-mobile-dashboard">
-                      <LayoutDashboard className="w-4 h-4 mr-2" />
-                      {user.role === 'member' ? 'Mi Portal' : 'Admin'}
+                      <LayoutDashboard className="w-4 h-4 mr-2" /> {getDashboardLabel()}
                     </Button>
                   </Link>
                   <Button variant="outline" className="w-full rounded-xl" onClick={handleLogout} data-testid="nav-mobile-logout">

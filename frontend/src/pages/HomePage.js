@@ -3,9 +3,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { Search, MapPin, Star, Calendar, Users, Plane, ArrowRight, Shield, Heart, Globe } from 'lucide-react';
+import { Search, MapPin, Star, Calendar, Users, ArrowRight, Shield, Heart, Globe, Store, Gift, Plane } from 'lucide-react';
 
 const API = process.env.REACT_APP_BACKEND_URL;
+const LOGO_URL = "https://customer-assets.emergentagent.com/job_vacation-club-portal/artifacts/ikgtmopq_logo%20kuxtal.avif";
 
 export default function HomePage() {
   const [packages, setPackages] = useState([]);
@@ -209,14 +210,55 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Benefits / Commerce Section */}
+      <section className="py-20 bg-white" data-testid="benefits-section">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <p className="text-xs uppercase tracking-[0.2em] text-primary font-semibold mb-2">Beneficios Exclusivos</p>
+            <h2 className="font-heading text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight mb-4">
+              Descuentos en Comercios Aliados
+            </h2>
+            <p className="text-muted-foreground max-w-lg mx-auto text-sm">
+              Como socio, accede a descuentos y promociones especiales en restaurantes, spas, gimnasios y más
+            </p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+            {[
+              { icon: '🍽️', label: 'Restaurantes' },
+              { icon: '💆', label: 'Belleza' },
+              { icon: '🏋️', label: 'Deportes' },
+              { icon: '🐾', label: 'Mascotas' },
+              { icon: '🏥', label: 'Hospitales' },
+              { icon: '🎭', label: 'Entretenimiento' },
+            ].map((cat, i) => (
+              <Link
+                key={i}
+                to={`/benefits?category=${cat.label}`}
+                className="flex flex-col items-center p-4 rounded-2xl border border-border hover:border-primary/30 hover:bg-accent/30 transition-all group"
+                data-testid={`benefit-cat-${i}`}
+              >
+                <span className="text-3xl mb-2 group-hover:scale-110 transition-transform">{cat.icon}</span>
+                <span className="text-xs font-medium text-muted-foreground group-hover:text-primary transition-colors">{cat.label}</span>
+              </Link>
+            ))}
+          </div>
+          <div className="text-center">
+            <Link to="/benefits">
+              <Button className="rounded-full bg-primary hover:bg-primary/90 transition-all hover:-translate-y-0.5" data-testid="view-benefits-btn">
+                <Store className="w-4 h-4 mr-2" /> Ver Todos los Comercios
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="bg-foreground text-white py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <Plane className="w-6 h-6 text-primary" />
-                <span className="font-heading text-xl font-bold">Kuxtal Travel</span>
+                <img src={LOGO_URL} alt="Kuxtal Travel" className="h-10 w-auto brightness-0 invert" />
               </div>
               <p className="text-sm text-white/60 leading-relaxed">
                 "Kuxtal" significa "vida" en maya. Transformamos sueños en aventuras inolvidables.

@@ -12,6 +12,16 @@ import TripDetailPage from "./pages/TripDetailPage";
 import LoginPage from "./pages/LoginPage";
 import MemberDashboard from "./pages/MemberDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import BenefitsPage from "./pages/BenefitsPage";
+import CommerceDetailPage from "./pages/CommerceDetailPage";
+import CommercePortal from "./pages/CommercePortal";
+
+// Register service worker for PWA
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
 
 function App() {
   return (
@@ -27,9 +37,16 @@ function App() {
                 <Route path="/" element={<HomePage />} />
                 <Route path="/search" element={<SearchPage />} />
                 <Route path="/trip/:id" element={<TripDetailPage />} />
+                <Route path="/benefits" element={<BenefitsPage />} />
+                <Route path="/commerce/:id" element={<CommerceDetailPage />} />
                 <Route path="/member" element={
                   <ProtectedRoute roles={['member']}>
                     <MemberDashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/commerce-portal" element={
+                  <ProtectedRoute roles={['commerce']}>
+                    <CommercePortal />
                   </ProtectedRoute>
                 } />
                 <Route path="/admin" element={

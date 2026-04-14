@@ -4,16 +4,21 @@ import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { Plane, ArrowRight } from 'lucide-react';
+import { ArrowRight, Store } from 'lucide-react';
 import { toast } from 'sonner';
+import axios from 'axios';
+
+const LOGO_URL = "https://customer-assets.emergentagent.com/job_vacation-club-portal/artifacts/ikgtmopq_logo%20kuxtal.avif";
+const API = process.env.REACT_APP_BACKEND_URL;
 
 export default function LoginPage() {
-  const { loginAdmin, loginMember } = useAuth();
+  const { loginAdmin, loginMember, checkAuth } = useAuth();
   const navigate = useNavigate();
   const [mode, setMode] = useState('member');
   const [loading, setLoading] = useState(false);
   const [memberForm, setMemberForm] = useState({ contract_number: '', dpi: '' });
   const [adminForm, setAdminForm] = useState({ email: '', password: '' });
+  const [commerceForm, setCommerceForm] = useState({ commerce_id: '', code: '' });
 
   const handleMemberLogin = async (e) => {
     e.preventDefault();
@@ -43,9 +48,23 @@ export default function LoginPage() {
     setLoading(false);
   };
 
+  const handleCommerceLogin = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await axios.post(`${API}/api/auth/commerce-login`, commerceForm, { withCredentials: true });
+      await checkAuth();
+      toast.success('Bienvenido al portal de comercio');
+      navigate('/commerce-portal');
+    } catch (err) {
+      const detail = err.response?.data?.detail;
+      toast.error(typeof detail === 'string' ? detail : 'Código inválido');
+    }
+    setLoading(false);
+  };
+
   return (
     <div className="min-h-screen flex" data-testid="login-page">
-      {/* Left - Image */}
       <div className="hidden lg:flex lg:w-1/2 relative">
         <img
           src="https://images.pexels.com/photos/6875529/pexels-photo-6875529.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
@@ -54,103 +73,82 @@ export default function LoginPage() {
         />
         <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent" />
         <div className="absolute bottom-12 left-12 max-w-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <Plane className="w-6 h-6 text-white" />
-            <span className="font-heading text-xl font-bold text-white">Kuxtal Travel</span>
-          </div>
+          <img src={LOGO_URL} alt="Kuxtal Travel" className="h-14 w-auto mb-4 brightness-0 invert" />
           <h2 className="font-heading text-2xl text-white font-bold mb-2">Tu aventura comienza aquí</h2>
           <p className="text-white/70 text-sm">Accede a tu portal y descubre beneficios exclusivos como socio del club.</p>
         </div>
       </div>
 
-      {/* Right - Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12">
         <div className="w-full max-w-md">
           <Link to="/" className="lg:hidden flex items-center gap-2 mb-8">
-            <Plane className="w-6 h-6 text-primary" />
-            <span className="font-heading text-xl font-bold">Kuxtal Travel</span>
+            <img src={LOGO_URL} alt="Kuxtal Travel" className="h-10 w-auto" />
           </Link>
 
           <h1 className="font-heading text-3xl font-bold tracking-tight mb-2">Iniciar Sesión</h1>
           <p className="text-muted-foreground text-sm mb-8">Accede a tu cuenta para ver tus beneficios</p>
 
-          {/* Toggle */}
           <div className="flex bg-secondary rounded-xl p-1 mb-8" data-testid="login-mode-toggle">
-            <button
-              onClick={() => setMode('member')}
-              className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all ${mode === 'member' ? 'bg-white shadow-sm text-foreground' : 'text-muted-foreground'}`}
-              data-testid="login-mode-member"
-            >
-              Socio
-            </button>
-            <button
-              onClick={() => setMode('admin')}
-              className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all ${mode === 'admin' ? 'bg-white shadow-sm text-foreground' : 'text-muted-foreground'}`}
-              data-testid="login-mode-admin"
-            >
-              Administrador
-            </button>
+            {[
+              { id: 'member', label: 'Socio' },
+              { id: 'admin', label: 'Admin' },
+              { id: 'commerce', label: 'Comercio' },
+            ].map(m => (
+              <button
+                key={m.id}
+                onClick={() => setMode(m.id)}
+                className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all ${mode === m.id ? 'bg-white shadow-sm text-foreground' : 'text-muted-foreground'}`}
+                data-testid={`login-mode-${m.id}`}
+              >
+                {m.label}
+              </button>
+            ))}
           </div>
 
-          {mode === 'member' ? (
+          {mode === 'member' && (
             <form onSubmit={handleMemberLogin} className="space-y-5" data-testid="member-login-form">
               <div>
                 <Label className="text-sm font-medium">Número de Contrato</Label>
-                <Input
-                  value={memberForm.contract_number}
-                  onChange={e => setMemberForm({...memberForm, contract_number: e.target.value})}
-                  placeholder="Ej: KT-001"
-                  required
-                  className="mt-1.5 h-12 rounded-xl"
-                  data-testid="member-contract-input"
-                />
+                <Input value={memberForm.contract_number} onChange={e => setMemberForm({...memberForm, contract_number: e.target.value})} placeholder="Ej: KT-001" required className="mt-1.5 h-12 rounded-xl" data-testid="member-contract-input" />
               </div>
               <div>
                 <Label className="text-sm font-medium">DPI</Label>
-                <Input
-                  type="password"
-                  value={memberForm.dpi}
-                  onChange={e => setMemberForm({...memberForm, dpi: e.target.value})}
-                  placeholder="Ingresa tu DPI"
-                  required
-                  className="mt-1.5 h-12 rounded-xl"
-                  data-testid="member-dpi-input"
-                />
+                <Input type="password" value={memberForm.dpi} onChange={e => setMemberForm({...memberForm, dpi: e.target.value})} placeholder="Ingresa tu DPI" required className="mt-1.5 h-12 rounded-xl" data-testid="member-dpi-input" />
               </div>
               <Button type="submit" disabled={loading} className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-base font-semibold transition-all hover:-translate-y-0.5" data-testid="member-login-btn">
-                {loading ? 'Ingresando...' : 'Ingresar'}
-                {!loading && <ArrowRight className="w-4 h-4 ml-2" />}
+                {loading ? 'Ingresando...' : 'Ingresar'} {!loading && <ArrowRight className="w-4 h-4 ml-2" />}
               </Button>
             </form>
-          ) : (
+          )}
+
+          {mode === 'admin' && (
             <form onSubmit={handleAdminLogin} className="space-y-5" data-testid="admin-login-form">
               <div>
                 <Label className="text-sm font-medium">Email</Label>
-                <Input
-                  type="email"
-                  value={adminForm.email}
-                  onChange={e => setAdminForm({...adminForm, email: e.target.value})}
-                  placeholder="admin@kuxtaltravels.com"
-                  required
-                  className="mt-1.5 h-12 rounded-xl"
-                  data-testid="admin-email-input"
-                />
+                <Input type="email" value={adminForm.email} onChange={e => setAdminForm({...adminForm, email: e.target.value})} placeholder="admin@kuxtaltravels.com" required className="mt-1.5 h-12 rounded-xl" data-testid="admin-email-input" />
               </div>
               <div>
                 <Label className="text-sm font-medium">Contraseña</Label>
-                <Input
-                  type="password"
-                  value={adminForm.password}
-                  onChange={e => setAdminForm({...adminForm, password: e.target.value})}
-                  placeholder="Tu contraseña"
-                  required
-                  className="mt-1.5 h-12 rounded-xl"
-                  data-testid="admin-password-input"
-                />
+                <Input type="password" value={adminForm.password} onChange={e => setAdminForm({...adminForm, password: e.target.value})} placeholder="Tu contraseña" required className="mt-1.5 h-12 rounded-xl" data-testid="admin-password-input" />
               </div>
               <Button type="submit" disabled={loading} className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-base font-semibold transition-all hover:-translate-y-0.5" data-testid="admin-login-btn">
-                {loading ? 'Ingresando...' : 'Ingresar'}
-                {!loading && <ArrowRight className="w-4 h-4 ml-2" />}
+                {loading ? 'Ingresando...' : 'Ingresar'} {!loading && <ArrowRight className="w-4 h-4 ml-2" />}
+              </Button>
+            </form>
+          )}
+
+          {mode === 'commerce' && (
+            <form onSubmit={handleCommerceLogin} className="space-y-5" data-testid="commerce-login-form">
+              <div>
+                <Label className="text-sm font-medium">ID del Comercio</Label>
+                <Input value={commerceForm.commerce_id} onChange={e => setCommerceForm({...commerceForm, commerce_id: e.target.value})} placeholder="ID proporcionado por administración" required className="mt-1.5 h-12 rounded-xl" data-testid="commerce-id-input" />
+              </div>
+              <div>
+                <Label className="text-sm font-medium">Código de Acceso</Label>
+                <Input type="password" value={commerceForm.code} onChange={e => setCommerceForm({...commerceForm, code: e.target.value})} placeholder="Código de validación" required className="mt-1.5 h-12 rounded-xl" data-testid="commerce-code-input" />
+              </div>
+              <Button type="submit" disabled={loading} className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-base font-semibold transition-all hover:-translate-y-0.5" data-testid="commerce-login-btn">
+                <Store className="w-4 h-4 mr-2" /> {loading ? 'Ingresando...' : 'Acceder al Portal'}
               </Button>
             </form>
           )}

@@ -8,7 +8,8 @@ import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
 import {
   LayoutDashboard, Users, Package, FileText, Bell, MessageSquare, Settings,
-  Plus, Trash2, Edit, Eye, Search, X, Send, Phone, CheckCircle2, Clock, BarChart3
+  Plus, Trash2, Edit, Eye, Search, X, Send, Phone, CheckCircle2, Clock, BarChart3,
+  Store, Upload, Image
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -25,6 +26,13 @@ export default function AdminDashboard() {
   const [announcements, setAnnouncements] = useState([]);
   const [vacationReqs, setVacationReqs] = useState([]);
   const [whatsappPhone, setWhatsappPhone] = useState('');
+  const [commerces, setCommerces] = useState([]);
+  const [showCommerceForm, setShowCommerceForm] = useState(false);
+  const [commerceForm, setCommerceForm] = useState({ name: '', description: '', category: 'Servicios', location: '', phone: '', email: '', website: '', logo_url: '', benefit_description: '', validation_code: '', status: 'active' });
+  const [commerceCategories, setCommerceCategories] = useState([]);
+  const [pushForm, setPushForm] = useState({ title: '', message: '', link: '/' });
+  const [pushHistory, setPushHistory] = useState([]);
+  const [uploading, setUploading] = useState(false);
 
   // Modals
   const [showMemberForm, setShowMemberForm] = useState(false);
@@ -49,6 +57,10 @@ export default function AdminDashboard() {
       setStats(s.data); setMembers(m.data); setPackages(p.data);
       setQuotations(q.data); setAnnouncements(a.data); setVacationReqs(v.data);
       setWhatsappPhone(w.data.phone || '');
+      // Load commerce data
+      ax.get('/commerce').then(r => setCommerces(r.data)).catch(() => {});
+      ax.get('/commerce/categories').then(r => setCommerceCategories(r.data)).catch(() => {});
+      ax.get('/push/history').then(r => setPushHistory(r.data)).catch(() => {});
     } catch (e) { console.error(e); }
   }, []);
 
@@ -120,6 +132,44 @@ export default function AdminDashboard() {
     toast.success('WhatsApp actualizado');
   };
 
+  // Commerce CRUD
+  const saveCommerce = async (e) => {
+    e.preventDefault();
+    await ax.post('/commerce', commerceForm);
+    toast.success('Comercio creado');
+    setShowCommerceForm(false);
+    setCommerceForm({ name: '', description: '', category: 'Servicios', location: '', phone: '', email: '', website: '', logo_url: '', benefit_description: '', validation_code: '', status: 'active' });
+    loadData();
+  };
+  const deleteCommerce = async (id) => { if (window.confirm('¿Eliminar comercio?')) { await ax.delete(`/commerce/${id}`); loadData(); toast.success('Eliminado'); }};
+
+  // Push Notifications
+  const sendPush = async (e) => {
+    e.preventDefault();
+    const { data } = await ax.post('/push/send', pushForm);
+    toast.success(data.message);
+    setPushForm({ title: '', message: '', link: '/' });
+    ax.get('/push/history').then(r => setPushHistory(r.data)).catch(() => {});
+  };
+
+  // Image Upload
+  const handleImageUpload = async (e, callback) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const { data } = await ax.post('/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const imageUrl = `${API}/api/files/${data.path}`;
+      callback(imageUrl);
+      toast.success('Imagen subida');
+    } catch (err) {
+      toast.error('Error al subir imagen');
+    }
+    setUploading(false);
+  };
+
   // Vacation request status
   const updateReqStatus = async (id, status) => {
     await ax.put(`/vacation-requests/${id}/status`, { status });
@@ -131,10 +181,12 @@ export default function AdminDashboard() {
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'members', label: 'Socios', icon: Users },
     { id: 'packages', label: 'Paquetes', icon: Package },
+    { id: 'commerce', label: 'Comercios', icon: Store },
     { id: 'quotations', label: 'Cotizaciones', icon: FileText },
     { id: 'announcements', label: 'Anuncios', icon: Bell },
+    { id: 'push', label: 'Push', icon: Send },
     { id: 'requests', label: 'Solicitudes', icon: MessageSquare },
-    { id: 'settings', label: 'Configuración', icon: Settings },
+    { id: 'settings', label: 'Config', icon: Settings },
   ];
 
   return (
@@ -320,7 +372,18 @@ export default function AdminDashboard() {
                       <div><Label className="text-xs">Precio Socio</Label><Input type="number" value={packageForm.member_price} onChange={e => setPackageForm({...packageForm, member_price: e.target.value})} className="rounded-xl mt-1" data-testid="pf-member-price" /></div>
                       <div><Label className="text-xs">Días</Label><Input type="number" value={packageForm.duration_days} onChange={e => setPackageForm({...packageForm, duration_days: e.target.value})} className="rounded-xl mt-1" data-testid="pf-days" /></div>
                     </div>
-                    <div><Label className="text-xs">URL Imagen</Label><Input value={packageForm.image_url} onChange={e => setPackageForm({...packageForm, image_url: e.target.value})} className="rounded-xl mt-1" data-testid="pf-image" /></div>
+                    <div>
+                      <Label className="text-xs">URL Imagen</Label>
+                      <div className="flex gap-2 mt-1">
+                        <Input value={packageForm.image_url} onChange={e => setPackageForm({...packageForm, image_url: e.target.value})} className="rounded-xl" data-testid="pf-image" placeholder="URL o sube imagen" />
+                        <label className="shrink-0">
+                          <input type="file" accept="image/*" className="hidden" onChange={e => handleImageUpload(e, url => setPackageForm({...packageForm, image_url: url}))} />
+                          <Button type="button" variant="outline" size="sm" className="rounded-xl h-10" disabled={uploading} asChild>
+                            <span><Upload className="w-4 h-4" /></span>
+                          </Button>
+                        </label>
+                      </div>
+                    </div>
                     {/* Includes */}
                     <div>
                       <Label className="text-xs">Incluye</Label>
@@ -465,6 +528,102 @@ export default function AdminDashboard() {
                 )}
               </div>
             ))}
+          </div>
+        )}
+
+        {/* COMMERCE */}
+        {tab === 'commerce' && (
+          <div className="animate-fade-in">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="font-heading text-lg font-semibold">Comercios ({commerces.length})</h2>
+              <Button onClick={() => setShowCommerceForm(true)} className="rounded-full" data-testid="add-commerce-btn">
+                <Plus className="w-4 h-4 mr-2" /> Nuevo Comercio
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {commerces.map((c, i) => (
+                <div key={c._id} className="bg-white rounded-2xl p-5 border border-border" data-testid={`admin-commerce-${i}`}>
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <h3 className="font-semibold">{c.name}</h3>
+                      <Badge variant="secondary" className="rounded-full text-xs mt-1">{c.category}</Badge>
+                    </div>
+                    <Button size="sm" variant="ghost" onClick={() => deleteCommerce(c._id)} className="text-destructive"><Trash2 className="w-3.5 h-3.5" /></Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{c.description}</p>
+                  <p className="text-xs text-muted-foreground">{c.location}</p>
+                  <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
+                    <span className="text-xs font-mono font-bold text-primary">{c.validation_code}</span>
+                    <span className="text-xs text-muted-foreground">ID: {c._id?.slice(-8)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {showCommerceForm && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in" data-testid="commerce-form-modal">
+                <div className="bg-white rounded-2xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+                  <h3 className="font-heading text-xl font-semibold mb-4">Nuevo Comercio</h3>
+                  <form onSubmit={saveCommerce} className="space-y-3">
+                    <div><Label className="text-xs">Nombre</Label><Input value={commerceForm.name} onChange={e => setCommerceForm({...commerceForm, name: e.target.value})} required className="rounded-xl mt-1" data-testid="cf-name" /></div>
+                    <div><Label className="text-xs">Descripción</Label><Textarea value={commerceForm.description} onChange={e => setCommerceForm({...commerceForm, description: e.target.value})} className="rounded-xl mt-1" data-testid="cf-desc" /></div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-xs">Categoría</Label>
+                        <select value={commerceForm.category} onChange={e => setCommerceForm({...commerceForm, category: e.target.value})} className="w-full mt-1 h-10 rounded-xl border border-input px-3 text-sm" data-testid="cf-category">
+                          {commerceCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                        </select>
+                      </div>
+                      <div><Label className="text-xs">Ubicación</Label><Input value={commerceForm.location} onChange={e => setCommerceForm({...commerceForm, location: e.target.value})} className="rounded-xl mt-1" data-testid="cf-location" /></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div><Label className="text-xs">Teléfono</Label><Input value={commerceForm.phone} onChange={e => setCommerceForm({...commerceForm, phone: e.target.value})} className="rounded-xl mt-1" data-testid="cf-phone" /></div>
+                      <div><Label className="text-xs">Email</Label><Input value={commerceForm.email} onChange={e => setCommerceForm({...commerceForm, email: e.target.value})} className="rounded-xl mt-1" data-testid="cf-email" /></div>
+                    </div>
+                    <div><Label className="text-xs">Beneficio para Socios</Label><Textarea value={commerceForm.benefit_description} onChange={e => setCommerceForm({...commerceForm, benefit_description: e.target.value})} placeholder="Ej: 20% de descuento en consumo" className="rounded-xl mt-1" data-testid="cf-benefit" /></div>
+                    <div><Label className="text-xs">Código de Validación (se genera automáticamente si se deja vacío)</Label><Input value={commerceForm.validation_code} onChange={e => setCommerceForm({...commerceForm, validation_code: e.target.value.toUpperCase()})} placeholder="Ej: MICOMERCIO01" className="rounded-xl mt-1 font-mono" data-testid="cf-code" /></div>
+                    <div className="flex gap-3 pt-2">
+                      <Button type="button" variant="outline" onClick={() => setShowCommerceForm(false)} className="flex-1 rounded-xl">Cancelar</Button>
+                      <Button type="submit" className="flex-1 rounded-xl bg-primary hover:bg-primary/90" data-testid="cf-submit">Crear</Button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* PUSH NOTIFICATIONS */}
+        {tab === 'push' && (
+          <div className="space-y-6 animate-fade-in" data-testid="admin-push">
+            <div className="max-w-md">
+              <h2 className="font-heading text-lg font-semibold mb-4">Enviar Notificación Push</h2>
+              <form onSubmit={sendPush} className="bg-white rounded-2xl p-6 border border-border space-y-3">
+                <div><Label className="text-xs">Título</Label><Input value={pushForm.title} onChange={e => setPushForm({...pushForm, title: e.target.value})} required placeholder="Kuxtal Travel" className="rounded-xl mt-1" data-testid="push-title" /></div>
+                <div><Label className="text-xs">Mensaje</Label><Textarea value={pushForm.message} onChange={e => setPushForm({...pushForm, message: e.target.value})} required placeholder="Tu mensaje aquí..." className="rounded-xl mt-1" data-testid="push-message" /></div>
+                <div><Label className="text-xs">Enlace</Label><Input value={pushForm.link} onChange={e => setPushForm({...pushForm, link: e.target.value})} placeholder="/" className="rounded-xl mt-1" data-testid="push-link" /></div>
+                <Button type="submit" className="w-full rounded-xl bg-primary hover:bg-primary/90" data-testid="push-send-btn"><Send className="w-4 h-4 mr-2" /> Enviar Notificación</Button>
+              </form>
+            </div>
+            {pushHistory.length > 0 && (
+              <div>
+                <h3 className="font-heading text-lg font-semibold mb-3">Historial</h3>
+                <div className="space-y-2">
+                  {pushHistory.map((n, i) => (
+                    <div key={n._id} className="bg-white rounded-xl p-4 border border-border" data-testid={`push-history-${i}`}>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-medium text-sm">{n.title}</p>
+                          <p className="text-xs text-muted-foreground">{n.message}</p>
+                        </div>
+                        <Badge variant="secondary" className="rounded-full text-xs">{n.recipients_count} destinatarios</Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">{new Date(n.sent_at).toLocaleString('es')}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 

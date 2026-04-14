@@ -187,6 +187,49 @@ class VacationRequestCreate(BaseModel):
 class WhatsAppConfig(BaseModel):
     phone: str
 
+# ── Commerce Models ──
+
+COMMERCE_CATEGORIES = [
+    "Restaurantes", "Mascotas", "Hospitales", "Servicios",
+    "Belleza", "Deportes", "Tecnología", "Educación",
+    "Moda Mujer", "Moda Hombre", "Hogar", "Entretenimiento"
+]
+
+class CommerceCreate(BaseModel):
+    name: str
+    description: Optional[str] = ""
+    category: str = "Servicios"
+    location: Optional[str] = ""
+    phone: Optional[str] = ""
+    email: Optional[str] = ""
+    website: Optional[str] = ""
+    logo_url: Optional[str] = ""
+    benefit_description: Optional[str] = ""
+    validation_code: Optional[str] = ""
+    status: str = "active"
+
+class CommercePromotionCreate(BaseModel):
+    title: str
+    description: Optional[str] = ""
+    image_url: Optional[str] = ""
+    start_date: str
+    end_date: str
+    status: str = "active"
+
+class ScratchCardCreate(BaseModel):
+    front_image_url: Optional[str] = ""
+    prize_image_url: Optional[str] = ""
+    lose_image_url: Optional[str] = ""
+    prize_text: str = "Ganaste un premio"
+    lose_text: str = "Sigue intentando"
+    frequency_type: str = "percentage"
+    frequency_value: int = 20
+    active: bool = True
+
+class PushSubscription(BaseModel):
+    endpoint: str
+    keys: dict
+
 # ── Auth Routes ──
 
 @api_router.post("/auth/login")
@@ -241,6 +284,10 @@ async def get_me(request: Request):
         member = await db.members.find_one({"_id": ObjectId(user["member_id"])})
         if member:
             user["member"] = serialize_doc(member)
+    if user.get("role") == "commerce" and user.get("commerce_id"):
+        commerce = await db.commerce.find_one({"_id": ObjectId(user["commerce_id"])})
+        if commerce:
+            user["commerce"] = serialize_doc(commerce)
     return user
 
 @api_router.post("/auth/logout")
@@ -477,13 +524,13 @@ async def set_whatsapp_config(req: WhatsAppConfig, request: Request):
 # ── File Upload ──
 
 @api_router.post("/upload")
-async def upload_file(file: UploadFile = File(...), request: Request = None):
+async def upload_file(file: UploadFile = File(...)):
     ext = file.filename.split(".")[-1] if "." in file.filename else "bin"
     path = f"{APP_NAME}/uploads/{uuid.uuid4()}.{ext}"
     data = await file.read()
     content_type = file.content_type or "application/octet-stream"
     result = put_object(path, data, content_type)
-    await db.files.insert_one({
+    file_doc = {
         "id": str(uuid.uuid4()),
         "storage_path": result["path"],
         "original_filename": file.filename,
@@ -491,7 +538,8 @@ async def upload_file(file: UploadFile = File(...), request: Request = None):
         "size": result.get("size", len(data)),
         "is_deleted": False,
         "created_at": datetime.now(timezone.utc).isoformat()
-    })
+    }
+    await db.files.insert_one(file_doc)
     return {"path": result["path"], "url": f"/api/files/{result['path']}"}
 
 @api_router.get("/files/{path:path}")
@@ -501,6 +549,274 @@ async def serve_file(path: str):
         raise HTTPException(status_code=404, detail="Archivo no encontrado")
     data, content_type = get_object(path)
     return Response(content=data, media_type=record.get("content_type", content_type))
+
+# ── Commerce CRUD ──
+
+@api_router.get("/commerce/categories")
+async def get_commerce_categories():
+    return COMMERCE_CATEGORIES
+
+@api_router.get("/commerce")
+async def list_commerce(category: Optional[str] = None, search: Optional[str] = None):
+    query = {"status": "active"}
+    if category:
+        query["category"] = category
+    if search:
+        query["$or"] = [
+            {"name": {"$regex": search, "$options": "i"}},
+            {"description": {"$regex": search, "$options": "i"}}
+        ]
+    results = []
+    async for c in db.commerce.find(query).sort("name", 1):
+        results.append(serialize_doc(c))
+    return results
+
+@api_router.get("/commerce/{commerce_id}")
+async def get_commerce(commerce_id: str):
+    c = await db.commerce.find_one({"_id": ObjectId(commerce_id)})
+    if not c:
+        raise HTTPException(status_code=404, detail="Comercio no encontrado")
+    return serialize_doc(c)
+
+@api_router.post("/commerce")
+async def create_commerce(req: CommerceCreate, request: Request):
+    user = await require_role("super_admin", "admin")(request)
+    doc = req.model_dump()
+    doc["created_at"] = datetime.now(timezone.utc).isoformat()
+    doc["created_by"] = user["_id"]
+    if not doc["validation_code"]:
+        doc["validation_code"] = str(uuid.uuid4())[:8].upper()
+    result = await db.commerce.insert_one(doc)
+    doc["_id"] = str(result.inserted_id)
+    # Create commerce user account
+    commerce_email = f"commerce_{result.inserted_id}@kuxtal.commerce"
+    existing_user = await db.users.find_one({"email": commerce_email})
+    if not existing_user:
+        await db.users.insert_one({
+            "email": commerce_email,
+            "password_hash": hash_password(doc["validation_code"]),
+            "name": doc["name"],
+            "role": "commerce",
+            "commerce_id": str(result.inserted_id),
+            "created_at": datetime.now(timezone.utc).isoformat()
+        })
+    return doc
+
+@api_router.put("/commerce/{commerce_id}")
+async def update_commerce(commerce_id: str, req: CommerceCreate, request: Request):
+    user = await get_current_user(request)
+    if user["role"] not in ["super_admin", "admin"] and user.get("commerce_id") != commerce_id:
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    update_data = req.model_dump()
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db.commerce.update_one({"_id": ObjectId(commerce_id)}, {"$set": update_data})
+    updated = await db.commerce.find_one({"_id": ObjectId(commerce_id)})
+    return serialize_doc(updated)
+
+@api_router.delete("/commerce/{commerce_id}")
+async def delete_commerce(commerce_id: str, request: Request):
+    user = await require_role("super_admin", "admin")(request)
+    await db.commerce.update_one({"_id": ObjectId(commerce_id)}, {"$set": {"status": "inactive"}})
+    return {"message": "Comercio eliminado"}
+
+# ── Commerce Promotions ──
+
+@api_router.get("/commerce/{commerce_id}/promotions")
+async def list_commerce_promotions(commerce_id: str):
+    promos = []
+    now = datetime.now(timezone.utc).isoformat()
+    async for p in db.commerce_promotions.find({"commerce_id": commerce_id, "status": "active"}).sort("created_at", -1):
+        promos.append(serialize_doc(p))
+    return promos
+
+@api_router.post("/commerce/{commerce_id}/promotions")
+async def create_commerce_promotion(commerce_id: str, req: CommercePromotionCreate, request: Request):
+    user = await get_current_user(request)
+    if user["role"] not in ["super_admin", "admin"] and user.get("commerce_id") != commerce_id:
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    doc = req.model_dump()
+    doc["commerce_id"] = commerce_id
+    doc["created_at"] = datetime.now(timezone.utc).isoformat()
+    result = await db.commerce_promotions.insert_one(doc)
+    doc["_id"] = str(result.inserted_id)
+    return doc
+
+@api_router.delete("/commerce/{commerce_id}/promotions/{promo_id}")
+async def delete_commerce_promotion(commerce_id: str, promo_id: str, request: Request):
+    user = await get_current_user(request)
+    if user["role"] not in ["super_admin", "admin"] and user.get("commerce_id") != commerce_id:
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    await db.commerce_promotions.update_one({"_id": ObjectId(promo_id)}, {"$set": {"status": "inactive"}})
+    return {"message": "Promoción eliminada"}
+
+# ── Scratch Card System ──
+
+@api_router.get("/commerce/{commerce_id}/scratch-card")
+async def get_scratch_card(commerce_id: str):
+    card = await db.scratch_cards.find_one({"commerce_id": commerce_id, "active": True})
+    if card:
+        return serialize_doc(card)
+    return None
+
+@api_router.post("/commerce/{commerce_id}/scratch-card")
+async def create_scratch_card(commerce_id: str, req: ScratchCardCreate, request: Request):
+    user = await get_current_user(request)
+    if user["role"] not in ["super_admin", "admin"] and user.get("commerce_id") != commerce_id:
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    await db.scratch_cards.update_many({"commerce_id": commerce_id}, {"$set": {"active": False}})
+    doc = req.model_dump()
+    doc["commerce_id"] = commerce_id
+    doc["created_at"] = datetime.now(timezone.utc).isoformat()
+    result = await db.scratch_cards.insert_one(doc)
+    doc["_id"] = str(result.inserted_id)
+    return doc
+
+@api_router.post("/commerce/{commerce_id}/scratch-card/play")
+async def play_scratch_card(commerce_id: str, request: Request):
+    user = await get_current_user(request)
+    card = await db.scratch_cards.find_one({"commerce_id": commerce_id, "active": True})
+    if not card:
+        raise HTTPException(status_code=404, detail="No hay raspable activo")
+    attempts = await db.scratch_attempts.count_documents({"commerce_id": commerce_id, "user_id": user["_id"]})
+    import random
+    won = False
+    if card["frequency_type"] == "percentage":
+        won = random.randint(1, 100) <= card["frequency_value"]
+    elif card["frequency_type"] == "after_attempts":
+        won = (attempts + 1) % card["frequency_value"] == 0
+    await db.scratch_attempts.insert_one({
+        "commerce_id": commerce_id,
+        "user_id": user["_id"],
+        "user_name": user.get("name", ""),
+        "won": won,
+        "scratch_card_id": str(card["_id"]),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    return {"won": won, "message": card["prize_text"] if won else card["lose_text"], "attempts": attempts + 1}
+
+# ── Loyalty / Visit Validation ──
+
+@api_router.post("/commerce/{commerce_id}/validate")
+async def validate_visit(commerce_id: str, request: Request):
+    body = await request.json()
+    code = body.get("code", "")
+    commerce = await db.commerce.find_one({"_id": ObjectId(commerce_id)})
+    if not commerce:
+        raise HTTPException(status_code=404, detail="Comercio no encontrado")
+    if commerce.get("validation_code", "") != code:
+        raise HTTPException(status_code=400, detail="Código inválido")
+    user = await get_current_user(request)
+    visit = {
+        "commerce_id": commerce_id,
+        "commerce_name": commerce["name"],
+        "user_id": user["_id"],
+        "user_name": user.get("name", ""),
+        "validated_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.loyalty_visits.insert_one(visit)
+    total_visits = await db.loyalty_visits.count_documents({"commerce_id": commerce_id, "user_id": user["_id"]})
+    return {"message": "Visita validada", "total_visits": total_visits}
+
+@api_router.get("/commerce/{commerce_id}/visits")
+async def get_commerce_visits(commerce_id: str, request: Request):
+    user = await get_current_user(request)
+    if user["role"] in ["super_admin", "admin"] or user.get("commerce_id") == commerce_id:
+        visits = []
+        async for v in db.loyalty_visits.find({"commerce_id": commerce_id}).sort("validated_at", -1):
+            visits.append(serialize_doc(v))
+        return visits
+    visits = []
+    async for v in db.loyalty_visits.find({"commerce_id": commerce_id, "user_id": user["_id"]}).sort("validated_at", -1):
+        visits.append(serialize_doc(v))
+    return visits
+
+@api_router.get("/member/visits")
+async def get_member_visits(request: Request):
+    user = await get_current_user(request)
+    visits = []
+    async for v in db.loyalty_visits.find({"user_id": user["_id"]}).sort("validated_at", -1):
+        visits.append(serialize_doc(v))
+    return visits
+
+# ── Push Notifications ──
+
+@api_router.post("/push/subscribe")
+async def push_subscribe(req: PushSubscription, request: Request):
+    user = await get_current_user(request)
+    existing = await db.push_subscriptions.find_one({"endpoint": req.endpoint})
+    if existing:
+        await db.push_subscriptions.update_one({"endpoint": req.endpoint}, {"$set": {"user_id": user["_id"], "keys": req.keys, "updated_at": datetime.now(timezone.utc).isoformat()}})
+    else:
+        await db.push_subscriptions.insert_one({"endpoint": req.endpoint, "keys": req.keys, "user_id": user["_id"], "created_at": datetime.now(timezone.utc).isoformat()})
+    return {"message": "Suscripción guardada"}
+
+@api_router.post("/push/send")
+async def send_push(request: Request):
+    user = await require_role("super_admin", "admin")(request)
+    body = await request.json()
+    title = body.get("title", "Kuxtal Travel")
+    message = body.get("message", "")
+    link = body.get("link", "/")
+    subs = await db.push_subscriptions.find().to_list(10000)
+    notification = {
+        "title": title,
+        "message": message,
+        "link": link,
+        "sent_by": user["_id"],
+        "sent_at": datetime.now(timezone.utc).isoformat(),
+        "recipients_count": len(subs)
+    }
+    await db.push_notifications.insert_one(notification)
+    return {"message": f"Notificación enviada a {len(subs)} suscriptores", "count": len(subs)}
+
+@api_router.get("/push/history")
+async def push_history(request: Request):
+    user = await require_role("super_admin", "admin")(request)
+    notifs = []
+    async for n in db.push_notifications.find().sort("sent_at", -1).limit(50):
+        notifs.append(serialize_doc(n))
+    return notifs
+
+# ── Commerce Auth (login with commerce email) ──
+
+@api_router.post("/auth/commerce-login")
+async def commerce_login(request: Request, response: Response):
+    body = await request.json()
+    commerce_id = body.get("commerce_id", "")
+    code = body.get("code", "")
+    commerce = await db.commerce.find_one({"_id": ObjectId(commerce_id)})
+    if not commerce:
+        raise HTTPException(status_code=401, detail="Comercio no encontrado")
+    if commerce.get("validation_code", "") != code:
+        raise HTTPException(status_code=401, detail="Código inválido")
+    user = await db.users.find_one({"commerce_id": str(commerce["_id"]), "role": "commerce"})
+    if not user:
+        raise HTTPException(status_code=401, detail="Cuenta de comercio no encontrada")
+    user_id = str(user["_id"])
+    access_token = create_access_token(user_id, "commerce")
+    refresh_token = create_refresh_token(user_id)
+    response.set_cookie(key="access_token", value=access_token, httponly=True, secure=False, samesite="lax", max_age=86400, path="/")
+    response.set_cookie(key="refresh_token", value=refresh_token, httponly=True, secure=False, samesite="lax", max_age=604800, path="/")
+    commerce_data = serialize_doc(commerce)
+    return {"id": user_id, "name": commerce["name"], "role": "commerce", "commerce_id": str(commerce["_id"]), "commerce": commerce_data, "token": access_token}
+
+# ── Quotation sharing helpers ──
+
+@api_router.get("/quotations/{quotation_id}/share")
+async def get_quotation_share(quotation_id: str, request: Request):
+    q = await db.quotations.find_one({"_id": ObjectId(quotation_id)})
+    if not q:
+        raise HTTPException(status_code=404, detail="Cotización no encontrada")
+    q_data = serialize_doc(q)
+    whatsapp_config = await db.config.find_one({"key": "whatsapp"})
+    wa_phone = whatsapp_config.get("phone", "") if whatsapp_config else ""
+    share_text = f"Cotización Kuxtal Travel: {q_data.get('response', 'Pendiente')}"
+    return {
+        "quotation": q_data,
+        "whatsapp_url": f"https://wa.me/{wa_phone.replace(' ', '').replace('-', '')}?text={share_text}" if wa_phone else "",
+        "email_subject": f"Cotización Kuxtal Travel #{quotation_id[-6:]}",
+        "email_body": q_data.get("response_html", q_data.get("response", ""))
+    }
 
 # ── Stats ──
 
@@ -519,7 +835,8 @@ async def get_stats(request: Request):
         "total_packages": total_packages,
         "pending_quotations": pending_quotations,
         "pending_requests": pending_requests,
-        "total_announcements": total_announcements
+        "total_announcements": total_announcements,
+        "total_commerce": await db.commerce.count_documents({"status": "active"})
     }
 
 # ── Countries list ──
@@ -709,6 +1026,7 @@ async def seed_sample_data():
 async def startup():
     await seed_admin()
     await seed_sample_data()
+    await seed_commerce_data()
     try:
         init_storage()
         logger.info("Storage initialized")
@@ -716,7 +1034,30 @@ async def startup():
         logger.error(f"Storage init failed: {e}")
     await db.users.create_index("email", unique=True)
     await db.members.create_index("contract_number", unique=True)
+    await db.commerce.create_index("name")
+    await db.push_subscriptions.create_index("endpoint", unique=True)
     logger.info("Kuxtal Travel API started")
+
+async def seed_commerce_data():
+    count = await db.commerce.count_documents({})
+    if count == 0:
+        sample_commerce = [
+            {"name": "La Parrilla Gaucha", "description": "Restaurante de carnes premium con cortes argentinos y ambiente familiar", "category": "Restaurantes", "location": "Zona 10, Guatemala City", "phone": "+502 2334-5678", "email": "info@parrillagucha.gt", "benefit_description": "15% de descuento en consumo para socios Kuxtal", "validation_code": "GAUCHA01", "logo_url": "", "status": "active", "created_at": datetime.now(timezone.utc).isoformat()},
+            {"name": "Pet Care Center", "description": "Centro veterinario y spa para mascotas con servicio 24/7", "category": "Mascotas", "location": "Zona 14, Guatemala City", "phone": "+502 2445-6789", "email": "info@petcare.gt", "benefit_description": "20% en consultas y 10% en productos", "validation_code": "PETCAR01", "logo_url": "", "status": "active", "created_at": datetime.now(timezone.utc).isoformat()},
+            {"name": "Spa Relax & Beauty", "description": "Spa de lujo con tratamientos faciales, masajes y aromaterapia", "category": "Belleza", "location": "Zona 15, Guatemala City", "phone": "+502 2556-7890", "email": "info@sparelax.gt", "benefit_description": "25% en todos los tratamientos para socios", "validation_code": "SPAREX01", "logo_url": "", "status": "active", "created_at": datetime.now(timezone.utc).isoformat()},
+            {"name": "FitLife Gym", "description": "Gimnasio completo con clases grupales, piscina y entrenadores personales", "category": "Deportes", "location": "Zona 11, Guatemala City", "phone": "+502 2667-8901", "email": "info@fitlife.gt", "benefit_description": "Membresía con 30% de descuento para socios Kuxtal", "validation_code": "FITLIF01", "logo_url": "", "status": "active", "created_at": datetime.now(timezone.utc).isoformat()},
+        ]
+        await db.commerce.insert_many(sample_commerce)
+        logger.info("Sample commerce seeded")
+        # Create commerce user accounts
+        for c in await db.commerce.find().to_list(100):
+            commerce_email = f"commerce_{c['_id']}@kuxtal.commerce"
+            existing_user = await db.users.find_one({"email": commerce_email})
+            if not existing_user:
+                try:
+                    await db.users.insert_one({"email": commerce_email, "password_hash": hash_password(c.get("validation_code", "12345")), "name": c["name"], "role": "commerce", "commerce_id": str(c["_id"]), "created_at": datetime.now(timezone.utc).isoformat()})
+                except Exception:
+                    pass
 
 app.include_router(api_router)
 
