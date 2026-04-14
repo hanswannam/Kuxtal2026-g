@@ -5,11 +5,17 @@ import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
-import { MapPin, Phone, Mail, Globe, Gift, ArrowLeft, Calendar, Star, Lock, CheckCircle2 } from 'lucide-react';
+import { MapPin, Phone, Mail, Globe, Gift, ArrowLeft, Calendar, Star, CheckCircle2, ExternalLink, Play, Image, Facebook, Instagram } from 'lucide-react';
 import { toast } from 'sonner';
 import ScratchCanvas from '../components/ScratchCanvas';
 
 const API = process.env.REACT_APP_BACKEND_URL;
+
+function getYoutubeEmbedUrl(url) {
+  if (!url) return null;
+  const match = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  return match ? `https://www.youtube.com/embed/${match[1]}` : null;
+}
 
 export default function CommerceDetailPage() {
   const { id } = useParams();
@@ -44,9 +50,7 @@ export default function CommerceDetailPage() {
       const { data } = await axios.post(`${API}/api/commerce/${id}/validate`, { code: validationCode }, { withCredentials: true });
       toast.success(`${data.message} - Total de visitas: ${data.total_visits}`);
       setValidationCode('');
-    } catch (err) {
-      toast.error(err.response?.data?.detail || 'Código inválido');
-    }
+    } catch (err) { toast.error(err.response?.data?.detail || 'Código inválido'); }
     setValidating(false);
   };
 
@@ -56,13 +60,16 @@ export default function CommerceDetailPage() {
       const { data } = await axios.post(`${API}/api/commerce/${id}/scratch-card/play`, {}, { withCredentials: true });
       setScratchResult(data);
       setScratched(true);
-    } catch (err) {
-      toast.error(err.response?.data?.detail || 'Error al jugar');
-    }
+    } catch (err) { toast.error(err.response?.data?.detail || 'Error al jugar'); }
   };
 
   if (loading) return <div className="min-h-screen pt-24 flex items-center justify-center"><div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>;
   if (!commerce) return <div className="min-h-screen pt-24 flex flex-col items-center justify-center"><h2 className="font-heading text-2xl font-bold mb-4">Comercio no encontrado</h2><Link to="/benefits"><Button className="rounded-full">Volver</Button></Link></div>;
+
+  const embedUrl = getYoutubeEmbedUrl(commerce.youtube_video);
+  const hasPhotos = commerce.photos && commerce.photos.length > 0;
+  const hasSocial = commerce.social_facebook || commerce.social_instagram || commerce.social_tiktok || commerce.social_twitter;
+  const hasMaps = commerce.google_maps_url || commerce.waze_url;
 
   return (
     <div className="min-h-screen pt-24 pb-16" data-testid="commerce-detail-page">
@@ -74,59 +81,151 @@ export default function CommerceDetailPage() {
         {/* Header */}
         <div className="bg-white rounded-2xl p-6 sm:p-8 border border-border mb-6" data-testid="commerce-header">
           <div className="flex items-start gap-5">
-            <div className="w-20 h-20 rounded-2xl bg-accent flex items-center justify-center text-3xl shrink-0">
-              {commerce.logo_url ? <img src={commerce.logo_url} alt={commerce.name} className="w-full h-full object-cover rounded-2xl" /> : '🏪'}
+            <div className="w-20 h-20 rounded-2xl bg-accent flex items-center justify-center text-3xl shrink-0 overflow-hidden">
+              {commerce.logo_url ? <img src={commerce.logo_url} alt={commerce.name} className="w-full h-full object-cover" /> : '🏪'}
             </div>
             <div>
               <Badge variant="secondary" className="rounded-full text-xs mb-2">{commerce.category}</Badge>
-              <h1 className="font-heading text-2xl sm:text-3xl font-bold mb-2">{commerce.name}</h1>
-              <p className="text-muted-foreground">{commerce.description}</p>
+              <h1 className="font-heading text-2xl sm:text-3xl font-bold mb-1">{commerce.name}</h1>
+              {commerce.location && <p className="text-sm text-muted-foreground flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {commerce.location}</p>}
             </div>
           </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6 pt-6 border-t border-border">
-            {commerce.location && (
-              <div className="flex items-center gap-2 text-sm"><MapPin className="w-4 h-4 text-primary" /> {commerce.location}</div>
-            )}
-            {commerce.phone && (
-              <a href={`tel:${commerce.phone}`} className="flex items-center gap-2 text-sm hover:text-primary transition-colors"><Phone className="w-4 h-4 text-primary" /> {commerce.phone}</a>
-            )}
-            {commerce.email && (
-              <a href={`mailto:${commerce.email}`} className="flex items-center gap-2 text-sm hover:text-primary transition-colors"><Mail className="w-4 h-4 text-primary" /> {commerce.email}</a>
-            )}
-          </div>
-          {(commerce.google_maps_url || commerce.waze_url) && (
-            <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-border">
-              {commerce.google_maps_url && (
-                <a href={commerce.google_maps_url} target="_blank" rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-50 text-blue-700 border border-blue-100 text-sm font-medium hover:bg-blue-100 hover:shadow-md transition-all hover:-translate-y-0.5"
-                  data-testid="detail-gmaps-btn">
-                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
-                  Cómo llegar (Google Maps)
-                </a>
-              )}
-              {commerce.waze_url && (
-                <a href={commerce.waze_url} target="_blank" rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-sky-50 text-sky-700 border border-sky-100 text-sm font-medium hover:bg-sky-100 hover:shadow-md transition-all hover:-translate-y-0.5"
-                  data-testid="detail-waze-btn">
-                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.5 2 12c0 2.3.8 4.4 2.1 6.1l-.7 2.5 2.6-.7C7.6 21.2 9.7 22 12 22c5.5 0 10-4.5 10-10S17.5 2 12 2zm-1 6c.6 0 1 .4 1 1s-.4 1-1 1-1-.4-1-1 .4-1 1-1zm4 0c.6 0 1 .4 1 1s-.4 1-1 1-1-.4-1-1 .4-1 1-1zm-5 7c-1.1 0-2-.4-2.8-1.1l1.4-1.4c.4.3.9.5 1.4.5s1-.2 1.4-.5l1.4 1.4C11.9 14.6 11 15 10 15z"/></svg>
-                  Cómo llegar (Waze)
-                </a>
-              )}
-            </div>
-          )}
         </div>
+
+        {/* YouTube Video */}
+        {embedUrl && (
+          <div className="bg-white rounded-2xl overflow-hidden border border-border mb-6" data-testid="commerce-video">
+            <div className="aspect-video">
+              <iframe src={embedUrl} title="Video del comercio" className="w-full h-full" allowFullScreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" />
+            </div>
+          </div>
+        )}
+
+        {/* Photos */}
+        {hasPhotos && (
+          <div className="bg-white rounded-2xl p-5 border border-border mb-6" data-testid="commerce-photos">
+            <h2 className="font-heading text-lg font-semibold mb-4 flex items-center gap-2"><Image className="w-5 h-5 text-primary" /> Fotos</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {commerce.photos.map((url, i) => (
+                <div key={i} className="aspect-square rounded-xl overflow-hidden border border-border">
+                  <img src={url} alt="" className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Description */}
+        {commerce.description && (
+          <div className="bg-white rounded-2xl p-6 border border-border mb-6" data-testid="commerce-desc">
+            <h2 className="font-heading text-lg font-semibold mb-3">Acerca del comercio</h2>
+            <p className="text-foreground/80 leading-relaxed">{commerce.description}</p>
+          </div>
+        )}
 
         {/* Benefit */}
         {commerce.benefit_description && (
           <div className="bg-accent/50 rounded-2xl p-6 border border-primary/10 mb-6" data-testid="commerce-benefit">
             <div className="flex items-center gap-3 mb-2">
               <Gift className="w-6 h-6 text-primary" />
-              <h2 className="font-heading text-xl font-semibold">Beneficio Exclusivo</h2>
+              <h2 className="font-heading text-xl font-semibold">Beneficio Exclusivo para Socios</h2>
             </div>
             <p className="text-foreground/80">{commerce.benefit_description}</p>
           </div>
         )}
+
+        {/* Social Media */}
+        {hasSocial && (
+          <div className="bg-white rounded-2xl p-5 border border-border mb-6" data-testid="commerce-social">
+            <h2 className="font-heading text-lg font-semibold mb-4">Redes Sociales</h2>
+            <div className="flex flex-wrap gap-3">
+              {commerce.social_facebook && (
+                <a href={commerce.social_facebook} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border text-sm font-medium hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all">
+                  <Facebook className="w-4 h-4" /> Facebook <ExternalLink className="w-3 h-3 opacity-50" />
+                </a>
+              )}
+              {commerce.social_instagram && (
+                <a href={commerce.social_instagram} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border text-sm font-medium hover:bg-pink-50 hover:text-pink-600 hover:border-pink-200 transition-all">
+                  <Instagram className="w-4 h-4" /> Instagram <ExternalLink className="w-3 h-3 opacity-50" />
+                </a>
+              )}
+              {commerce.social_tiktok && (
+                <a href={commerce.social_tiktok} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border text-sm font-medium hover:bg-slate-50 hover:text-slate-700 hover:border-slate-200 transition-all">
+                  <Globe className="w-4 h-4" /> TikTok <ExternalLink className="w-3 h-3 opacity-50" />
+                </a>
+              )}
+              {commerce.social_twitter && (
+                <a href={commerce.social_twitter} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border text-sm font-medium hover:bg-sky-50 hover:text-sky-600 hover:border-sky-200 transition-all">
+                  <Globe className="w-4 h-4" /> X/Twitter <ExternalLink className="w-3 h-3 opacity-50" />
+                </a>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Location & Maps + Contact */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+          {/* Location */}
+          <div className="bg-white rounded-2xl p-5 border border-border" data-testid="commerce-location">
+            <h2 className="font-heading text-lg font-semibold mb-3 flex items-center gap-2"><MapPin className="w-5 h-5 text-primary" /> Ubicación</h2>
+            <div className="space-y-2">
+              {commerce.location && <p className="font-medium">{commerce.location}</p>}
+              {commerce.address && <p className="text-sm text-muted-foreground">{commerce.address}</p>}
+              {hasMaps && (
+                <div className="flex flex-wrap gap-2 pt-3">
+                  {commerce.google_maps_url && (
+                    <a href={commerce.google_maps_url} target="_blank" rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-50 text-blue-700 border border-blue-100 text-sm font-medium hover:bg-blue-100 hover:shadow-md transition-all hover:-translate-y-0.5"
+                      data-testid="detail-gmaps-btn">
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                      Google Maps
+                    </a>
+                  )}
+                  {commerce.waze_url && (
+                    <a href={commerce.waze_url} target="_blank" rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-sky-50 text-sky-700 border border-sky-100 text-sm font-medium hover:bg-sky-100 hover:shadow-md transition-all hover:-translate-y-0.5"
+                      data-testid="detail-waze-btn">
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.5 2 12c0 2.3.8 4.4 2.1 6.1l-.7 2.5 2.6-.7C7.6 21.2 9.7 22 12 22c5.5 0 10-4.5 10-10S17.5 2 12 2zm-1 6c.6 0 1 .4 1 1s-.4 1-1 1-1-.4-1-1 .4-1 1-1zm4 0c.6 0 1 .4 1 1s-.4 1-1 1-1-.4-1-1 .4-1 1-1zm-5 7c-1.1 0-2-.4-2.8-1.1l1.4-1.4c.4.3.9.5 1.4.5s1-.2 1.4-.5l1.4 1.4C11.9 14.6 11 15 10 15z"/></svg>
+                      Waze
+                    </a>
+                  )}
+                </div>
+              )}
+              {!commerce.location && !commerce.address && !hasMaps && (
+                <p className="text-sm text-muted-foreground">Sin ubicación registrada</p>
+              )}
+            </div>
+          </div>
+
+          {/* Contact */}
+          <div className="bg-white rounded-2xl p-5 border border-border" data-testid="commerce-contact">
+            <h2 className="font-heading text-lg font-semibold mb-3 flex items-center gap-2"><Phone className="w-5 h-5 text-primary" /> Contacto</h2>
+            <div className="space-y-3">
+              {commerce.phone && (
+                <a href={`tel:${commerce.phone}`} className="flex items-center gap-3 p-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-medium transition-colors" data-testid="call-btn">
+                  <Phone className="w-5 h-5" /> {commerce.phone}
+                </a>
+              )}
+              {commerce.email && (
+                <a href={`mailto:${commerce.email}`} className="flex items-center gap-3 p-3 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground/80 text-sm transition-colors">
+                  <Mail className="w-4 h-4 text-primary" /> {commerce.email}
+                </a>
+              )}
+              {commerce.website && (
+                <a href={commerce.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 rounded-xl bg-secondary hover:bg-secondary/80 text-foreground/80 text-sm transition-colors">
+                  <Globe className="w-4 h-4 text-primary" /> Sitio web <ExternalLink className="w-3 h-3 opacity-50" />
+                </a>
+              )}
+              {!commerce.phone && !commerce.email && (
+                <p className="text-sm text-muted-foreground">Sin información de contacto</p>
+              )}
+            </div>
+          </div>
+        </div>
 
         {/* Validate Visit */}
         {user && (user.role === 'member') && (
@@ -136,13 +235,7 @@ export default function CommerceDetailPage() {
             </h2>
             <p className="text-sm text-muted-foreground mb-4">Pide al comercio el código de validación para registrar tu visita</p>
             <div className="flex gap-2 max-w-sm">
-              <Input
-                value={validationCode}
-                onChange={e => setValidationCode(e.target.value.toUpperCase())}
-                placeholder="Código de validación"
-                className="rounded-xl font-mono uppercase"
-                data-testid="validation-code-input"
-              />
+              <Input value={validationCode} onChange={e => setValidationCode(e.target.value.toUpperCase())} placeholder="Código de validación" className="rounded-xl font-mono uppercase" data-testid="validation-code-input" />
               <Button onClick={handleValidate} disabled={validating || !validationCode} className="rounded-xl bg-primary hover:bg-primary/90" data-testid="validate-btn">
                 {validating ? 'Validando...' : 'Validar'}
               </Button>
@@ -158,11 +251,7 @@ export default function CommerceDetailPage() {
             </h2>
             {!showScratch ? (
               <div className="text-center">
-                <button
-                  onClick={() => { if(user) { setShowScratch(true); setScratched(false); setScratchResult(null); } else toast.error('Inicia sesión para jugar'); }}
-                  className="mx-auto block"
-                  data-testid="scratch-start-btn"
-                >
+                <button onClick={() => { if(user) { setShowScratch(true); setScratched(false); setScratchResult(null); } else toast.error('Inicia sesión para jugar'); }} className="mx-auto block" data-testid="scratch-start-btn">
                   <div className="relative w-72 h-44 rounded-2xl overflow-hidden bg-gradient-to-br from-amber-400 via-yellow-500 to-amber-600 flex items-center justify-center cursor-pointer group shadow-lg hover:shadow-xl transition-all hover:-translate-y-1">
                     <div className="absolute inset-0 opacity-20" style={{backgroundImage:'repeating-linear-gradient(45deg,transparent,transparent 5px,rgba(255,255,255,0.15) 5px,rgba(255,255,255,0.15) 10px)'}} />
                     <div className="text-white text-center z-10 group-hover:scale-105 transition-transform">
@@ -176,22 +265,17 @@ export default function CommerceDetailPage() {
             ) : !scratched ? (
               <div className="flex flex-col items-center">
                 <p className="text-sm text-muted-foreground mb-3">Desliza con el dedo o mouse para raspar</p>
-                <ScratchCanvas
-                  width={280}
-                  height={180}
-                  onComplete={handleScratch}
-                  resultContent={
-                    scratchResult ? (
-                      <div className={`w-full h-full flex flex-col items-center justify-center rounded-2xl ${scratchResult.won ? 'bg-gradient-to-br from-emerald-400 to-emerald-600' : 'bg-gradient-to-br from-slate-400 to-slate-600'}`}>
-                        <p className="text-white font-heading text-2xl font-bold">{scratchResult.won ? '🎉 ¡Ganaste!' : '😔'}</p>
-                        <p className="text-white/90 text-sm mt-2 px-4 text-center">{scratchResult.message}</p>
-                      </div>
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-secondary/50 rounded-2xl">
-                        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                      </div>
-                    )
-                  }
+                <ScratchCanvas width={280} height={180} onComplete={handleScratch}
+                  resultContent={scratchResult ? (
+                    <div className={`w-full h-full flex flex-col items-center justify-center rounded-2xl ${scratchResult.won ? 'bg-gradient-to-br from-emerald-400 to-emerald-600' : 'bg-gradient-to-br from-slate-400 to-slate-600'}`}>
+                      <p className="text-white font-heading text-2xl font-bold">{scratchResult.won ? '🎉 ¡Ganaste!' : '😔'}</p>
+                      <p className="text-white/90 text-sm mt-2 px-4 text-center">{scratchResult.message}</p>
+                    </div>
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-secondary/50 rounded-2xl">
+                      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  )}
                 />
                 {scratched && (
                   <Button variant="outline" className="mt-4 rounded-full" onClick={() => { setShowScratch(false); setScratched(false); setScratchResult(null); }} data-testid="scratch-again-btn">
@@ -218,8 +302,8 @@ export default function CommerceDetailPage() {
           <div className="space-y-4" data-testid="commerce-promotions">
             <h2 className="font-heading text-lg font-semibold">Promociones Activas</h2>
             {promotions.map((p, i) => (
-              <div key={p._id} className="bg-white rounded-2xl p-5 border border-border" data-testid={`promo-${i}`}>
-                <div className="flex items-start gap-4">
+              <div key={p._id} className="bg-white rounded-2xl overflow-hidden border border-border" data-testid={`promo-${i}`}>
+                <div className="flex items-start gap-4 p-5">
                   {p.image_url && <img src={p.image_url} alt={p.title} className="w-24 h-24 rounded-xl object-cover shrink-0" />}
                   <div>
                     <h3 className="font-semibold mb-1">{p.title}</h3>
