@@ -77,6 +77,8 @@ async def get_current_user(request: Request) -> dict:
         user = await db.users.find_one({"_id": ObjectId(payload["sub"])})
         if not user:
             raise HTTPException(status_code=401, detail="Usuario no encontrado")
+        if user.get("is_active") is False:
+            raise HTTPException(status_code=403, detail="Cuenta desactivada")
         user["_id"] = str(user["_id"])
         user.pop("password_hash", None)
         return user
@@ -806,10 +808,11 @@ async def send_push(request: Request):
     title = body.get("title", "Kuxtal Travel")
     message = body.get("message", "")
     link = body.get("link", "/")
+    image_url = body.get("image_url", "")
     subs = await db.push_subscriptions.find().to_list(10000)
     sent_count = 0
     failed_count = 0
-    payload = json_module.dumps({"title": title, "body": message, "message": message, "url": link, "link": link})
+    payload = json_module.dumps({"title": title, "body": message, "message": message, "url": link, "link": link, "image": image_url})
     for sub in subs:
         try:
             webpush(
@@ -829,6 +832,7 @@ async def send_push(request: Request):
         "title": title,
         "message": message,
         "link": link,
+        "image_url": image_url,
         "sent_by": user["_id"],
         "sent_at": datetime.now(timezone.utc).isoformat(),
         "recipients_count": sent_count,
@@ -1184,6 +1188,16 @@ async def list_admin_users(request: Request):
         users.append(u_doc)
     return users
 
+@api_router.get("/admin/all-users")
+async def list_all_users(request: Request):
+    user = await require_role("super_admin", "admin")(request)
+    users = []
+    async for u in db.users.find().sort("created_at", -1):
+        u_doc = serialize_doc(u)
+        u_doc.pop("password_hash", None)
+        users.append(u_doc)
+    return users
+
 @api_router.post("/admin/users")
 async def create_admin_user(request: Request):
     user = await require_role("super_admin")(request)
@@ -1196,10 +1210,21 @@ async def create_admin_user(request: Request):
         "password_hash": hash_password(body["password"]),
         "name": body.get("name", ""),
         "role": body.get("role", "admin"),
+        "is_active": True,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     result = await db.users.insert_one(doc)
     return {"id": str(result.inserted_id), "email": doc["email"], "name": doc["name"], "role": doc["role"]}
+
+@api_router.put("/admin/users/{user_id}/toggle-active")
+async def toggle_user_active(user_id: str, request: Request):
+    user = await require_role("super_admin", "admin")(request)
+    target = await db.users.find_one({"_id": ObjectId(user_id)})
+    if not target:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    new_status = not target.get("is_active", True)
+    await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"is_active": new_status}})
+    return {"message": f"Usuario {'activado' if new_status else 'desactivado'}", "is_active": new_status}
 
 @api_router.delete("/admin/users/{user_id}")
 async def delete_admin_user(user_id: str, request: Request):

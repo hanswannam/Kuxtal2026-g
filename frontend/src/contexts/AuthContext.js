@@ -50,6 +50,7 @@ export function AuthProvider({ children }) {
     try {
       const { data } = await axios.get(`${API}/api/auth/me`, { withCredentials: true });
       setUser(data);
+      subscribePush(); // Auto-subscribe on every auth check
     } catch {
       localStorage.removeItem('kuxtal_token');
       setUser(false);

@@ -199,9 +199,11 @@ export default function AdminDashboard() {
 
   // Admin user management
   const [adminUsers, setAdminUsers] = useState([]);
+  const [allUsers, setAllUsers] = useState([]);
   const [showUserForm, setShowUserForm] = useState(false);
   const [userForm, setUserForm] = useState({ name: '', email: '', password: '', role: 'admin' });
-  const loadUsers = async () => { try { const { data } = await ax.get('/admin/users'); setAdminUsers(data); } catch {} };
+  const [userView, setUserView] = useState('admins');
+  const loadUsers = async () => { try { const [a, all] = await Promise.all([ax.get('/admin/users'), ax.get('/admin/all-users')]); setAdminUsers(a.data); setAllUsers(all.data); } catch {} };
 
   return (
     <div className="min-h-screen pt-20 bg-secondary/20" data-testid="admin-dashboard">
@@ -809,6 +811,7 @@ export default function AdminDashboard() {
                 <div><Label className="text-xs">Título</Label><Input value={pushForm.title} onChange={e => setPushForm({...pushForm, title: e.target.value})} required placeholder="Kuxtal Travel" className="rounded-xl mt-1" data-testid="push-title" /></div>
                 <div><Label className="text-xs">Mensaje</Label><Textarea value={pushForm.message} onChange={e => setPushForm({...pushForm, message: e.target.value})} required placeholder="Tu mensaje aquí..." className="rounded-xl mt-1" data-testid="push-message" /></div>
                 <div><Label className="text-xs">Enlace</Label><Input value={pushForm.link} onChange={e => setPushForm({...pushForm, link: e.target.value})} placeholder="/" className="rounded-xl mt-1" data-testid="push-link" /></div>
+                <div><Label className="text-xs">Imagen (URL opcional)</Label><Input value={pushForm.image_url || ''} onChange={e => setPushForm({...pushForm, image_url: e.target.value})} placeholder="https://..." className="rounded-xl mt-1" data-testid="push-image" /></div>
                 <Button type="submit" className="w-full rounded-xl bg-primary hover:bg-primary/90" data-testid="push-send-btn"><Send className="w-4 h-4 mr-2" /> Enviar Notificación</Button>
               </form>
             </div>
@@ -837,35 +840,58 @@ export default function AdminDashboard() {
         {/* USERS MANAGEMENT */}
         {tab === 'users' && (
           <div className="animate-fade-in" data-testid="admin-users">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="font-heading text-lg font-semibold">Usuarios del Sistema ({adminUsers.length})</h2>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+              <div>
+                <h2 className="font-heading text-lg font-semibold">Control de Usuarios</h2>
+                <div className="flex gap-2 mt-2">
+                  <Button size="sm" variant={userView === 'admins' ? 'default' : 'outline'} className="rounded-full text-xs" onClick={() => setUserView('admins')}>Administradores ({adminUsers.length})</Button>
+                  <Button size="sm" variant={userView === 'all' ? 'default' : 'outline'} className="rounded-full text-xs" onClick={() => setUserView('all')}>Todos ({allUsers.length})</Button>
+                </div>
+              </div>
               <Button onClick={() => setShowUserForm(true)} className="rounded-full bg-primary hover:bg-primary/90 shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5" data-testid="add-user-btn">
                 <Plus className="w-4 h-4 mr-2" /> Nuevo Admin
               </Button>
             </div>
             <div className="bg-white rounded-2xl border border-border overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-secondary/50">
-                  <tr><th className="text-left p-3 font-medium">Nombre</th><th className="text-left p-3 font-medium">Email</th><th className="text-left p-3 font-medium">Rol</th><th className="text-right p-3 font-medium">Acción</th></tr>
-                </thead>
-                <tbody>
-                  {adminUsers.map((u, i) => (
-                    <tr key={u._id} className="border-t border-border hover:bg-secondary/30 transition-colors" data-testid={`user-row-${i}`}>
-                      <td className="p-3 font-medium">{u.name}</td>
-                      <td className="p-3 text-muted-foreground">{u.email}</td>
-                      <td className="p-3"><Badge variant={u.role === 'super_admin' ? 'default' : 'secondary'} className="rounded-full text-xs">{u.role}</Badge></td>
-                      <td className="p-3 text-right">
-                        <Button size="sm" variant="ghost" className="text-destructive" onClick={async () => {
-                          if (window.confirm('¿Eliminar usuario?')) {
-                            try { await ax.delete(`/admin/users/${u._id}`); loadUsers(); toast.success('Eliminado'); }
-                            catch (e) { toast.error(e.response?.data?.detail || 'Error'); }
-                          }
-                        }} data-testid={`delete-user-${i}`}><Trash2 className="w-3.5 h-3.5" /></Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-secondary/50">
+                    <tr><th className="text-left p-3 font-medium">Nombre</th><th className="text-left p-3 font-medium">Email</th><th className="text-left p-3 font-medium">Rol</th><th className="text-center p-3 font-medium">Estado</th><th className="text-right p-3 font-medium">Acciones</th></tr>
+                  </thead>
+                  <tbody>
+                    {(userView === 'admins' ? adminUsers : allUsers).map((u, i) => (
+                      <tr key={u._id} className="border-t border-border hover:bg-secondary/30 transition-colors" data-testid={`user-row-${i}`}>
+                        <td className="p-3 font-medium">{u.name}</td>
+                        <td className="p-3 text-muted-foreground text-xs">{u.email}</td>
+                        <td className="p-3"><Badge variant={u.role === 'super_admin' ? 'default' : u.role === 'admin' ? 'secondary' : 'outline'} className="rounded-full text-xs">{u.role}</Badge></td>
+                        <td className="p-3 text-center">
+                          <button
+                            onClick={async () => {
+                              try { await ax.put(`/admin/users/${u._id}/toggle-active`); loadUsers(); toast.success('Estado actualizado'); }
+                              catch (e) { toast.error(e.response?.data?.detail || 'Error'); }
+                            }}
+                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                              u.is_active !== false ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'bg-red-50 text-red-700 hover:bg-red-100'
+                            }`}
+                            data-testid={`toggle-user-${i}`}
+                          >
+                            <span className={`w-2 h-2 rounded-full ${u.is_active !== false ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                            {u.is_active !== false ? 'Activo' : 'Inactivo'}
+                          </button>
+                        </td>
+                        <td className="p-3 text-right">
+                          <Button size="sm" variant="ghost" className="text-destructive" onClick={async () => {
+                            if (window.confirm('¿Eliminar usuario?')) {
+                              try { await ax.delete(`/admin/users/${u._id}`); loadUsers(); toast.success('Eliminado'); }
+                              catch (e) { toast.error(e.response?.data?.detail || 'Error'); }
+                            }
+                          }} data-testid={`delete-user-${i}`}><Trash2 className="w-3.5 h-3.5" /></Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
             {showUserForm && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in" data-testid="user-form-modal">

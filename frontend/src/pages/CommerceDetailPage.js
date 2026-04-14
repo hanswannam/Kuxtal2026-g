@@ -7,6 +7,7 @@ import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
 import { MapPin, Phone, Mail, Globe, Gift, ArrowLeft, Calendar, Star, Lock, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
+import ScratchCanvas from '../components/ScratchCanvas';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -137,27 +138,52 @@ export default function CommerceDetailPage() {
             </h2>
             {!showScratch ? (
               <div className="text-center">
-                <div className="relative w-64 h-40 mx-auto rounded-2xl overflow-hidden bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center cursor-pointer group" onClick={() => { if(user) setShowScratch(true); else toast.error('Inicia sesión para jugar'); }}>
-                  <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgZmlsbD0ibm9uZSI+PGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMiIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjEpIi8+PC9zdmc+')] opacity-50" />
-                  <div className="text-white text-center z-10 group-hover:scale-105 transition-transform">
-                    <Star className="w-10 h-10 mx-auto mb-2 fill-amber-300 text-amber-300" />
-                    <p className="font-heading text-lg font-bold">Raspa aquí</p>
-                    <p className="text-xs text-white/70">Toca para jugar</p>
+                <button
+                  onClick={() => { if(user) { setShowScratch(true); setScratched(false); setScratchResult(null); } else toast.error('Inicia sesión para jugar'); }}
+                  className="mx-auto block"
+                  data-testid="scratch-start-btn"
+                >
+                  <div className="relative w-72 h-44 rounded-2xl overflow-hidden bg-gradient-to-br from-amber-400 via-yellow-500 to-amber-600 flex items-center justify-center cursor-pointer group shadow-lg hover:shadow-xl transition-all hover:-translate-y-1">
+                    <div className="absolute inset-0 opacity-20" style={{backgroundImage:'repeating-linear-gradient(45deg,transparent,transparent 5px,rgba(255,255,255,0.15) 5px,rgba(255,255,255,0.15) 10px)'}} />
+                    <div className="text-white text-center z-10 group-hover:scale-105 transition-transform">
+                      <Star className="w-10 h-10 mx-auto mb-2 fill-white text-white" />
+                      <p className="font-heading text-lg font-bold">Raspa y Gana</p>
+                      <p className="text-xs text-white/70 mt-1">Toca para empezar</p>
+                    </div>
                   </div>
-                </div>
+                </button>
               </div>
             ) : !scratched ? (
-              <div className="text-center">
-                <div className="relative w-64 h-40 mx-auto rounded-2xl overflow-hidden bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center cursor-pointer scratch-surface" onClick={handleScratch} data-testid="scratch-play-btn">
-                  <div className="absolute inset-0 bg-[repeating-linear-gradient(45deg,transparent,transparent_5px,rgba(255,255,255,0.1)_5px,rgba(255,255,255,0.1)_10px)]" />
-                  <p className="text-white font-heading text-xl font-bold z-10 animate-pulse">Toca para raspar</p>
-                </div>
+              <div className="flex flex-col items-center">
+                <p className="text-sm text-muted-foreground mb-3">Desliza con el dedo o mouse para raspar</p>
+                <ScratchCanvas
+                  width={280}
+                  height={180}
+                  onComplete={handleScratch}
+                  resultContent={
+                    scratchResult ? (
+                      <div className={`w-full h-full flex flex-col items-center justify-center rounded-2xl ${scratchResult.won ? 'bg-gradient-to-br from-emerald-400 to-emerald-600' : 'bg-gradient-to-br from-slate-400 to-slate-600'}`}>
+                        <p className="text-white font-heading text-2xl font-bold">{scratchResult.won ? '🎉 ¡Ganaste!' : '😔'}</p>
+                        <p className="text-white/90 text-sm mt-2 px-4 text-center">{scratchResult.message}</p>
+                      </div>
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-secondary/50 rounded-2xl">
+                        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    )
+                  }
+                />
+                {scratched && (
+                  <Button variant="outline" className="mt-4 rounded-full" onClick={() => { setShowScratch(false); setScratched(false); setScratchResult(null); }} data-testid="scratch-again-btn">
+                    Intentar de nuevo
+                  </Button>
+                )}
               </div>
             ) : (
-              <div className="text-center animate-fade-in" data-testid="scratch-result">
-                <div className={`w-64 h-40 mx-auto rounded-2xl flex flex-col items-center justify-center ${scratchResult?.won ? 'bg-gradient-to-br from-emerald-400 to-emerald-600' : 'bg-gradient-to-br from-slate-400 to-slate-600'}`}>
-                  <p className="text-white font-heading text-xl font-bold">{scratchResult?.won ? '🎉 ¡Ganaste!' : '😔'}</p>
-                  <p className="text-white/90 text-sm mt-2">{scratchResult?.message}</p>
+              <div className="flex flex-col items-center animate-fade-in" data-testid="scratch-result">
+                <div className={`w-72 h-44 rounded-2xl flex flex-col items-center justify-center shadow-lg ${scratchResult?.won ? 'bg-gradient-to-br from-emerald-400 to-emerald-600' : 'bg-gradient-to-br from-slate-400 to-slate-600'}`}>
+                  <p className="text-white font-heading text-2xl font-bold">{scratchResult?.won ? '🎉 ¡Ganaste!' : '😔'}</p>
+                  <p className="text-white/90 text-sm mt-2 px-4 text-center">{scratchResult?.message}</p>
                 </div>
                 <Button variant="outline" className="mt-4 rounded-full" onClick={() => { setShowScratch(false); setScratched(false); setScratchResult(null); }} data-testid="scratch-again-btn">
                   Intentar de nuevo
