@@ -446,6 +446,27 @@ export default function AdminDashboard() {
                     )}
                   </div>
                 )}
+                {q.status === 'responded' && (
+                  <div className="mt-3 pt-3 border-t border-border flex gap-2">
+                    <Button size="sm" variant="outline" className="rounded-full text-xs" onClick={async () => {
+                      try {
+                        const { data } = await ax.get(`/quotations/${q._id}/share`);
+                        if (data.whatsapp_url) window.open(data.whatsapp_url, '_blank');
+                        else toast.error('Configura WhatsApp en ajustes primero');
+                      } catch { toast.error('Error al compartir'); }
+                    }} data-testid={`share-wa-${i}`}>
+                      <Phone className="w-3 h-3 mr-1" /> WhatsApp
+                    </Button>
+                    <Button size="sm" variant="outline" className="rounded-full text-xs" onClick={async () => {
+                      try {
+                        const { data } = await ax.get(`/quotations/${q._id}/share`);
+                        window.open(data.mailto_url, '_blank');
+                      } catch { toast.error('Error al compartir'); }
+                    }} data-testid={`share-email-${i}`}>
+                      <Send className="w-3 h-3 mr-1" /> Email
+                    </Button>
+                  </div>
+                )}
               </div>
             ))}
           </div>

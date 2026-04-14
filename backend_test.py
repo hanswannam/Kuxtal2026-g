@@ -417,6 +417,17 @@ class KuxtalTravelAPITester:
             return False
         
         try:
+            # Test VAPID key endpoint (Phase 3)
+            response = self.session.get(f"{self.base_url}/api/push/vapid-key")
+            if response.status_code == 200:
+                vapid_data = response.json()
+                if "publicKey" in vapid_data:
+                    self.log_test("VAPID Key Endpoint", True, f"Public key: {vapid_data['publicKey'][:20]}...")
+                else:
+                    self.log_test("VAPID Key Endpoint", False, "No publicKey in response")
+            else:
+                self.log_test("VAPID Key Endpoint", False, f"Status {response.status_code}")
+            
             # Test push history
             response = self.session.get(f"{self.base_url}/api/push/history")
             if response.status_code == 200:
@@ -507,9 +518,117 @@ class KuxtalTravelAPITester:
             self.log_test("File Upload", False, str(e))
         return False
 
+    # Phase 3 Tests - Family Members
+    def test_family_members(self):
+        """Test family member CRUD operations"""
+        if not self.member_token:
+            self.log_test("Family Members", False, "No member token")
+            return False
+        
+        try:
+            # Get member info first
+            response = self.session.get(f"{self.base_url}/api/auth/me")
+            if response.status_code != 200:
+                self.log_test("Family Members - Get Member Info", False, f"Status {response.status_code}")
+                return False
+            
+            member_data = response.json()
+            member_id = member_data.get("member", {}).get("_id") or member_data.get("member_id")
+            
+            if not member_id:
+                self.log_test("Family Members - Get Member ID", False, "No member ID found")
+                return False
+            
+            # Test list family members
+            response = self.session.get(f"{self.base_url}/api/members/{member_id}/family")
+            if response.status_code == 200:
+                family_members = response.json()
+                self.log_test("List Family Members", True, f"Found {len(family_members)} family members")
+                
+                # Test add family member
+                family_data = {
+                    "name": "Test Family Member",
+                    "dpi": "9999999999999",
+                    "relationship": "hijo/a"
+                }
+                response = self.session.post(f"{self.base_url}/api/members/{member_id}/family", json=family_data)
+                if response.status_code == 200:
+                    new_family = response.json()
+                    family_id = new_family["_id"]
+                    self.log_test("Add Family Member", True)
+                    
+                    # Test delete family member
+                    response = self.session.delete(f"{self.base_url}/api/members/{member_id}/family/{family_id}")
+                    success = response.status_code == 200
+                    self.log_test("Delete Family Member", success)
+                    return success
+                else:
+                    self.log_test("Add Family Member", False, f"Status {response.status_code}")
+            else:
+                self.log_test("List Family Members", False, f"Status {response.status_code}")
+        except Exception as e:
+            self.log_test("Family Members", False, str(e))
+        return False
+
+    def test_family_member_login(self):
+        """Test family member login with same contract + different DPI"""
+        try:
+            # Test login with family member DPI (from test credentials)
+            response = self.session.post(f"{self.base_url}/api/auth/member-login", 
+                json={"contract_number": "KT-001", "dpi": "9876543210101"})
+            
+            if response.status_code == 200:
+                data = response.json()
+                if data.get("role") == "member" and data.get("is_family_member"):
+                    self.log_test("Family Member Login", True, f"Logged in as {data.get('name')}")
+                    return True
+                else:
+                    self.log_test("Family Member Login", False, f"Invalid response: {data}")
+            else:
+                self.log_test("Family Member Login", False, f"Status {response.status_code}: {response.text}")
+        except Exception as e:
+            self.log_test("Family Member Login", False, str(e))
+        return False
+
+    def test_quotation_sharing(self):
+        """Test quotation sharing functionality"""
+        if not self.admin_token:
+            self.log_test("Quotation Sharing", False, "No admin token")
+            return False
+        
+        try:
+            # Get quotations first
+            response = self.session.get(f"{self.base_url}/api/quotations")
+            if response.status_code == 200:
+                quotations = response.json()
+                if len(quotations) > 0:
+                    quotation_id = quotations[0]["_id"]
+                    
+                    # Test quotation share endpoint
+                    response = self.session.get(f"{self.base_url}/api/quotations/{quotation_id}/share")
+                    if response.status_code == 200:
+                        share_data = response.json()
+                        required_fields = ["quotation", "whatsapp_url", "mailto_url", "share_text"]
+                        
+                        if all(field in share_data for field in required_fields):
+                            self.log_test("Quotation Share Endpoint", True, f"WhatsApp: {bool(share_data['whatsapp_url'])}, Email: {bool(share_data['mailto_url'])}")
+                            return True
+                        else:
+                            missing = [f for f in required_fields if f not in share_data]
+                            self.log_test("Quotation Share Endpoint", False, f"Missing fields: {missing}")
+                    else:
+                        self.log_test("Quotation Share Endpoint", False, f"Status {response.status_code}")
+                else:
+                    self.log_test("Quotation Sharing", False, "No quotations available for testing")
+            else:
+                self.log_test("Quotation Sharing", False, f"Failed to get quotations: {response.status_code}")
+        except Exception as e:
+            self.log_test("Quotation Sharing", False, str(e))
+        return False
+
     def run_all_tests(self):
         """Run all API tests"""
-        print("🚀 Starting Kuxtal Travel API Tests (Phase 1 + Phase 2)...")
+        print("🚀 Starting Kuxtal Travel API Tests (Phase 1 + Phase 2 + Phase 3)...")
         print(f"Testing against: {self.base_url}")
         print("=" * 50)
 
@@ -536,6 +655,8 @@ class KuxtalTravelAPITester:
             self.test_push_notifications()
             self.test_admin_commerce_management()
             self.test_file_upload()
+            # Phase 3: Admin features
+            self.test_quotation_sharing()
 
         member_login_success = self.test_member_login()
         if member_login_success:
@@ -545,9 +666,14 @@ class KuxtalTravelAPITester:
             if hasattr(self, 'test_commerce_id'):
                 self.test_scratch_card_endpoints()
                 self.test_visit_validation()
+            # Phase 3: Member features
+            self.test_family_members()
 
         # Phase 2: Commerce login
         self.test_commerce_login()
+
+        # Phase 3: Family member login
+        self.test_family_member_login()
 
         # Logout test
         self.test_logout()

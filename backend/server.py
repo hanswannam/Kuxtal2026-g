@@ -14,6 +14,8 @@ import uuid
 import bcrypt
 import jwt
 import requests
+from pywebpush import webpush, WebPushException
+import json as json_module
 from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel, Field
 from typing import List, Optional
@@ -31,6 +33,10 @@ STORAGE_URL = "https://integrations.emergentagent.com/objstore/api/v1/storage"
 EMERGENT_KEY = os.environ.get("EMERGENT_LLM_KEY")
 APP_NAME = "kuxtal-travel"
 storage_key = None
+
+VAPID_PUBLIC_KEY = os.environ.get("VAPID_PUBLIC_KEY", "")
+VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY", "").replace("\\n", "\n")
+VAPID_EMAIL = os.environ.get("VAPID_EMAIL", "mailto:info@kuxtaltravels.com")
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -230,6 +236,11 @@ class PushSubscription(BaseModel):
     endpoint: str
     keys: dict
 
+class FamilyMemberCreate(BaseModel):
+    name: str
+    dpi: str
+    relationship: str = "familiar"
+
 # ── Auth Routes ──
 
 @api_router.post("/auth/login")
@@ -252,18 +263,32 @@ async def member_login(req: MemberLoginRequest, response: Response):
     member = await db.members.find_one({"contract_number": req.contract_number.strip()})
     if not member:
         raise HTTPException(status_code=401, detail="Número de contrato no encontrado")
-    if member.get("dpi", "") != req.dpi.strip():
-        raise HTTPException(status_code=401, detail="DPI incorrecto")
+    # Check main member DPI or family member DPI
+    is_family = False
+    family_member_doc = None
+    if member.get("dpi", "") == req.dpi.strip():
+        is_family = False
+    else:
+        family_member_doc = await db.family_members.find_one({"contract_number": req.contract_number.strip(), "dpi": req.dpi.strip()})
+        if family_member_doc:
+            is_family = True
+        else:
+            raise HTTPException(status_code=401, detail="DPI incorrecto")
     if member.get("status") != "active":
         raise HTTPException(status_code=403, detail="Membresía inactiva")
-    user = await db.users.find_one({"member_id": str(member["_id"])})
+    login_name = family_member_doc["name"] if is_family else member["name"]
+    user = await db.users.find_one({"member_id": str(member["_id"]), "family_dpi": req.dpi.strip() if is_family else {"$exists": False}})
+    if not user and is_family:
+        user = await db.users.find_one({"member_id": str(member["_id"]), "family_dpi": req.dpi.strip()})
     if not user:
         user_doc = {
-            "email": member.get("email", f"{req.contract_number}@kuxtal.member"),
+            "email": f"{req.contract_number}{'_' + req.dpi.strip()[-4:] if is_family else ''}@kuxtal.member",
             "password_hash": hash_password(req.dpi),
-            "name": member["name"],
+            "name": login_name,
             "role": "member",
             "member_id": str(member["_id"]),
+            "is_family_member": is_family,
+            "family_dpi": req.dpi.strip() if is_family else None,
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         result = await db.users.insert_one(user_doc)
@@ -275,7 +300,7 @@ async def member_login(req: MemberLoginRequest, response: Response):
     response.set_cookie(key="access_token", value=access_token, httponly=True, secure=False, samesite="lax", max_age=86400, path="/")
     response.set_cookie(key="refresh_token", value=refresh_token, httponly=True, secure=False, samesite="lax", max_age=604800, path="/")
     member_data = serialize_doc(member)
-    return {"id": user_id, "name": member["name"], "role": "member", "contract_number": req.contract_number, "member": member_data, "token": access_token}
+    return {"id": user_id, "name": login_name, "role": "member", "contract_number": req.contract_number, "member": member_data, "is_family_member": is_family, "token": access_token}
 
 @api_router.get("/auth/me")
 async def get_me(request: Request):
@@ -740,6 +765,10 @@ async def get_member_visits(request: Request):
 
 # ── Push Notifications ──
 
+@api_router.get("/push/vapid-key")
+async def get_vapid_key():
+    return {"publicKey": VAPID_PUBLIC_KEY}
+
 @api_router.post("/push/subscribe")
 async def push_subscribe(req: PushSubscription, request: Request):
     user = await get_current_user(request)
@@ -758,16 +787,35 @@ async def send_push(request: Request):
     message = body.get("message", "")
     link = body.get("link", "/")
     subs = await db.push_subscriptions.find().to_list(10000)
+    sent_count = 0
+    failed_count = 0
+    payload = json_module.dumps({"title": title, "body": message, "message": message, "url": link, "link": link})
+    for sub in subs:
+        try:
+            webpush(
+                subscription_info={"endpoint": sub["endpoint"], "keys": sub["keys"]},
+                data=payload,
+                vapid_private_key=VAPID_PRIVATE_KEY,
+                vapid_claims={"sub": VAPID_EMAIL}
+            )
+            sent_count += 1
+        except WebPushException as e:
+            failed_count += 1
+            if e.response and e.response.status_code in [404, 410]:
+                await db.push_subscriptions.delete_one({"_id": sub["_id"]})
+        except Exception:
+            failed_count += 1
     notification = {
         "title": title,
         "message": message,
         "link": link,
         "sent_by": user["_id"],
         "sent_at": datetime.now(timezone.utc).isoformat(),
-        "recipients_count": len(subs)
+        "recipients_count": sent_count,
+        "failed_count": failed_count
     }
     await db.push_notifications.insert_one(notification)
-    return {"message": f"Notificación enviada a {len(subs)} suscriptores", "count": len(subs)}
+    return {"message": f"Notificación enviada a {sent_count} suscriptores ({failed_count} fallaron)", "count": sent_count}
 
 @api_router.get("/push/history")
 async def push_history(request: Request):
@@ -800,7 +848,52 @@ async def commerce_login(request: Request, response: Response):
     commerce_data = serialize_doc(commerce)
     return {"id": user_id, "name": commerce["name"], "role": "commerce", "commerce_id": str(commerce["_id"]), "commerce": commerce_data, "token": access_token}
 
-# ── Quotation sharing helpers ──
+# ── Family Members ──
+
+@api_router.get("/members/{member_id}/family")
+async def get_family_members(member_id: str, request: Request):
+    user = await get_current_user(request)
+    if user["role"] not in ["super_admin", "admin"] and user.get("member_id") != member_id:
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    family = []
+    async for f in db.family_members.find({"member_id": member_id}):
+        family.append(serialize_doc(f))
+    return family
+
+@api_router.post("/members/{member_id}/family")
+async def add_family_member(member_id: str, req: FamilyMemberCreate, request: Request):
+    user = await get_current_user(request)
+    member = await db.members.find_one({"_id": ObjectId(member_id)})
+    if not member:
+        raise HTTPException(status_code=404, detail="Socio no encontrado")
+    if user["role"] not in ["super_admin", "admin"] and user.get("member_id") != member_id:
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    current_count = await db.family_members.count_documents({"member_id": member_id})
+    allowed = member.get("family_members_allowed", 1)
+    if current_count >= allowed:
+        raise HTTPException(status_code=400, detail=f"Límite de {allowed} familiares alcanzado")
+    existing = await db.family_members.find_one({"member_id": member_id, "dpi": req.dpi})
+    if existing:
+        raise HTTPException(status_code=400, detail="Este DPI ya está registrado")
+    doc = req.model_dump()
+    doc["member_id"] = member_id
+    doc["contract_number"] = member["contract_number"]
+    doc["created_at"] = datetime.now(timezone.utc).isoformat()
+    result = await db.family_members.insert_one(doc)
+    doc["_id"] = str(result.inserted_id)
+    return doc
+
+@api_router.delete("/members/{member_id}/family/{family_id}")
+async def remove_family_member(member_id: str, family_id: str, request: Request):
+    user = await get_current_user(request)
+    if user["role"] not in ["super_admin", "admin"] and user.get("member_id") != member_id:
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    result = await db.family_members.delete_one({"_id": ObjectId(family_id), "member_id": member_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Familiar no encontrado")
+    return {"message": "Familiar eliminado"}
+
+# ── Quotation Sharing ──
 
 @api_router.get("/quotations/{quotation_id}/share")
 async def get_quotation_share(quotation_id: str, request: Request):
@@ -810,12 +903,28 @@ async def get_quotation_share(quotation_id: str, request: Request):
     q_data = serialize_doc(q)
     whatsapp_config = await db.config.find_one({"key": "whatsapp"})
     wa_phone = whatsapp_config.get("phone", "") if whatsapp_config else ""
-    share_text = f"Cotización Kuxtal Travel: {q_data.get('response', 'Pendiente')}"
+    response_text = q_data.get("response", "Cotización pendiente")
+    pkg_name = ""
+    if q_data.get("package_id"):
+        try:
+            pkg = await db.packages.find_one({"_id": ObjectId(q_data["package_id"])})
+            if pkg:
+                pkg_name = pkg.get("title", "")
+        except Exception:
+            pass
+    share_text = f"Cotización Kuxtal Travel{(' - ' + pkg_name) if pkg_name else ''}: {response_text}"
+    email_subject = f"Cotización Kuxtal Travel #{quotation_id[-6:]}"
+    clean_phone = wa_phone.replace(" ", "").replace("-", "").replace("+", "")
+    from urllib.parse import quote as url_quote
+    wa_url = f"https://wa.me/{clean_phone}?text={url_quote(share_text)}" if clean_phone else ""
+    mailto_url = f"mailto:{q_data.get('email', '')}?subject={url_quote(email_subject)}&body={url_quote(response_text)}"
     return {
         "quotation": q_data,
-        "whatsapp_url": f"https://wa.me/{wa_phone.replace(' ', '').replace('-', '')}?text={share_text}" if wa_phone else "",
-        "email_subject": f"Cotización Kuxtal Travel #{quotation_id[-6:]}",
-        "email_body": q_data.get("response_html", q_data.get("response", ""))
+        "whatsapp_url": wa_url,
+        "mailto_url": mailto_url,
+        "email_subject": email_subject,
+        "email_body": q_data.get("response_html", f"<p>{response_text}</p>"),
+        "share_text": share_text
     }
 
 # ── Stats ──
