@@ -5,6 +5,15 @@ const API = process.env.REACT_APP_BACKEND_URL;
 const VAPID_PUBLIC_KEY = process.env.REACT_APP_VAPID_PUBLIC_KEY;
 const AuthContext = createContext(null);
 
+// Setup axios interceptor to always send token
+axios.interceptors.request.use((config) => {
+  const token = localStorage.getItem('kuxtal_token');
+  if (token && !config.headers['Authorization']) {
+    config.headers['Authorization'] = `Bearer ${token}`;
+  }
+  return config;
+});
+
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -12,7 +21,7 @@ function urlBase64ToUint8Array(base64String) {
   return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
 }
 
-async function subscribePush(token) {
+async function subscribePush() {
   if (!('serviceWorker' in navigator) || !('PushManager' in window) || !VAPID_PUBLIC_KEY) return;
   try {
     const permission = await Notification.requestPermission();
@@ -42,6 +51,7 @@ export function AuthProvider({ children }) {
       const { data } = await axios.get(`${API}/api/auth/me`, { withCredentials: true });
       setUser(data);
     } catch {
+      localStorage.removeItem('kuxtal_token');
       setUser(false);
     } finally {
       setLoading(false);
@@ -52,20 +62,23 @@ export function AuthProvider({ children }) {
 
   const loginAdmin = async (email, password) => {
     const { data } = await axios.post(`${API}/api/auth/login`, { email, password }, { withCredentials: true });
+    localStorage.setItem('kuxtal_token', data.token);
     setUser(data);
-    subscribePush(data.token);
+    subscribePush();
     return data;
   };
 
   const loginMember = async (contract_number, dpi) => {
     const { data } = await axios.post(`${API}/api/auth/member-login`, { contract_number, dpi }, { withCredentials: true });
+    localStorage.setItem('kuxtal_token', data.token);
     setUser(data);
-    subscribePush(data.token);
+    subscribePush();
     return data;
   };
 
   const logout = async () => {
-    await axios.post(`${API}/api/auth/logout`, {}, { withCredentials: true });
+    try { await axios.post(`${API}/api/auth/logout`, {}, { withCredentials: true }); } catch {}
+    localStorage.removeItem('kuxtal_token');
     setUser(false);
   };
 

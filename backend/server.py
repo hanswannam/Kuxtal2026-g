@@ -38,6 +38,8 @@ VAPID_PUBLIC_KEY = os.environ.get("VAPID_PUBLIC_KEY", "")
 VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY", "").replace("\\n", "\n")
 VAPID_EMAIL = os.environ.get("VAPID_EMAIL", "mailto:info@kuxtaltravels.com")
 
+COOKIE_SECURE = os.environ.get("FRONTEND_URL", "").startswith("https")
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
@@ -263,8 +265,8 @@ async def admin_login(req: LoginRequest, response: Response):
     user_id = str(user["_id"])
     access_token = create_access_token(user_id, user["role"])
     refresh_token = create_refresh_token(user_id)
-    response.set_cookie(key="access_token", value=access_token, httponly=True, secure=False, samesite="lax", max_age=86400, path="/")
-    response.set_cookie(key="refresh_token", value=refresh_token, httponly=True, secure=False, samesite="lax", max_age=604800, path="/")
+    response.set_cookie(key="access_token", value=access_token, httponly=True, secure=COOKIE_SECURE, samesite="none" if COOKIE_SECURE else "lax", max_age=86400, path="/")
+    response.set_cookie(key="refresh_token", value=refresh_token, httponly=True, secure=COOKIE_SECURE, samesite="none" if COOKIE_SECURE else "lax", max_age=604800, path="/")
     return {"id": user_id, "name": user.get("name", ""), "email": user["email"], "role": user["role"], "token": access_token}
 
 @api_router.post("/auth/member-login")
@@ -306,8 +308,8 @@ async def member_login(req: MemberLoginRequest, response: Response):
         user_id = str(user["_id"])
     access_token = create_access_token(user_id, "member")
     refresh_token = create_refresh_token(user_id)
-    response.set_cookie(key="access_token", value=access_token, httponly=True, secure=False, samesite="lax", max_age=86400, path="/")
-    response.set_cookie(key="refresh_token", value=refresh_token, httponly=True, secure=False, samesite="lax", max_age=604800, path="/")
+    response.set_cookie(key="access_token", value=access_token, httponly=True, secure=COOKIE_SECURE, samesite="none" if COOKIE_SECURE else "lax", max_age=86400, path="/")
+    response.set_cookie(key="refresh_token", value=refresh_token, httponly=True, secure=COOKIE_SECURE, samesite="none" if COOKIE_SECURE else "lax", max_age=604800, path="/")
     member_data = serialize_doc(member)
     return {"id": user_id, "name": login_name, "role": "member", "contract_number": req.contract_number, "member": member_data, "is_family_member": is_family, "token": access_token}
 
@@ -852,8 +854,8 @@ async def commerce_login(request: Request, response: Response):
     user_id = str(user["_id"])
     access_token = create_access_token(user_id, "commerce")
     refresh_token = create_refresh_token(user_id)
-    response.set_cookie(key="access_token", value=access_token, httponly=True, secure=False, samesite="lax", max_age=86400, path="/")
-    response.set_cookie(key="refresh_token", value=refresh_token, httponly=True, secure=False, samesite="lax", max_age=604800, path="/")
+    response.set_cookie(key="access_token", value=access_token, httponly=True, secure=COOKIE_SECURE, samesite="none" if COOKIE_SECURE else "lax", max_age=86400, path="/")
+    response.set_cookie(key="refresh_token", value=refresh_token, httponly=True, secure=COOKIE_SECURE, samesite="none" if COOKIE_SECURE else "lax", max_age=604800, path="/")
     commerce_data = serialize_doc(commerce)
     return {"id": user_id, "name": commerce["name"], "role": "commerce", "commerce_id": str(commerce["_id"]), "commerce": commerce_data, "token": access_token}
 
@@ -1376,9 +1378,22 @@ async def seed_commerce_data():
 
 app.include_router(api_router)
 
+# Build allowed origins from env
+_cors_origins = []
+_frontend_url = os.environ.get("FRONTEND_URL", "")
+if _frontend_url:
+    _cors_origins.append(_frontend_url)
+_extra_origins = os.environ.get("CORS_ORIGINS", "")
+if _extra_origins and _extra_origins != "*":
+    _cors_origins.extend([o.strip() for o in _extra_origins.split(",") if o.strip()])
+# Always allow common patterns
+if not _cors_origins:
+    _cors_origins = ["http://localhost:3000"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[os.environ.get("FRONTEND_URL", "http://localhost:3000")],
+    allow_origins=_cors_origins,
+    allow_origin_regex=r"https?://.*\.emergentagent\.com|https?://.*kuxtaltravelgt\.com|https?://localhost.*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
