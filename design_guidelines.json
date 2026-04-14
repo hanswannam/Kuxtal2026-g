@@ -1,0 +1,124 @@
+{
+  "project_name": "Kuxtal Travel Club",
+  "theme": "light",
+  "archetype": "5 (Jewel & Luxury) adapted for Light Theme with Crimson",
+  "design_vision": "A premium, editorial-style travel and vacation club platform. Combining the high-end emotional storytelling of luxury brands with the functional clarity of modern SaaS (Airbnb-style layouts) for the member and admin dashboards. The design uses crisp white space, striking crimson red accents, and elegant typography.",
+  "colors": {
+    "background": "#FFFFFF",
+    "foreground": "#0A0505",
+    "card": "#FFFFFF",
+    "card_foreground": "#0A0505",
+    "popover": "#FFFFFF",
+    "popover_foreground": "#0A0505",
+    "primary": "#C1121F", 
+    "primary_foreground": "#FFFFFF",
+    "secondary": "#F3F0F0",
+    "secondary_foreground": "#1A1112",
+    "muted": "#F3F0F0",
+    "muted_foreground": "#7E7172",
+    "accent": "#FDF0F1",
+    "accent_foreground": "#C1121F",
+    "destructive": "#8F0E17",
+    "destructive_foreground": "#FFFFFF",
+    "border": "#EAE4E4",
+    "input": "#EAE4E4",
+    "ring": "#C1121F"
+  },
+  "typography": {
+    "fonts": {
+      "heading": "Playfair Display",
+      "body": "Outfit",
+      "mono": "JetBrains Mono"
+    },
+    "rules": {
+      "h1": "text-4xl sm:text-5xl lg:text-6xl tracking-tighter font-heading text-foreground",
+      "h2": "text-2xl sm:text-3xl lg:text-4xl tracking-tight font-heading text-foreground",
+      "h3": "text-xl sm:text-2xl tracking-tight font-heading text-foreground",
+      "body": "text-base leading-relaxed font-body text-foreground",
+      "small_labels": "text-xs uppercase tracking-[0.2em] font-body font-semibold text-muted-foreground"
+    },
+    "instructions": "DO NOT use Inter or Roboto. Apply tight letter spacing for headings. Use fluid typography scaling."
+  },
+  "layout_and_spacing": {
+    "spacing_scale": "Use generous spacing. p-6, p-8, p-12, p-16. Containers must have internal padding.",
+    "grid_system": {
+      "marketing": "Mode A 'Tetris Grid'. Use asymmetrical layouts. grid-cols-1 md:grid-cols-12 gap-8.",
+      "dashboard": "Mode B 'Control Room Grid'. grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6. Every pixel utilized."
+    },
+    "alignment": "Left-align dense text and paragraphs. Center-align only for specific hero messaging. Mobile-first layout."
+  },
+  "components_strategy": {
+    "buttons": "Primary buttons: bg-primary text-white hover:bg-primary/90 rounded-full or rounded-xl. Include smooth hover scaling (-translate-y-0.5) and box-shadow.",
+    "cards": "Subtle border (border-border), rounded-2xl, no shadow by default. On hover: shadow-xl border-border/80.",
+    "forms": "Use Shadcn Input, Select, DatePicker. Customize with rounded-xl, light border, focus:ring-primary.",
+    "glassmorphism": "Used for sticky headers and overlays: backdrop-blur-xl bg-white/70 border-b border-border/40.",
+    "navigation": "Sticky top navigation. Z-50. Must be visible on desktop (no hidden hamburger). Links use hover:text-primary transition-colors.",
+    "badges": "For star ratings and status: rounded-full px-3 py-1 text-sm bg-accent text-accent-foreground font-medium."
+  },
+  "motion_and_interaction": {
+    "hover_states": "All interactives must have explicit hover states. Button hover: transform translate-y-[-2px] shadow-md transition-all duration-300.",
+    "transitions": "Use transition-all duration-300 ease-out for most state changes.",
+    "page_load": "Fade-in entrance animations for grid items (staggered)."
+  },
+  "media": {
+    "instructions": "Main agent MUST use these exact URLs. Do not use placeholders.",
+    "images": [
+      {
+        "category": "hero_beach_resort",
+        "url": "https://images.pexels.com/photos/6875499/pexels-photo-6875499.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Aerial shot of tropical beach resort"
+      },
+      {
+        "category": "couple_vacation",
+        "url": "https://images.unsplash.com/photo-1626970356891-a6339d8eece6?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxNzV8MHwxfHNlYXJjaHwzfHx0cmF2ZWwlMjBjb3VwbGUlMjBzdW5zZXR8ZW58MHx8fHwxNzc2MTI2ODMyfDA&ixlib=rb-4.1.0&q=85",
+        "description": "Woman on dock, representing vacation experiences"
+      },
+      {
+        "category": "luxury_villa",
+        "url": "https://images.pexels.com/photos/6875529/pexels-photo-6875529.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Luxury beachside villas"
+      },
+      {
+        "category": "user_provided_asset_1",
+        "url": "https://customer-assets.emergentagent.com/job_3e291142-0719-49e2-bad0-5d2dcb682e72/artifacts/3k86mu40_image.png",
+        "description": "User provided screenshot/asset 1"
+      },
+      {
+        "category": "user_provided_asset_2",
+        "url": "https://customer-assets.emergentagent.com/job_3e291142-0719-49e2-bad0-5d2dcb682e72/artifacts/g8tion77_image.png",
+        "description": "User provided screenshot/asset 2"
+      },
+      {
+        "category": "user_provided_asset_3",
+        "url": "https://customer-assets.emergentagent.com/job_3e291142-0719-49e2-bad0-5d2dcb682e72/artifacts/ocruu8d8_image.png",
+        "description": "User provided screenshot/asset 3"
+      }
+    ],
+    "icons": {
+      "library": "lucide-react",
+      "stroke_width": 1.5
+    }
+  },
+  "pages_and_features": {
+    "public_website": {
+      "home": "Hero section with beach image, search bar for trips (Country/Date/Guests). Featured packages grid.",
+      "search_results": "Airbnb-style grid, cards with image, star rating, price in Quetzales (Q.), 'Ver Viaje' button.",
+      "trip_detail": "Large hero image gallery, rich description, pricing breakdown, and quote request form."
+    },
+    "member_portal": {
+      "login": "Minimalist layout, authenticates via Contract Number + DPI.",
+      "dashboard": "Bento grid showing service years, active promotions, announcements, quotations history, and messaging system for vacation requests."
+    },
+    "admin_crm": {
+      "dashboard": "High density 'Control Room' grid. Table for members, packages list.",
+      "package_creator": "Form to manage package details (image upload simulation, description, pricing, country).",
+      "communications": "Push notifications manager, quotation responses, and WhatsApp number configuration module."
+    },
+    "global_elements": {
+      "whatsapp_widget": "Floating action button in bottom right corner using brand primary color."
+    }
+  },
+  "testing": {
+    "rules": "All interactive elements, forms, and cards MUST include a descriptive data-testid attribute in kebab-case (e.g., 'submit-quote-button', 'trip-card-1')."
+  }
+}
