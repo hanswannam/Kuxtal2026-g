@@ -52,8 +52,8 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      await axios.post(`${API}/api/auth/commerce-login`, commerceForm, { withCredentials: true });
-      localStorage.setItem('kuxtal_token', 'commerce');
+      const { data } = await axios.post(`${API}/api/auth/commerce-login`, commerceForm, { withCredentials: true });
+      localStorage.setItem('kuxtal_token', data.token);
       await checkAuth();
       toast.success('Bienvenido al portal de comercio');
       navigate('/commerce-portal');
