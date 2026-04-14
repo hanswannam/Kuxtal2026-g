@@ -45,7 +45,7 @@ export default function AdminDashboard() {
   const [editingPackage, setEditingPackage] = useState(null);
   const [quotationResponse, setQuotationResponse] = useState({ id: '', response: '' });
 
-  const [memberForm, setMemberForm] = useState({ contract_number: '', dpi: '', name: '', email: '', phone: '', service_years: 1, membership_start: '', membership_end: '', family_members_allowed: 1, status: 'active' });
+  const [memberForm, setMemberForm] = useState({ contract_number: '', dpi: '', name: '', email: '', phone: '', service_years: 1, membership_start: '', membership_end: '', family_members_allowed: 1, investment_amount: 0, investment_plan: '', status: 'active' });
   const [packageForm, setPackageForm] = useState({ title: '', description: '', short_description: '', country: '', price: 0, member_price: 0, duration_days: 1, category: 'paquete', includes: [], rating: 4.8, image_url: '', gallery: [], featured: false, status: 'active' });
   const [includesInput, setIncludesInput] = useState('');
   const [announcementForm, setAnnouncementForm] = useState({ title: '', content: '', link: '', target: 'all', status: 'active' });
@@ -193,13 +193,19 @@ export default function AdminDashboard() {
     { id: 'announcements', label: 'Anuncios', icon: Bell },
     { id: 'push', label: 'Push', icon: Send },
     { id: 'requests', label: 'Solicitudes', icon: MessageSquare },
+    { id: 'users', label: 'Usuarios', icon: Users },
     { id: 'settings', label: 'Config', icon: Settings },
   ];
+
+  // Admin user management
+  const [adminUsers, setAdminUsers] = useState([]);
+  const [showUserForm, setShowUserForm] = useState(false);
+  const [userForm, setUserForm] = useState({ name: '', email: '', password: '', role: 'admin' });
+  const loadUsers = async () => { try { const { data } = await ax.get('/admin/users'); setAdminUsers(data); } catch {} };
 
   return (
     <div className="min-h-screen pt-20 bg-secondary/20" data-testid="admin-dashboard">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="font-heading text-2xl font-bold tracking-tight">Panel Administrativo</h1>
@@ -208,13 +214,17 @@ export default function AdminDashboard() {
           <Badge className="rounded-full bg-primary/10 text-primary border-0 px-3">{user?.role === 'super_admin' ? 'Super Admin' : 'Admin'}</Badge>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-1 bg-white rounded-xl p-1 border border-border mb-6 overflow-x-auto" data-testid="admin-tabs">
+        {/* Tabs - attractive grid for mobile */}
+        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2 mb-6" data-testid="admin-tabs">
           {tabs.map(t => (
-            <button key={t.id} onClick={() => setTab(t.id)}
-              className={`flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg transition-all whitespace-nowrap ${tab === t.id ? 'bg-primary text-white shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-secondary'}`}
+            <button key={t.id} onClick={() => { setTab(t.id); if(t.id==='users') loadUsers(); }}
+              className={`flex flex-col items-center gap-1 px-2 py-3 text-[11px] sm:text-xs font-semibold rounded-2xl transition-all duration-300 ${
+                tab === t.id
+                  ? 'bg-primary text-white shadow-lg shadow-primary/25 scale-[1.02]'
+                  : 'bg-white text-muted-foreground border border-border hover:border-primary/30 hover:text-primary hover:shadow-md'
+              }`}
               data-testid={`admin-tab-${t.id}`}>
-              <t.icon className="w-4 h-4" /> {t.label}
+              <t.icon className="w-5 h-5" /> {t.label}
             </button>
           ))}
         </div>
@@ -222,26 +232,43 @@ export default function AdminDashboard() {
         {/* DASHBOARD */}
         {tab === 'dashboard' && (
           <div className="space-y-6 animate-fade-in">
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Quick Stats */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
               {[
-                { label: 'Socios Activos', value: stats.active_members || 0, icon: Users, color: 'text-emerald-600' },
-                { label: 'Paquetes', value: stats.total_packages || 0, icon: Package, color: 'text-blue-600' },
-                { label: 'Cotizaciones Pendientes', value: stats.pending_quotations || 0, icon: FileText, color: 'text-amber-600' },
-                { label: 'Solicitudes Pendientes', value: stats.pending_requests || 0, icon: MessageSquare, color: 'text-purple-600' },
-                { label: 'Anuncios Activos', value: stats.total_announcements || 0, icon: Bell, color: 'text-rose-600' },
-                { label: 'Referidos', value: stats.total_referrals || 0, icon: Gift, color: 'text-indigo-600' },
-                { label: 'Chats sin leer', value: stats.unread_chats || 0, icon: MessageSquare, color: 'text-cyan-600' },
-                { label: 'Total Socios', value: stats.total_members || 0, icon: BarChart3, color: 'text-primary' },
+                { label: 'Socios Activos', value: stats.active_members || 0, icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+                { label: 'Paquetes', value: stats.total_packages || 0, icon: Package, color: 'text-blue-600', bg: 'bg-blue-50' },
+                { label: 'Cotizaciones', value: stats.pending_quotations || 0, icon: FileText, color: 'text-amber-600', bg: 'bg-amber-50' },
+                { label: 'Comercios', value: stats.total_commerce || 0, icon: Store, color: 'text-violet-600', bg: 'bg-violet-50' },
+                { label: 'Referidos', value: stats.total_referrals || 0, icon: Gift, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+                { label: 'Chats', value: stats.unread_chats || 0, icon: MessageSquare, color: 'text-cyan-600', bg: 'bg-cyan-50' },
+                { label: 'Solicitudes', value: stats.pending_requests || 0, icon: Clock, color: 'text-orange-600', bg: 'bg-orange-50' },
+                { label: 'Anuncios', value: stats.total_announcements || 0, icon: Bell, color: 'text-rose-600', bg: 'bg-rose-50' },
               ].map((s, i) => (
-                <div key={i} className="bg-white rounded-2xl p-5 border border-border" data-testid={`stat-${i}`}>
+                <div key={i} className="bg-white rounded-2xl p-4 border border-border hover:shadow-md transition-all cursor-pointer" onClick={() => setTab(s.label === 'Socios Activos' ? 'members' : s.label === 'Paquetes' ? 'packages' : s.label === 'Cotizaciones' ? 'quotations' : s.label === 'Comercios' ? 'commerce' : s.label === 'Referidos' ? 'referrals' : s.label === 'Chats' ? 'settings' : s.label === 'Solicitudes' ? 'requests' : 'announcements')} data-testid={`stat-${i}`}>
                   <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-xl bg-secondary ${s.color}`}><s.icon className="w-5 h-5" /></div>
+                    <div className={`p-2.5 rounded-xl ${s.bg} ${s.color}`}><s.icon className="w-5 h-5" /></div>
                     <div>
-                      <p className="text-2xl font-bold">{s.value}</p>
-                      <p className="text-xs text-muted-foreground">{s.label}</p>
+                      <p className="text-xl sm:text-2xl font-bold">{s.value}</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">{s.label}</p>
                     </div>
                   </div>
                 </div>
+              ))}
+            </div>
+
+            {/* Quick Action Buttons */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[
+                { label: 'Nuevo Socio', icon: Users, action: () => { setTab('members'); setTimeout(() => { setShowMemberForm(true); setEditingMember(null); }, 100); }, color: 'from-emerald-500 to-emerald-600' },
+                { label: 'Nuevo Paquete', icon: Package, action: () => { setTab('packages'); setTimeout(() => { setShowPackageForm(true); setEditingPackage(null); }, 100); }, color: 'from-blue-500 to-blue-600' },
+                { label: 'Nuevo Comercio', icon: Store, action: () => { setTab('commerce'); setTimeout(() => setShowCommerceForm(true), 100); }, color: 'from-violet-500 to-violet-600' },
+                { label: 'Ver Mensajes', icon: MessageSquare, action: () => window.location.href = '/chat', color: 'from-cyan-500 to-cyan-600' },
+              ].map((a, i) => (
+                <button key={i} onClick={a.action}
+                  className={`flex items-center gap-3 p-4 rounded-2xl bg-gradient-to-r ${a.color} text-white font-semibold text-sm shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all`}
+                  data-testid={`quick-action-${i}`}>
+                  <a.icon className="w-5 h-5" /> {a.label}
+                </button>
               ))}
             </div>
           </div>
@@ -454,6 +481,10 @@ export default function AdminDashboard() {
                           <option value="inactive">Inactivo</option>
                         </select>
                       </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div><Label className="text-xs">Inversión (Q.)</Label><Input type="number" value={memberForm.investment_amount} onChange={e => setMemberForm({...memberForm, investment_amount: parseFloat(e.target.value) || 0})} className="rounded-xl mt-1" data-testid="mf-investment" /></div>
+                      <div><Label className="text-xs">Plan de Inversión</Label><Input value={memberForm.investment_plan} onChange={e => setMemberForm({...memberForm, investment_plan: e.target.value})} placeholder="Ej: Plan Premium 5 años" className="rounded-xl mt-1" data-testid="mf-plan" /></div>
                     </div>
                     <div className="flex gap-3 pt-2">
                       <Button type="button" variant="outline" onClick={() => { setShowMemberForm(false); setEditingMember(null); }} className="flex-1 rounded-xl">Cancelar</Button>
@@ -715,19 +746,22 @@ export default function AdminDashboard() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {commerces.map((c, i) => (
-                <div key={c._id} className="bg-white rounded-2xl p-5 border border-border" data-testid={`admin-commerce-${i}`}>
+                <div key={c._id} className="bg-white rounded-2xl p-5 border border-border hover:shadow-md transition-all" data-testid={`admin-commerce-${i}`}>
                   <div className="flex items-start justify-between mb-2">
                     <div>
                       <h3 className="font-semibold">{c.name}</h3>
                       <Badge variant="secondary" className="rounded-full text-xs mt-1">{c.category}</Badge>
                     </div>
-                    <Button size="sm" variant="ghost" onClick={() => deleteCommerce(c._id)} className="text-destructive"><Trash2 className="w-3.5 h-3.5" /></Button>
+                    <div className="flex gap-1">
+                      <Button size="sm" variant="ghost" onClick={() => { setCommerceForm({...c}); setShowCommerceForm(true); }} className="text-primary" data-testid={`edit-commerce-${i}`}><Edit className="w-3.5 h-3.5" /></Button>
+                      <Button size="sm" variant="ghost" onClick={() => deleteCommerce(c._id)} className="text-destructive" data-testid={`delete-commerce-${i}`}><Trash2 className="w-3.5 h-3.5" /></Button>
+                    </div>
                   </div>
                   <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{c.description}</p>
                   <p className="text-xs text-muted-foreground">{c.location}</p>
                   <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
                     <span className="text-xs font-mono font-bold text-primary">{c.validation_code}</span>
-                    <span className="text-xs text-muted-foreground">ID: {c._id?.slice(-8)}</span>
+                    <span className="text-[10px] text-muted-foreground select-all">ID: {c._id}</span>
                   </div>
                 </div>
               ))}
@@ -794,6 +828,65 @@ export default function AdminDashboard() {
                       <p className="text-xs text-muted-foreground mt-1">{new Date(n.sent_at).toLocaleString('es')}</p>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* USERS MANAGEMENT */}
+        {tab === 'users' && (
+          <div className="animate-fade-in" data-testid="admin-users">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="font-heading text-lg font-semibold">Usuarios del Sistema ({adminUsers.length})</h2>
+              <Button onClick={() => setShowUserForm(true)} className="rounded-full bg-primary hover:bg-primary/90 shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5" data-testid="add-user-btn">
+                <Plus className="w-4 h-4 mr-2" /> Nuevo Admin
+              </Button>
+            </div>
+            <div className="bg-white rounded-2xl border border-border overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-secondary/50">
+                  <tr><th className="text-left p-3 font-medium">Nombre</th><th className="text-left p-3 font-medium">Email</th><th className="text-left p-3 font-medium">Rol</th><th className="text-right p-3 font-medium">Acción</th></tr>
+                </thead>
+                <tbody>
+                  {adminUsers.map((u, i) => (
+                    <tr key={u._id} className="border-t border-border hover:bg-secondary/30 transition-colors" data-testid={`user-row-${i}`}>
+                      <td className="p-3 font-medium">{u.name}</td>
+                      <td className="p-3 text-muted-foreground">{u.email}</td>
+                      <td className="p-3"><Badge variant={u.role === 'super_admin' ? 'default' : 'secondary'} className="rounded-full text-xs">{u.role}</Badge></td>
+                      <td className="p-3 text-right">
+                        <Button size="sm" variant="ghost" className="text-destructive" onClick={async () => {
+                          if (window.confirm('¿Eliminar usuario?')) {
+                            try { await ax.delete(`/admin/users/${u._id}`); loadUsers(); toast.success('Eliminado'); }
+                            catch (e) { toast.error(e.response?.data?.detail || 'Error'); }
+                          }
+                        }} data-testid={`delete-user-${i}`}><Trash2 className="w-3.5 h-3.5" /></Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {showUserForm && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in" data-testid="user-form-modal">
+                <div className="bg-white rounded-2xl w-full max-w-md p-6">
+                  <h3 className="font-heading text-xl font-semibold mb-4">Nuevo Administrador</h3>
+                  <form onSubmit={async (e) => { e.preventDefault(); try { await ax.post('/admin/users', userForm); toast.success('Usuario creado'); setShowUserForm(false); setUserForm({ name: '', email: '', password: '', role: 'admin' }); loadUsers(); } catch (err) { toast.error(err.response?.data?.detail || 'Error'); } }} className="space-y-3">
+                    <div><Label className="text-xs">Nombre</Label><Input value={userForm.name} onChange={e => setUserForm({...userForm, name: e.target.value})} required className="rounded-xl mt-1" data-testid="uf-name" /></div>
+                    <div><Label className="text-xs">Email</Label><Input type="email" value={userForm.email} onChange={e => setUserForm({...userForm, email: e.target.value})} required className="rounded-xl mt-1" data-testid="uf-email" /></div>
+                    <div><Label className="text-xs">Contraseña</Label><Input type="password" value={userForm.password} onChange={e => setUserForm({...userForm, password: e.target.value})} required className="rounded-xl mt-1" data-testid="uf-password" /></div>
+                    <div>
+                      <Label className="text-xs">Rol</Label>
+                      <select value={userForm.role} onChange={e => setUserForm({...userForm, role: e.target.value})} className="w-full mt-1 h-10 rounded-xl border border-input px-3 text-sm" data-testid="uf-role">
+                        <option value="admin">Admin</option>
+                        <option value="super_admin">Super Admin</option>
+                      </select>
+                    </div>
+                    <div className="flex gap-3 pt-2">
+                      <Button type="button" variant="outline" onClick={() => setShowUserForm(false)} className="flex-1 rounded-xl">Cancelar</Button>
+                      <Button type="submit" className="flex-1 rounded-xl bg-primary hover:bg-primary/90" data-testid="uf-submit">Crear</Button>
+                    </div>
+                  </form>
                 </div>
               </div>
             )}

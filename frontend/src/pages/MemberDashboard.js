@@ -93,27 +93,30 @@ export default function MemberDashboard() {
 
   return (
     <div className="min-h-screen pt-20 pb-12 bg-secondary/20" data-testid="member-dashboard">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="font-heading text-3xl font-bold tracking-tight mb-1">
+        <div className="mb-6">
+          <h1 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight mb-1">
             Hola, {member?.name || user?.name || 'Socio'}
           </h1>
           <p className="text-muted-foreground text-sm">Bienvenido a tu portal de socio</p>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-1 bg-white rounded-xl p-1 border border-border mb-8 overflow-x-auto" data-testid="member-tabs">
+        {/* Tabs - attractive grid buttons */}
+        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-2 sm:gap-3 mb-8" data-testid="member-tabs">
           {tabs.map(t => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
-                tab === t.id ? 'bg-primary text-white shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+              className={`flex flex-col items-center gap-1.5 px-2 py-3 sm:py-3.5 text-xs sm:text-sm font-semibold rounded-2xl transition-all duration-300 ${
+                tab === t.id
+                  ? 'bg-primary text-white shadow-lg shadow-primary/25 scale-[1.02]'
+                  : 'bg-white text-muted-foreground border border-border hover:border-primary/30 hover:text-primary hover:shadow-md'
               }`}
               data-testid={`member-tab-${t.id}`}
             >
-              <t.icon className="w-4 h-4" /> {t.label}
+              <t.icon className="w-5 h-5" />
+              <span className="leading-tight">{t.label}</span>
             </button>
           ))}
         </div>
@@ -123,25 +126,32 @@ export default function MemberDashboard() {
           <div className="space-y-6 animate-fade-in">
             {/* Member Info Card */}
             {member && (
-              <div className="bg-white rounded-2xl p-6 border border-border" data-testid="member-info-card">
+              <div className="bg-white rounded-2xl p-5 sm:p-6 border border-border" data-testid="member-info-card">
                 <h2 className="font-heading text-lg font-semibold mb-4">Mi Membresía</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="p-4 bg-accent/50 rounded-xl">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Contrato</p>
-                    <p className="font-semibold text-lg">{member.contract_number}</p>
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                  <div className="p-3 sm:p-4 bg-accent/50 rounded-xl">
+                    <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider mb-1">Contrato</p>
+                    <p className="font-semibold text-base sm:text-lg">{member.contract_number}</p>
                   </div>
-                  <div className="p-4 bg-accent/50 rounded-xl">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Años de Servicio</p>
-                    <p className="font-semibold text-lg">{member.service_years} años</p>
+                  <div className="p-3 sm:p-4 bg-accent/50 rounded-xl">
+                    <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider mb-1">Años de Servicio</p>
+                    <p className="font-semibold text-base sm:text-lg">{member.service_years} años</p>
                   </div>
-                  <div className="p-4 bg-accent/50 rounded-xl">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Vigencia</p>
-                    <p className="font-semibold text-sm">{member.membership_start} - {member.membership_end}</p>
+                  <div className="p-3 sm:p-4 bg-accent/50 rounded-xl">
+                    <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider mb-1">Vigencia</p>
+                    <p className="font-semibold text-xs sm:text-sm">{member.membership_start} - {member.membership_end}</p>
                   </div>
-                  <div className="p-4 bg-accent/50 rounded-xl">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Familiares</p>
-                    <p className="font-semibold text-lg">{member.family_members_allowed} personas</p>
+                  <div className="p-3 sm:p-4 bg-accent/50 rounded-xl">
+                    <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider mb-1">Familiares</p>
+                    <p className="font-semibold text-base sm:text-lg">{member.family_members_allowed} personas</p>
                   </div>
+                  {(member.investment_amount > 0 || member.investment_plan) && (
+                    <div className="p-3 sm:p-4 bg-primary/5 rounded-xl border border-primary/10 col-span-2">
+                      <p className="text-[10px] sm:text-xs text-primary uppercase tracking-wider mb-1 font-semibold">Inversión</p>
+                      <p className="font-bold text-xl sm:text-2xl text-primary">Q.{(member.investment_amount || 0).toLocaleString()}</p>
+                      {member.investment_plan && <p className="text-xs text-muted-foreground mt-1">{member.investment_plan}</p>}
+                    </div>
+                  )}
                 </div>
               </div>
             )}

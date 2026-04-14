@@ -150,6 +150,8 @@ class MemberCreate(BaseModel):
     membership_start: Optional[str] = ""
     membership_end: Optional[str] = ""
     family_members_allowed: int = 1
+    investment_amount: Optional[float] = 0
+    investment_plan: Optional[str] = ""
     status: str = "active"
 
 class PackageCreate(BaseModel):
@@ -208,10 +210,17 @@ class CommerceCreate(BaseModel):
     description: Optional[str] = ""
     category: str = "Servicios"
     location: Optional[str] = ""
+    address: Optional[str] = ""
     phone: Optional[str] = ""
     email: Optional[str] = ""
     website: Optional[str] = ""
     logo_url: Optional[str] = ""
+    youtube_video: Optional[str] = ""
+    photos: List[str] = []
+    social_facebook: Optional[str] = ""
+    social_instagram: Optional[str] = ""
+    social_tiktok: Optional[str] = ""
+    social_twitter: Optional[str] = ""
     benefit_description: Optional[str] = ""
     validation_code: Optional[str] = ""
     status: str = "active"
@@ -1165,6 +1174,16 @@ async def list_countries():
 
 # ── Admin Users CRUD ──
 
+@api_router.get("/admin/users")
+async def list_admin_users(request: Request):
+    user = await require_role("super_admin")(request)
+    users = []
+    async for u in db.users.find({"role": {"$in": ["super_admin", "admin"]}}).sort("created_at", -1):
+        u_doc = serialize_doc(u)
+        u_doc.pop("password_hash", None)
+        users.append(u_doc)
+    return users
+
 @api_router.post("/admin/users")
 async def create_admin_user(request: Request):
     user = await require_role("super_admin")(request)
@@ -1181,6 +1200,17 @@ async def create_admin_user(request: Request):
     }
     result = await db.users.insert_one(doc)
     return {"id": str(result.inserted_id), "email": doc["email"], "name": doc["name"], "role": doc["role"]}
+
+@api_router.delete("/admin/users/{user_id}")
+async def delete_admin_user(user_id: str, request: Request):
+    user = await require_role("super_admin")(request)
+    target = await db.users.find_one({"_id": ObjectId(user_id)})
+    if not target:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    if target.get("email") == os.environ.get("ADMIN_EMAIL", "admin@kuxtaltravels.com").lower():
+        raise HTTPException(status_code=400, detail="No se puede eliminar el admin principal")
+    await db.users.delete_one({"_id": ObjectId(user_id)})
+    return {"message": "Usuario eliminado"}
 
 # ── Seed & Startup ──
 
