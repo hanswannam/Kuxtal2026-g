@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../lib/api';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { FileText, Bell, MessageSquare, Package, Store, Users, Share2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -23,6 +24,7 @@ function TabLoader() {
 
 export default function MemberDashboard() {
   const { user } = useAuth();
+  useDocumentTitle('Portal de Socio');
   const [tab, setTab] = useState('dashboard');
   const [member, setMember] = useState(null);
   const [quotations, setQuotations] = useState([]);

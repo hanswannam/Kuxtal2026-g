@@ -841,22 +841,41 @@ async def send_push(request: Request):
     subs = await db.push_subscriptions.find().to_list(10000)
     sent_count = 0
     failed_count = 0
+    stale_ids = []
     payload = json_module.dumps({"title": title, "body": message, "message": message, "url": link, "link": link, "image": image_url})
-    for sub in subs:
-        try:
-            webpush(
-                subscription_info={"endpoint": sub["endpoint"], "keys": sub["keys"]},
-                data=payload,
-                vapid_private_key=VAPID_PRIVATE_KEY,
-                vapid_claims={"sub": VAPID_EMAIL}
-            )
-            sent_count += 1
-        except WebPushException as e:
-            failed_count += 1
-            if e.response and e.response.status_code in [404, 410]:
-                await db.push_subscriptions.delete_one({"_id": sub["_id"]})
-        except Exception:
-            failed_count += 1
+
+    # Send in batches of 50
+    batch_size = 50
+    for i in range(0, len(subs), batch_size):
+        batch = subs[i:i + batch_size]
+        for sub in batch:
+            retries = 2
+            for attempt in range(retries):
+                try:
+                    webpush(
+                        subscription_info={"endpoint": sub["endpoint"], "keys": sub["keys"]},
+                        data=payload,
+                        vapid_private_key=VAPID_PRIVATE_KEY,
+                        vapid_claims={"sub": VAPID_EMAIL},
+                        timeout=10
+                    )
+                    sent_count += 1
+                    break
+                except WebPushException as e:
+                    if e.response and e.response.status_code in [404, 410]:
+                        stale_ids.append(sub["_id"])
+                        failed_count += 1
+                        break
+                    if attempt == retries - 1:
+                        failed_count += 1
+                except Exception:
+                    if attempt == retries - 1:
+                        failed_count += 1
+
+    # Cleanup stale subscriptions in bulk
+    if stale_ids:
+        await db.push_subscriptions.delete_many({"_id": {"$in": stale_ids}})
+
     notification = {
         "title": title,
         "message": message,
@@ -868,7 +887,7 @@ async def send_push(request: Request):
         "failed_count": failed_count
     }
     await db.push_notifications.insert_one(notification)
-    return {"message": f"Notificación enviada a {sent_count} suscriptores ({failed_count} fallaron)", "count": sent_count}
+    return {"message": f"Notificacion enviada a {sent_count} suscriptores ({failed_count} fallaron)", "count": sent_count}
 
 @api_router.get("/push/history")
 async def push_history(request: Request):
@@ -1437,8 +1456,27 @@ async def startup():
         logger.error(f"Storage init failed: {e}")
     await db.users.create_index("email", unique=True)
     await db.members.create_index("contract_number", unique=True)
+    await db.members.create_index("dpi")
     await db.commerce.create_index("name")
+    await db.commerce.create_index("category")
+    await db.commerce.create_index("validation_code")
     await db.push_subscriptions.create_index("endpoint", unique=True)
+    await db.push_subscriptions.create_index("user_id")
+    await db.quotations.create_index("user_id")
+    await db.quotations.create_index("status")
+    await db.quotations.create_index("created_at")
+    await db.chat_conversations.create_index("user_id")
+    await db.chat_conversations.create_index("status")
+    await db.chat_messages.create_index("conversation_id")
+    await db.announcements.create_index("target")
+    await db.announcements.create_index("created_at")
+    await db.vacation_requests.create_index("user_id")
+    await db.vacation_requests.create_index("status")
+    await db.referrals.create_index("referral_code")
+    await db.referrals.create_index("status")
+    await db.packages.create_index("featured")
+    await db.packages.create_index("country")
+    await db.push_notifications.create_index([("sent_at", -1)])
     logger.info("Kuxtal Travel API started")
 
 async def seed_commerce_data():

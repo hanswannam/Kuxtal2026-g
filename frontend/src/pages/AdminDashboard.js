@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Badge } from '../components/ui/badge';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import {
   LayoutDashboard, Users, Package, FileText, Bell, MessageSquare, Settings,
   Send, Store, TrendingUp, Gift, Loader2
@@ -33,6 +34,7 @@ const API = process.env.REACT_APP_BACKEND_URL;
 
 export default function AdminDashboard() {
   const { user } = useAuth();
+  useDocumentTitle('Panel Administrativo');
   const [tab, setTab] = useState('dashboard');
   const [stats, setStats] = useState({});
   const [members, setMembers] = useState([]);

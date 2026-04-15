@@ -1,5 +1,6 @@
-const CACHE_NAME = 'kuxtal-v2';
-const STATIC_ASSETS = ['/'];
+const CACHE_NAME = 'kuxtal-v3';
+const STATIC_ASSETS = ['/', '/manifest.json'];
+const API_CACHE = 'kuxtal-api-v1';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -11,7 +12,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+      Promise.all(keys.filter((k) => k !== CACHE_NAME && k !== API_CACHE).map((k) => caches.delete(k)))
     )
   );
   self.clients.claim();
@@ -19,13 +20,55 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+
+  const url = new URL(event.request.url);
+
+  // Skip caching for API auth endpoints and push
+  if (url.pathname.includes('/api/auth/') || url.pathname.includes('/api/push/')) return;
+
+  // Stale-while-revalidate for API GET requests
+  if (url.pathname.startsWith('/api/')) {
+    event.respondWith(
+      caches.open(API_CACHE).then(async (cache) => {
+        const cached = await cache.match(event.request);
+        const fetchPromise = fetch(event.request).then((response) => {
+          if (response.ok) cache.put(event.request, response.clone());
+          return response;
+        }).catch(() => cached);
+        return cached || fetchPromise;
+      })
+    );
+    return;
+  }
+
+  // Cache-first for static assets (images, fonts, css, js)
+  if (url.pathname.match(/\.(js|css|png|jpg|jpeg|webp|avif|svg|woff2?)$/)) {
+    event.respondWith(
+      caches.open(CACHE_NAME).then(async (cache) => {
+        const cached = await cache.match(event.request);
+        if (cached) return cached;
+        const response = await fetch(event.request);
+        if (response.ok) cache.put(event.request, response.clone());
+        return response;
+      }).catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // Network-first for HTML navigation
   event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request))
+    fetch(event.request).then((response) => {
+      if (response.ok) {
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+      }
+      return response;
+    }).catch(() => caches.match(event.request).then((r) => r || caches.match('/')))
   );
 });
 
 self.addEventListener('push', (event) => {
-  let data = { title: 'Kuxtal Travel', body: 'Tienes una nueva notificación', url: '/' };
+  let data = { title: 'Kuxtal Travel', body: 'Tienes una nueva notificacion', url: '/' };
   try {
     data = event.data.json();
   } catch (e) {
