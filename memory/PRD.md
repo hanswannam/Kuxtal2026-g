@@ -6,70 +6,55 @@ Sistema integral CRM para club vacacional con membresias, pagina web publica est
 ## Architecture
 - **Backend:** FastAPI + MongoDB + pywebpush
 - **Frontend:** React 18 + Tailwind + Shadcn UI + Recharts
-- **Auth:** JWT (httpOnly cookies + localStorage Bearer token fallback for cross-origin)
+- **Auth:** JWT (httpOnly cookies + localStorage Bearer token fallback)
 - **Storage:** Emergent Object Storage
-- **Push:** Web Push API with VAPID (pywebpush)
-- **PWA:** manifest.json + service worker
+- **Push:** Web Push API with VAPID (pywebpush) - batch sending with retry
+- **PWA:** manifest.json + service worker v3 (stale-while-revalidate)
+- **Performance:** React.lazy + Suspense (route + tab level), 23 MongoDB indexes
 
 ## Code Structure
 ```
-/app/frontend/src/pages/
-  AdminDashboard.js (orchestrator, React.lazy + Suspense)
-  MemberDashboard.js (orchestrator, React.lazy + Suspense)
-  admin/
-    AdminOverview.js, AdminAnalytics.js, AdminMembers.js,
-    AdminPackages.js, AdminQuotations.js, AdminReferrals.js,
-    AdminAnnouncements.js, AdminRequests.js, AdminCommerces.js,
-    AdminPush.js, AdminUsers.js, AdminSettings.js
-  member/
-    MemberOverview.js, MemberQuotations.js, MemberAnnouncements.js,
-    MemberRequests.js, MemberFamily.js, MemberReferrals.js,
-    MemberBenefits.js
+/app/frontend/src/
+  App.js (ErrorBoundary + Suspense + lazy routes)
+  components/ErrorBoundary.js
+  hooks/useDocumentTitle.js
+  pages/
+    AdminDashboard.js (orchestrator, React.lazy tabs)
+    MemberDashboard.js (orchestrator, React.lazy tabs)
+    admin/ (12 sub-components)
+    member/ (7 sub-components)
+/app/frontend/public/
+  index.html (OG meta tags, Twitter Cards)
+  sw.js (v3: stale-while-revalidate API, cache-first static, network-first HTML)
+  manifest.json
 ```
 
 ## All Implemented Features
 
-### Phase 1 - Core Platform
-- [x] Pagina web publica estilo Airbnb (Home, Search, Trip Detail)
-- [x] Portal de socios (Dashboard, Cotizaciones, Anuncios, Solicitudes)
-- [x] CRM Administrativo (Socios CRUD, Paquetes CRUD, Cotizaciones, Anuncios)
-- [x] Autenticacion JWT con roles multiples
-- [x] Configuracion WhatsApp widget
+### Phase 1-4 - Core Platform (DONE)
+- [x] Public website (Home, Search, Trip Detail)
+- [x] Member portal (Dashboard, Quotes, Announcements, Requests, Family, Referrals, Benefits)
+- [x] Admin CRM (Members, Packages, Commerce, Quotes, Referrals, Announcements, Push, Chat, Analytics)
+- [x] JWT auth (5 roles), WhatsApp widget, Commerce Wizard, Scratch Card
+- [x] VAPID Push notifications, PWA, Chat (polling), Referral system
 
-### Phase 2 - Commerce & Benefits
-- [x] Portal de comercios con 12 categorias
-- [x] Sistema de validacion de visitas con codigo secreto
-- [x] Raspable digital (scratch card) configurable
-- [x] Commerce Wizard paso a paso para onboarding
-- [x] Upload de imagenes (Object Storage)
-- [x] PWA (manifest + service worker)
+### Phase 5 - Security & Code Quality (DONE)
+- [x] XSS fix (DOMPurify), DELETE_SECRET in .env, backend anti-patterns fixed
+- [x] React index keys replaced, centralized api interceptor, unused imports removed
 
-### Phase 3 - Sharing, Push & Family
-- [x] Cotizaciones compartibles por WhatsApp y Email
-- [x] Push notifications reales con VAPID keys
-- [x] Sistema de familia del socio (sub-usuarios)
+### Phase 6 - Component Refactoring + Lazy Loading (DONE)
+- [x] AdminDashboard: 957 -> 235 lines (12 lazy sub-components)
+- [x] MemberDashboard: 555 -> 155 lines (7 lazy sub-components)
 
-### Phase 4 - Analytics, Referrals & Chat
-- [x] Analytics dashboard avanzado (Recharts)
-- [x] Sistema de referidos
-- [x] Chat en tiempo real (polling cada 5s)
-
-### Phase 5 - Security & Code Quality
-- [x] DELETE_SECRET en .env, XSS fix con DOMPurify
-- [x] Backend anti-patterns corregidos, React index keys corregidos
-- [x] MemberDashboard migrado a api interceptor centralizado
-
-### Phase 6 - Component Refactoring + Lazy Loading
-- [x] AdminDashboard.js: 957 -> ~235 lineas (12 sub-componentes lazy)
-- [x] MemberDashboard.js: 555 -> ~155 lineas (7 sub-componentes lazy)
-- [x] React.lazy() + Suspense con spinner de carga
-- [x] Todos los data-testid preservados
-
-## Pending / Backlog
-
-### P2 - Production Readiness
-- [ ] Integracion dominio externo kuxtaltravelgt.com
-- [ ] Escalabilidad de push notifications
+### Phase 7 - Production Readiness P2 (DONE)
+- [x] SEO: Open Graph tags, Twitter Cards, locale es_GT
+- [x] React ErrorBoundary wrapping entire app
+- [x] Page-level lazy loading (10 routes) + tab-level (19 components)
+- [x] Dynamic document titles (useDocumentTitle hook)
+- [x] Service Worker v3: stale-while-revalidate API, cache-first static, network-first HTML
+- [x] Push notifications: batch (50), retry (2x), bulk stale cleanup
+- [x] 23 MongoDB indexes across 12 collections
+- [x] CORS regex for kuxtaltravelgt.com domain
 
 ## Test Credentials
 - Admin: admin@kuxtaltravels.com / KuxtalAdmin2024!
