@@ -101,6 +101,20 @@ def serialize_doc(doc):
     doc["_id"] = str(doc["_id"])
     return doc
 
+DELETE_SECRET = "BORRAR YA"
+
+async def verify_delete_code(request: Request):
+    """Verify delete confirmation code from query param or body"""
+    code = request.query_params.get("delete_code", "")
+    if not code:
+        try:
+            body = await request.json()
+            code = body.get("delete_code", "")
+        except Exception:
+            pass
+    if code != DELETE_SECRET:
+        raise HTTPException(status_code=403, detail="Clave de eliminación incorrecta. Ingresa la clave secreta para eliminar.")
+
 # ── Storage ──
 
 def init_storage():
@@ -382,6 +396,7 @@ async def update_member(member_id: str, req: MemberCreate, request: Request):
 @api_router.delete("/members/{member_id}")
 async def delete_member(member_id: str, request: Request):
     user = await require_role("super_admin", "admin")(request)
+    await verify_delete_code(request)
     result = await db.members.delete_one({"_id": ObjectId(member_id)})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Socio no encontrado")
@@ -438,6 +453,7 @@ async def update_package(package_id: str, req: PackageCreate, request: Request):
 @api_router.delete("/packages/{package_id}")
 async def delete_package(package_id: str, request: Request):
     user = await require_role("super_admin", "admin")(request)
+    await verify_delete_code(request)
     await db.packages.update_one({"_id": ObjectId(package_id)}, {"$set": {"status": "inactive"}})
     return {"message": "Paquete eliminado"}
 
@@ -506,6 +522,7 @@ async def create_announcement(req: AnnouncementCreate, request: Request):
 @api_router.delete("/announcements/{ann_id}")
 async def delete_announcement(ann_id: str, request: Request):
     user = await require_role("super_admin", "admin")(request)
+    await verify_delete_code(request)
     await db.announcements.update_one({"_id": ObjectId(ann_id)}, {"$set": {"status": "inactive"}})
     return {"message": "Anuncio eliminado"}
 
@@ -627,10 +644,16 @@ async def get_commerce(commerce_id: str):
 
 @api_router.post("/commerce")
 async def create_commerce(req: CommerceCreate, request: Request):
-    user = await require_role("super_admin", "admin")(request)
+    # Allow public registration
+    created_by = ""
+    try:
+        user = await get_current_user(request)
+        created_by = user.get("_id", "")
+    except Exception:
+        pass
     doc = req.model_dump()
     doc["created_at"] = datetime.now(timezone.utc).isoformat()
-    doc["created_by"] = user["_id"]
+    doc["created_by"] = created_by
     if not doc["validation_code"]:
         doc["validation_code"] = str(uuid.uuid4())[:8].upper()
     result = await db.commerce.insert_one(doc)
@@ -639,14 +662,18 @@ async def create_commerce(req: CommerceCreate, request: Request):
     commerce_email = f"commerce_{result.inserted_id}@kuxtal.commerce"
     existing_user = await db.users.find_one({"email": commerce_email})
     if not existing_user:
-        await db.users.insert_one({
-            "email": commerce_email,
-            "password_hash": hash_password(doc["validation_code"]),
-            "name": doc["name"],
-            "role": "commerce",
-            "commerce_id": str(result.inserted_id),
-            "created_at": datetime.now(timezone.utc).isoformat()
-        })
+        try:
+            await db.users.insert_one({
+                "email": commerce_email,
+                "password_hash": hash_password(doc["validation_code"]),
+                "name": doc["name"],
+                "role": "commerce",
+                "commerce_id": str(result.inserted_id),
+                "is_active": True,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            })
+        except Exception:
+            pass
     return doc
 
 @api_router.put("/commerce/{commerce_id}")
@@ -663,6 +690,7 @@ async def update_commerce(commerce_id: str, req: CommerceCreate, request: Reques
 @api_router.delete("/commerce/{commerce_id}")
 async def delete_commerce(commerce_id: str, request: Request):
     user = await require_role("super_admin", "admin")(request)
+    await verify_delete_code(request)
     await db.commerce.update_one({"_id": ObjectId(commerce_id)}, {"$set": {"status": "inactive"}})
     return {"message": "Comercio eliminado"}
 
@@ -693,6 +721,7 @@ async def delete_commerce_promotion(commerce_id: str, promo_id: str, request: Re
     user = await get_current_user(request)
     if user["role"] not in ["super_admin", "admin"] and user.get("commerce_id") != commerce_id:
         raise HTTPException(status_code=403, detail="Acceso denegado")
+    await verify_delete_code(request)
     await db.commerce_promotions.update_one({"_id": ObjectId(promo_id)}, {"$set": {"status": "inactive"}})
     return {"message": "Promoción eliminada"}
 
@@ -912,6 +941,7 @@ async def remove_family_member(member_id: str, family_id: str, request: Request)
     user = await get_current_user(request)
     if user["role"] not in ["super_admin", "admin"] and user.get("member_id") != member_id:
         raise HTTPException(status_code=403, detail="Acceso denegado")
+    await verify_delete_code(request)
     result = await db.family_members.delete_one({"_id": ObjectId(family_id), "member_id": member_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Familiar no encontrado")
@@ -1229,6 +1259,7 @@ async def toggle_user_active(user_id: str, request: Request):
 @api_router.delete("/admin/users/{user_id}")
 async def delete_admin_user(user_id: str, request: Request):
     user = await require_role("super_admin")(request)
+    await verify_delete_code(request)
     target = await db.users.find_one({"_id": ObjectId(user_id)})
     if not target:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")

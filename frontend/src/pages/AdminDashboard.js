@@ -12,6 +12,7 @@ import {
   Store, Upload, Image, TrendingUp, Gift, PieChart
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { DeleteWithCode } from '../components/DeleteWithCode';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RechartPie, Pie, Cell } from 'recharts';
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -88,7 +89,7 @@ export default function AdminDashboard() {
     } catch (e) { toast.error(e.response?.data?.detail || 'Error'); }
   };
   const editMember = (m) => { setMemberForm(m); setEditingMember(m); setShowMemberForm(true); };
-  const deleteMember = async (id) => { if (window.confirm('¿Eliminar socio?')) { await ax.delete(`/members/${id}`); loadData(); toast.success('Eliminado'); }};
+  const deleteMember = async (id, code) => { await ax.delete(`/members/${id}?delete_code=${encodeURIComponent(code)}`); loadData(); toast.success('Eliminado'); };
 
   // Package CRUD
   const savePackage = async (e) => {
@@ -108,7 +109,7 @@ export default function AdminDashboard() {
     } catch (e) { toast.error(e.response?.data?.detail || 'Error'); }
   };
   const editPkg = (p) => { setPackageForm(p); setEditingPackage(p); setShowPackageForm(true); };
-  const deletePkg = async (id) => { if (window.confirm('¿Eliminar paquete?')) { await ax.delete(`/packages/${id}`); loadData(); toast.success('Eliminado'); }};
+  const deletePkg = async (id, code) => { await ax.delete(`/packages/${id}?delete_code=${encodeURIComponent(code)}`); loadData(); toast.success('Eliminado'); };
   const addInclude = () => { if (includesInput.trim()) { setPackageForm({...packageForm, includes: [...packageForm.includes, includesInput.trim()]}); setIncludesInput(''); }};
   const removeInclude = (i) => { setPackageForm({...packageForm, includes: packageForm.includes.filter((_, idx) => idx !== i)}); };
 
@@ -121,7 +122,7 @@ export default function AdminDashboard() {
     setAnnouncementForm({ title: '', content: '', link: '', target: 'all', status: 'active' });
     loadData();
   };
-  const deleteAnn = async (id) => { await ax.delete(`/announcements/${id}`); loadData(); toast.success('Eliminado'); };
+  const deleteAnn = async (id, code) => { await ax.delete(`/announcements/${id}?delete_code=${encodeURIComponent(code)}`); loadData(); toast.success('Eliminado'); };
 
   // Quotation response
   const respondQuotation = async () => {
@@ -146,7 +147,7 @@ export default function AdminDashboard() {
     setCommerceForm({ name: '', description: '', category: 'Servicios', location: '', phone: '', email: '', website: '', logo_url: '', benefit_description: '', validation_code: '', status: 'active' });
     loadData();
   };
-  const deleteCommerce = async (id) => { if (window.confirm('¿Eliminar comercio?')) { await ax.delete(`/commerce/${id}`); loadData(); toast.success('Eliminado'); }};
+  const deleteCommerce = async (id, code) => { await ax.delete(`/commerce/${id}?delete_code=${encodeURIComponent(code)}`); loadData(); toast.success('Eliminado'); };
 
   // Push Notifications
   const sendPush = async (e) => {
@@ -444,7 +445,7 @@ export default function AdminDashboard() {
                         <td className="p-3 text-right">
                           <div className="flex gap-1 justify-end">
                             <Button size="sm" variant="ghost" onClick={() => editMember(m)} data-testid={`edit-member-${i}`}><Edit className="w-3.5 h-3.5" /></Button>
-                            <Button size="sm" variant="ghost" onClick={() => deleteMember(m._id)} className="text-destructive" data-testid={`delete-member-${i}`}><Trash2 className="w-3.5 h-3.5" /></Button>
+                            <DeleteWithCode onConfirm={(code) => deleteMember(m._id, code)} />
                           </div>
                         </td>
                       </tr>
@@ -525,7 +526,7 @@ export default function AdminDashboard() {
                       <span className="font-bold text-primary">Q.{p.price?.toLocaleString()}</span>
                       <div className="flex gap-1">
                         <Button size="sm" variant="ghost" onClick={() => editPkg(p)} data-testid={`edit-pkg-${i}`}><Edit className="w-3.5 h-3.5" /></Button>
-                        <Button size="sm" variant="ghost" onClick={() => deletePkg(p._id)} className="text-destructive" data-testid={`delete-pkg-${i}`}><Trash2 className="w-3.5 h-3.5" /></Button>
+                        <DeleteWithCode onConfirm={(code) => deletePkg(p._id, code)} />
                       </div>
                     </div>
                   </div>
@@ -677,7 +678,7 @@ export default function AdminDashboard() {
                       <span className="text-xs text-muted-foreground">{new Date(a.created_at).toLocaleDateString('es')}</span>
                     </div>
                   </div>
-                  <Button size="sm" variant="ghost" onClick={() => deleteAnn(a._id)} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
+                  <DeleteWithCode onConfirm={(code) => deleteAnn(a._id, code)} />
                 </div>
               ))}
             </div>
@@ -756,7 +757,7 @@ export default function AdminDashboard() {
                     </div>
                     <div className="flex gap-1">
                       <Button size="sm" variant="ghost" onClick={() => { setCommerceForm({...c}); setShowCommerceForm(true); }} className="text-primary" data-testid={`edit-commerce-${i}`}><Edit className="w-3.5 h-3.5" /></Button>
-                      <Button size="sm" variant="ghost" onClick={() => deleteCommerce(c._id)} className="text-destructive" data-testid={`delete-commerce-${i}`}><Trash2 className="w-3.5 h-3.5" /></Button>
+                      <DeleteWithCode onConfirm={(code) => deleteCommerce(c._id, code)} />
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{c.description}</p>
@@ -880,12 +881,10 @@ export default function AdminDashboard() {
                           </button>
                         </td>
                         <td className="p-3 text-right">
-                          <Button size="sm" variant="ghost" className="text-destructive" onClick={async () => {
-                            if (window.confirm('¿Eliminar usuario?')) {
-                              try { await ax.delete(`/admin/users/${u._id}`); loadUsers(); toast.success('Eliminado'); }
-                              catch (e) { toast.error(e.response?.data?.detail || 'Error'); }
-                            }
-                          }} data-testid={`delete-user-${i}`}><Trash2 className="w-3.5 h-3.5" /></Button>
+                          <DeleteWithCode onConfirm={async (code) => {
+                            try { await ax.delete(`/admin/users/${u._id}?delete_code=${encodeURIComponent(code)}`); loadUsers(); toast.success('Eliminado'); }
+                            catch (e) { toast.error(e.response?.data?.detail || 'Error'); }
+                          }} />
                         </td>
                       </tr>
                     ))}

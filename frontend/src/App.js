@@ -63,11 +63,7 @@ function App() {
                     <AdminDashboard />
                   </ProtectedRoute>
                 } />
-                <Route path="/admin/new-commerce" element={
-                  <ProtectedRoute roles={['super_admin', 'admin']}>
-                    <CommerceWizard />
-                  </ProtectedRoute>
-                } />
+                <Route path="/admin/new-commerce" element={<CommerceWizard />} />
               </Routes>
               <WhatsAppWidget />
             </>
