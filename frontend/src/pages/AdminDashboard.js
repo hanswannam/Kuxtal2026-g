@@ -792,6 +792,18 @@ export default function AdminDashboard() {
                       <div><Label className="text-xs">Email</Label><Input value={commerceForm.email} onChange={e => setCommerceForm({...commerceForm, email: e.target.value})} className="rounded-xl mt-1" data-testid="cf-email" /></div>
                     </div>
                     <div><Label className="text-xs">Beneficio para Socios</Label><Textarea value={commerceForm.benefit_description} onChange={e => setCommerceForm({...commerceForm, benefit_description: e.target.value})} placeholder="Ej: 20% de descuento en consumo" className="rounded-xl mt-1" data-testid="cf-benefit" /></div>
+                    <div>
+                      <Label className="text-xs">Logo (URL o subir imagen)</Label>
+                      <div className="flex gap-2 mt-1">
+                        <Input value={commerceForm.logo_url || ''} onChange={e => setCommerceForm({...commerceForm, logo_url: e.target.value})} placeholder="https://... o sube imagen" className="rounded-xl" data-testid="cf-logo" />
+                        <label className="shrink-0">
+                          <input type="file" accept="image/*" className="hidden" onChange={e => handleImageUpload(e, url => setCommerceForm({...commerceForm, logo_url: url}))} />
+                          <Button type="button" variant="outline" size="sm" className="rounded-xl h-10" disabled={uploading} asChild><span><Upload className="w-4 h-4" /></span></Button>
+                        </label>
+                      </div>
+                      {commerceForm.logo_url && <img src={commerceForm.logo_url} alt="Logo" className="w-16 h-16 rounded-xl object-cover mt-2 border" />}
+                    </div>
+                    <div><Label className="text-xs">Sitio Web</Label><Input value={commerceForm.website || ''} onChange={e => setCommerceForm({...commerceForm, website: e.target.value})} placeholder="https://www.micomercio.com" className="rounded-xl mt-1" data-testid="cf-website" /></div>
                     <div><Label className="text-xs">Código de Validación (se genera automáticamente si se deja vacío)</Label><Input value={commerceForm.validation_code} onChange={e => setCommerceForm({...commerceForm, validation_code: e.target.value.toUpperCase()})} placeholder="Ej: MICOMERCIO01" className="rounded-xl mt-1 font-mono" data-testid="cf-code" /></div>
                     <div className="flex gap-3 pt-2">
                       <Button type="button" variant="outline" onClick={() => setShowCommerceForm(false)} className="flex-1 rounded-xl">Cancelar</Button>

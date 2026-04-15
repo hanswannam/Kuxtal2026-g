@@ -9,7 +9,7 @@ import { Badge } from '../components/ui/badge';
 import {
   Store, Gift, Users, Plus, Trash2, Calendar, Star, Edit, Save,
   Play, Image, MapPin, Phone, Globe, Facebook, Instagram, Youtube,
-  X, ExternalLink, Sparkles, Navigation
+  X, ExternalLink, Sparkles, Navigation, Upload, Mail
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../lib/api';
@@ -136,6 +136,40 @@ export default function CommercePortal() {
                 <div className="flex gap-2">
                   <Button onClick={cancelEditing} variant="outline" className="rounded-full">Cancelar</Button>
                   <Button onClick={saveEditing} className="rounded-full bg-primary hover:bg-primary/90" data-testid="save-commerce-btn"><Save className="w-4 h-4 mr-2" /> Guardar</Button>
+                </div>
+              )}
+            </div>
+
+            {/* Logo */}
+            <div className="bg-white rounded-2xl p-5 border border-border" data-testid="commerce-logo-section">
+              <h3 className="font-heading text-lg font-semibold mb-4 flex items-center gap-2"><Store className="w-5 h-5 text-primary" /> Logo del Comercio</h3>
+              {editing ? (
+                <div className="flex flex-col items-center gap-4">
+                  {editForm.logo_url ? (
+                    <div className="relative">
+                      <img src={editForm.logo_url} alt="Logo" className="w-32 h-32 rounded-2xl object-cover border border-border shadow-sm" />
+                      <button onClick={() => setEditForm({...editForm, logo_url: ''})} className="absolute -top-2 -right-2 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold">✕</button>
+                    </div>
+                  ) : (
+                    <label className="w-32 h-32 rounded-2xl border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-accent/30 transition-all">
+                      <input type="file" accept="image/*" className="hidden" onChange={e => handleImageUpload(e, url => setEditForm({...editForm, logo_url: url}))} />
+                      <Upload className="w-8 h-8 text-muted-foreground mb-1" />
+                      <span className="text-xs text-muted-foreground">{uploading ? 'Subiendo...' : 'Subir logo'}</span>
+                    </label>
+                  )}
+                  <div className="w-full">
+                    <Label className="text-xs">O pega un enlace de imagen:</Label>
+                    <Input value={editForm.logo_url || ''} onChange={e => setEditForm({...editForm, logo_url: e.target.value})} placeholder="https://..." className="rounded-xl mt-1" data-testid="edit-logo-url" />
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-4">
+                  {commerce.logo_url ? (
+                    <img src={commerce.logo_url} alt="Logo" className="w-24 h-24 rounded-2xl object-cover border border-border" />
+                  ) : (
+                    <div className="w-24 h-24 rounded-2xl bg-accent flex items-center justify-center text-4xl">🏪</div>
+                  )}
+                  <p className="text-sm text-muted-foreground">{commerce.logo_url ? 'Logo configurado' : 'Sin logo. Haz clic en "Editar Perfil" para agregar'}</p>
                 </div>
               )}
             </div>
@@ -308,8 +342,9 @@ export default function CommercePortal() {
                 <h3 className="font-heading text-lg font-semibold mb-3 flex items-center gap-2"><Phone className="w-5 h-5 text-primary" /> Contacto</h3>
                 {editing ? (
                   <div className="space-y-2">
-                    <Input value={editForm.phone || ''} onChange={e => setEditForm({...editForm, phone: e.target.value})} placeholder="Teléfono" className="rounded-xl" />
-                    <Input value={editForm.email || ''} onChange={e => setEditForm({...editForm, email: e.target.value})} placeholder="Email" className="rounded-xl" />
+                    <div><Label className="text-xs">Teléfono</Label><Input value={editForm.phone || ''} onChange={e => setEditForm({...editForm, phone: e.target.value})} placeholder="Teléfono" className="rounded-xl mt-1" /></div>
+                    <div><Label className="text-xs">Email</Label><Input value={editForm.email || ''} onChange={e => setEditForm({...editForm, email: e.target.value})} placeholder="Email" className="rounded-xl mt-1" /></div>
+                    <div><Label className="text-xs flex items-center gap-1"><Globe className="w-3 h-3" /> Sitio Web</Label><Input value={editForm.website || ''} onChange={e => setEditForm({...editForm, website: e.target.value})} placeholder="https://www.micomercio.com" className="rounded-xl mt-1" data-testid="edit-website" /></div>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -318,7 +353,12 @@ export default function CommercePortal() {
                         <Phone className="w-5 h-5" /> <span className="font-medium">{commerce.phone}</span>
                       </a>
                     )}
-                    {commerce.email && <p className="text-sm text-muted-foreground">{commerce.email}</p>}
+                    {commerce.email && <p className="text-sm text-muted-foreground flex items-center gap-2"><Mail className="w-4 h-4" /> {commerce.email}</p>}
+                    {commerce.website && (
+                      <a href={commerce.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 rounded-xl bg-secondary hover:bg-secondary/80 text-sm transition-colors">
+                        <Globe className="w-4 h-4 text-primary" /> {commerce.website} <ExternalLink className="w-3 h-3 opacity-50" />
+                      </a>
+                    )}
                   </div>
                 )}
               </div>
