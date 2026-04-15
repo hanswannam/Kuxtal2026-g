@@ -263,7 +263,7 @@ export default function AdminDashboard() {
               {[
                 { label: 'Nuevo Socio', icon: Users, action: () => { setTab('members'); setTimeout(() => { setShowMemberForm(true); setEditingMember(null); }, 100); }, color: 'from-emerald-500 to-emerald-600' },
                 { label: 'Nuevo Paquete', icon: Package, action: () => { setTab('packages'); setTimeout(() => { setShowPackageForm(true); setEditingPackage(null); }, 100); }, color: 'from-blue-500 to-blue-600' },
-                { label: 'Nuevo Comercio', icon: Store, action: () => { setTab('commerce'); setTimeout(() => setShowCommerceForm(true), 100); }, color: 'from-violet-500 to-violet-600' },
+                { label: 'Nuevo Comercio', icon: Store, action: () => window.location.href = '/admin/new-commerce', color: 'from-violet-500 to-violet-600' },
                 { label: 'Ver Mensajes', icon: MessageSquare, action: () => window.location.href = '/chat', color: 'from-cyan-500 to-cyan-600' },
               ].map((a, i) => (
                 <button key={i} onClick={a.action}
@@ -742,7 +742,7 @@ export default function AdminDashboard() {
           <div className="animate-fade-in">
             <div className="flex justify-between items-center mb-4">
               <h2 className="font-heading text-lg font-semibold">Comercios ({commerces.length})</h2>
-              <Button onClick={() => setShowCommerceForm(true)} className="rounded-full" data-testid="add-commerce-btn">
+              <Button onClick={() => window.location.href = '/admin/new-commerce'} className="rounded-full bg-primary hover:bg-primary/90 shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5" data-testid="add-commerce-btn">
                 <Plus className="w-4 h-4 mr-2" /> Nuevo Comercio
               </Button>
             </div>

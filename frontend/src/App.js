@@ -17,6 +17,7 @@ import CommerceDetailPage from "./pages/CommerceDetailPage";
 import CommercePortal from "./pages/CommercePortal";
 import ReferralPage from "./pages/ReferralPage";
 import ChatPage from "./pages/ChatPage";
+import CommerceWizard from "./pages/CommerceWizard";
 
 // Register service worker for PWA
 if ('serviceWorker' in navigator) {
@@ -60,6 +61,11 @@ function App() {
                 <Route path="/admin" element={
                   <ProtectedRoute roles={['super_admin', 'admin']}>
                     <AdminDashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/new-commerce" element={
+                  <ProtectedRoute roles={['super_admin', 'admin']}>
+                    <CommerceWizard />
                   </ProtectedRoute>
                 } />
               </Routes>
