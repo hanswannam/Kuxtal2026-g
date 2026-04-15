@@ -14,9 +14,10 @@ import {
 import { toast } from 'sonner';
 import { DeleteWithCode } from '../components/DeleteWithCode';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RechartPie, Pie, Cell } from 'recharts';
+import api from '../lib/api';
 
 const API = process.env.REACT_APP_BACKEND_URL;
-const ax = axios.create({ baseURL: `${API}/api`, withCredentials: true });
+const ax = api;
 
 export default function AdminDashboard() {
   const { user } = useAuth();

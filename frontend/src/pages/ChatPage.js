@@ -6,9 +6,10 @@ import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
 import { Send, MessageSquare, ArrowLeft, X, Plus, Clock } from 'lucide-react';
 import { toast } from 'sonner';
+import api from '../lib/api';
 
 const API = process.env.REACT_APP_BACKEND_URL;
-const ax = axios.create({ baseURL: `${API}/api`, withCredentials: true });
+const ax = api;
 
 export default function ChatPage() {
   const { user } = useAuth();

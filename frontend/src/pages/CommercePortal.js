@@ -12,9 +12,10 @@ import {
   X, ExternalLink, Sparkles, Navigation
 } from 'lucide-react';
 import { toast } from 'sonner';
+import api from '../lib/api';
 
 const API = process.env.REACT_APP_BACKEND_URL;
-const ax = axios.create({ baseURL: `${API}/api`, withCredentials: true });
+const ax = api;
 
 function getYoutubeEmbedUrl(url) {
   if (!url) return null;
