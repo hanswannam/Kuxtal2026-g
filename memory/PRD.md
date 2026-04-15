@@ -14,8 +14,8 @@ Sistema integral CRM para club vacacional con membresias, pagina web publica est
 ## Code Structure
 ```
 /app/frontend/src/pages/
-  AdminDashboard.js (227 lines - orchestrator)
-  MemberDashboard.js (142 lines - orchestrator)
+  AdminDashboard.js (orchestrator, React.lazy + Suspense)
+  MemberDashboard.js (orchestrator, React.lazy + Suspense)
   admin/
     AdminOverview.js, AdminAnalytics.js, AdminMembers.js,
     AdminPackages.js, AdminQuotations.js, AdminReferrals.js,
@@ -33,18 +33,16 @@ Sistema integral CRM para club vacacional con membresias, pagina web publica est
 - [x] Pagina web publica estilo Airbnb (Home, Search, Trip Detail)
 - [x] Portal de socios (Dashboard, Cotizaciones, Anuncios, Solicitudes)
 - [x] CRM Administrativo (Socios CRUD, Paquetes CRUD, Cotizaciones, Anuncios)
-- [x] Autenticacion JWT con roles multiples (super_admin, admin, member, family, commerce)
+- [x] Autenticacion JWT con roles multiples
 - [x] Configuracion WhatsApp widget
 
 ### Phase 2 - Commerce & Benefits
-- [x] Logo Kuxtal Travel integrado
 - [x] Portal de comercios con 12 categorias
 - [x] Sistema de validacion de visitas con codigo secreto
-- [x] Raspable digital (scratch card) configurable (HTML5 Canvas)
-- [x] Login y portal de comercio
+- [x] Raspable digital (scratch card) configurable
+- [x] Commerce Wizard paso a paso para onboarding
 - [x] Upload de imagenes (Object Storage)
 - [x] PWA (manifest + service worker)
-- [x] Commerce Wizard paso a paso para onboarding
 
 ### Phase 3 - Sharing, Push & Family
 - [x] Cotizaciones compartibles por WhatsApp y Email
@@ -52,24 +50,20 @@ Sistema integral CRM para club vacacional con membresias, pagina web publica est
 - [x] Sistema de familia del socio (sub-usuarios)
 
 ### Phase 4 - Analytics, Referrals & Chat
-- [x] Analytics dashboard avanzado (Recharts: AreaChart, BarChart, PieChart)
-- [x] Sistema de referidos (codigo unico, pagina publica, compartir)
+- [x] Analytics dashboard avanzado (Recharts)
+- [x] Sistema de referidos
 - [x] Chat en tiempo real (polling cada 5s)
-- [x] Centro de mensajes en admin
 
 ### Phase 5 - Security & Code Quality
-- [x] DELETE_SECRET movido de hardcoded a .env
-- [x] XSS fix con DOMPurify en MemberDashboard
-- [x] Backend anti-patterns (is vs ==) corregidos
-- [x] React array index keys reemplazados con IDs unicos
+- [x] DELETE_SECRET en .env, XSS fix con DOMPurify
+- [x] Backend anti-patterns corregidos, React index keys corregidos
 - [x] MemberDashboard migrado a api interceptor centralizado
-- [x] Imports no utilizados removidos
 
-### Phase 6 - Component Refactoring (P1)
-- [x] AdminDashboard.js: 957 -> 227 lineas (12 sub-componentes)
-- [x] MemberDashboard.js: 555 -> 142 lineas (7 sub-componentes)
-- [x] Todos los data-testid preservados (96 admin, 32 member)
-- [x] State management centralizado en orchestrators
+### Phase 6 - Component Refactoring + Lazy Loading
+- [x] AdminDashboard.js: 957 -> ~235 lineas (12 sub-componentes lazy)
+- [x] MemberDashboard.js: 555 -> ~155 lineas (7 sub-componentes lazy)
+- [x] React.lazy() + Suspense con spinner de carga
+- [x] Todos los data-testid preservados
 
 ## Pending / Backlog
 
@@ -83,13 +77,3 @@ Sistema integral CRM para club vacacional con membresias, pagina web publica est
 - Family: KT-001 / 9876543210101
 - Commerce: 69dd90c4b0e08b1f0a2eb0a8 / GAUCHA01
 - Delete Secret: BORRAR YA
-
-## Key Files
-- backend/server.py - Core API logic
-- frontend/src/lib/api.js - Centralized axios interceptor
-- frontend/src/contexts/AuthContext.js - Auth state and push subscription
-- frontend/src/components/DeleteWithCode.js - Deletion protection modal
-- frontend/src/pages/AdminDashboard.js - Admin orchestrator
-- frontend/src/pages/MemberDashboard.js - Member orchestrator
-- frontend/src/pages/admin/* - 12 admin sub-components
-- frontend/src/pages/member/* - 7 member sub-components

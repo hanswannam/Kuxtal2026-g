@@ -1,17 +1,25 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../lib/api';
-import { Calendar, FileText, Bell, MessageSquare, Package, Store, Users, Share2 } from 'lucide-react';
+import { FileText, Bell, MessageSquare, Package, Store, Users, Share2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { MemberOverview } from './member/MemberOverview';
-import { MemberQuotations } from './member/MemberQuotations';
-import { MemberAnnouncements } from './member/MemberAnnouncements';
-import { MemberRequests } from './member/MemberRequests';
-import { MemberFamily } from './member/MemberFamily';
-import { MemberReferrals } from './member/MemberReferrals';
-import { MemberBenefits } from './member/MemberBenefits';
+const MemberOverview = lazy(() => import('./member/MemberOverview').then(m => ({ default: m.MemberOverview })));
+const MemberQuotations = lazy(() => import('./member/MemberQuotations').then(m => ({ default: m.MemberQuotations })));
+const MemberAnnouncements = lazy(() => import('./member/MemberAnnouncements').then(m => ({ default: m.MemberAnnouncements })));
+const MemberRequests = lazy(() => import('./member/MemberRequests').then(m => ({ default: m.MemberRequests })));
+const MemberFamily = lazy(() => import('./member/MemberFamily').then(m => ({ default: m.MemberFamily })));
+const MemberReferrals = lazy(() => import('./member/MemberReferrals').then(m => ({ default: m.MemberReferrals })));
+const MemberBenefits = lazy(() => import('./member/MemberBenefits').then(m => ({ default: m.MemberBenefits })));
+
+function TabLoader() {
+  return (
+    <div className="flex items-center justify-center py-20">
+      <Loader2 className="w-8 h-8 text-primary animate-spin" />
+    </div>
+  );
+}
 
 export default function MemberDashboard() {
   const { user } = useAuth();
@@ -121,13 +129,15 @@ export default function MemberDashboard() {
           ))}
         </div>
 
-        {tab === 'dashboard' && <MemberOverview member={member} quotations={quotations} announcements={announcements} vacationRequests={vacationRequests} packages={packages} commerces={commerces} />}
-        {tab === 'quotations' && <MemberQuotations quotations={quotations} />}
-        {tab === 'announcements' && <MemberAnnouncements announcements={announcements} />}
-        {tab === 'requests' && <MemberRequests vacationRequests={vacationRequests} showRequestForm={showRequestForm} setShowRequestForm={setShowRequestForm} reqForm={reqForm} setReqForm={setReqForm} submitRequest={submitRequest} />}
-        {tab === 'family' && <MemberFamily member={member} user={user} familyMembers={familyMembers} showFamilyForm={showFamilyForm} setShowFamilyForm={setShowFamilyForm} familyForm={familyForm} setFamilyForm={setFamilyForm} addFamilyMember={addFamilyMember} removeFamilyMember={removeFamilyMember} />}
-        {tab === 'referral' && <MemberReferrals referralData={referralData} />}
-        {tab === 'benefits' && <MemberBenefits commerces={commerces} />}
+        <Suspense fallback={<TabLoader />}>
+          {tab === 'dashboard' && <MemberOverview member={member} quotations={quotations} announcements={announcements} vacationRequests={vacationRequests} packages={packages} commerces={commerces} />}
+          {tab === 'quotations' && <MemberQuotations quotations={quotations} />}
+          {tab === 'announcements' && <MemberAnnouncements announcements={announcements} />}
+          {tab === 'requests' && <MemberRequests vacationRequests={vacationRequests} showRequestForm={showRequestForm} setShowRequestForm={setShowRequestForm} reqForm={reqForm} setReqForm={setReqForm} submitRequest={submitRequest} />}
+          {tab === 'family' && <MemberFamily member={member} user={user} familyMembers={familyMembers} showFamilyForm={showFamilyForm} setShowFamilyForm={setShowFamilyForm} familyForm={familyForm} setFamilyForm={setFamilyForm} addFamilyMember={addFamilyMember} removeFamilyMember={removeFamilyMember} />}
+          {tab === 'referral' && <MemberReferrals referralData={referralData} />}
+          {tab === 'benefits' && <MemberBenefits commerces={commerces} />}
+        </Suspense>
       </div>
 
       <Link

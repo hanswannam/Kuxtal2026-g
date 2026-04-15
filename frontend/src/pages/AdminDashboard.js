@@ -1,25 +1,33 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Badge } from '../components/ui/badge';
 import {
   LayoutDashboard, Users, Package, FileText, Bell, MessageSquare, Settings,
-  Send, Store, TrendingUp, Gift
+  Send, Store, TrendingUp, Gift, Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../lib/api';
 
-import { AdminOverview } from './admin/AdminOverview';
-import { AdminAnalytics } from './admin/AdminAnalytics';
-import { AdminMembers } from './admin/AdminMembers';
-import { AdminPackages } from './admin/AdminPackages';
-import { AdminQuotations } from './admin/AdminQuotations';
-import { AdminReferrals } from './admin/AdminReferrals';
-import { AdminAnnouncements } from './admin/AdminAnnouncements';
-import { AdminRequests } from './admin/AdminRequests';
-import { AdminCommerces } from './admin/AdminCommerces';
-import { AdminPush } from './admin/AdminPush';
-import { AdminUsers } from './admin/AdminUsers';
-import { AdminSettings } from './admin/AdminSettings';
+const AdminOverview = lazy(() => import('./admin/AdminOverview').then(m => ({ default: m.AdminOverview })));
+const AdminAnalytics = lazy(() => import('./admin/AdminAnalytics').then(m => ({ default: m.AdminAnalytics })));
+const AdminMembers = lazy(() => import('./admin/AdminMembers').then(m => ({ default: m.AdminMembers })));
+const AdminPackages = lazy(() => import('./admin/AdminPackages').then(m => ({ default: m.AdminPackages })));
+const AdminQuotations = lazy(() => import('./admin/AdminQuotations').then(m => ({ default: m.AdminQuotations })));
+const AdminReferrals = lazy(() => import('./admin/AdminReferrals').then(m => ({ default: m.AdminReferrals })));
+const AdminAnnouncements = lazy(() => import('./admin/AdminAnnouncements').then(m => ({ default: m.AdminAnnouncements })));
+const AdminRequests = lazy(() => import('./admin/AdminRequests').then(m => ({ default: m.AdminRequests })));
+const AdminCommerces = lazy(() => import('./admin/AdminCommerces').then(m => ({ default: m.AdminCommerces })));
+const AdminPush = lazy(() => import('./admin/AdminPush').then(m => ({ default: m.AdminPush })));
+const AdminUsers = lazy(() => import('./admin/AdminUsers').then(m => ({ default: m.AdminUsers })));
+const AdminSettings = lazy(() => import('./admin/AdminSettings').then(m => ({ default: m.AdminSettings })));
+
+function TabLoader() {
+  return (
+    <div className="flex items-center justify-center py-20">
+      <Loader2 className="w-8 h-8 text-primary animate-spin" />
+    </div>
+  );
+}
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -209,18 +217,20 @@ export default function AdminDashboard() {
           ))}
         </div>
 
-        {tab === 'dashboard' && <AdminOverview stats={stats} setTab={setTab} setShowMemberForm={setShowMemberForm} setEditingMember={setEditingMember} setShowPackageForm={setShowPackageForm} setEditingPackage={setEditingPackage} />}
-        {tab === 'analytics' && <AdminAnalytics analytics={analytics} stats={stats} />}
-        {tab === 'members' && <AdminMembers members={members} memberForm={memberForm} setMemberForm={setMemberForm} showMemberForm={showMemberForm} setShowMemberForm={setShowMemberForm} editingMember={editingMember} setEditingMember={setEditingMember} saveMember={saveMember} editMember={editMember} deleteMember={deleteMember} />}
-        {tab === 'packages' && <AdminPackages packages={packages} packageForm={packageForm} setPackageForm={setPackageForm} showPackageForm={showPackageForm} setShowPackageForm={setShowPackageForm} editingPackage={editingPackage} setEditingPackage={setEditingPackage} savePackage={savePackage} editPkg={editPkg} deletePkg={deletePkg} includesInput={includesInput} setIncludesInput={setIncludesInput} addInclude={addInclude} removeInclude={removeInclude} handleImageUpload={handleImageUpload} uploading={uploading} />}
-        {tab === 'quotations' && <AdminQuotations quotations={quotations} quotationResponse={quotationResponse} setQuotationResponse={setQuotationResponse} respondQuotation={respondQuotation} />}
-        {tab === 'referrals' && <AdminReferrals referrals={referrals} loadData={loadData} />}
-        {tab === 'announcements' && <AdminAnnouncements announcements={announcements} announcementForm={announcementForm} setAnnouncementForm={setAnnouncementForm} showAnnouncementForm={showAnnouncementForm} setShowAnnouncementForm={setShowAnnouncementForm} saveAnnouncement={saveAnnouncement} deleteAnn={deleteAnn} />}
-        {tab === 'requests' && <AdminRequests vacationReqs={vacationReqs} updateReqStatus={updateReqStatus} />}
-        {tab === 'commerce' && <AdminCommerces commerces={commerces} commerceForm={commerceForm} setCommerceForm={setCommerceForm} showCommerceForm={showCommerceForm} setShowCommerceForm={setShowCommerceForm} commerceCategories={commerceCategories} saveCommerce={saveCommerce} deleteCommerce={deleteCommerce} handleImageUpload={handleImageUpload} uploading={uploading} />}
-        {tab === 'push' && <AdminPush pushForm={pushForm} setPushForm={setPushForm} sendPush={sendPush} pushHistory={pushHistory} />}
-        {tab === 'users' && <AdminUsers adminUsers={adminUsers} allUsers={allUsers} showUserForm={showUserForm} setShowUserForm={setShowUserForm} userForm={userForm} setUserForm={setUserForm} userView={userView} setUserView={setUserView} loadUsers={loadUsers} />}
-        {tab === 'settings' && <AdminSettings whatsappPhone={whatsappPhone} setWhatsappPhone={setWhatsappPhone} saveWhatsApp={saveWhatsApp} stats={stats} />}
+        <Suspense fallback={<TabLoader />}>
+          {tab === 'dashboard' && <AdminOverview stats={stats} setTab={setTab} setShowMemberForm={setShowMemberForm} setEditingMember={setEditingMember} setShowPackageForm={setShowPackageForm} setEditingPackage={setEditingPackage} />}
+          {tab === 'analytics' && <AdminAnalytics analytics={analytics} stats={stats} />}
+          {tab === 'members' && <AdminMembers members={members} memberForm={memberForm} setMemberForm={setMemberForm} showMemberForm={showMemberForm} setShowMemberForm={setShowMemberForm} editingMember={editingMember} setEditingMember={setEditingMember} saveMember={saveMember} editMember={editMember} deleteMember={deleteMember} />}
+          {tab === 'packages' && <AdminPackages packages={packages} packageForm={packageForm} setPackageForm={setPackageForm} showPackageForm={showPackageForm} setShowPackageForm={setShowPackageForm} editingPackage={editingPackage} setEditingPackage={setEditingPackage} savePackage={savePackage} editPkg={editPkg} deletePkg={deletePkg} includesInput={includesInput} setIncludesInput={setIncludesInput} addInclude={addInclude} removeInclude={removeInclude} handleImageUpload={handleImageUpload} uploading={uploading} />}
+          {tab === 'quotations' && <AdminQuotations quotations={quotations} quotationResponse={quotationResponse} setQuotationResponse={setQuotationResponse} respondQuotation={respondQuotation} />}
+          {tab === 'referrals' && <AdminReferrals referrals={referrals} loadData={loadData} />}
+          {tab === 'announcements' && <AdminAnnouncements announcements={announcements} announcementForm={announcementForm} setAnnouncementForm={setAnnouncementForm} showAnnouncementForm={showAnnouncementForm} setShowAnnouncementForm={setShowAnnouncementForm} saveAnnouncement={saveAnnouncement} deleteAnn={deleteAnn} />}
+          {tab === 'requests' && <AdminRequests vacationReqs={vacationReqs} updateReqStatus={updateReqStatus} />}
+          {tab === 'commerce' && <AdminCommerces commerces={commerces} commerceForm={commerceForm} setCommerceForm={setCommerceForm} showCommerceForm={showCommerceForm} setShowCommerceForm={setShowCommerceForm} commerceCategories={commerceCategories} saveCommerce={saveCommerce} deleteCommerce={deleteCommerce} handleImageUpload={handleImageUpload} uploading={uploading} />}
+          {tab === 'push' && <AdminPush pushForm={pushForm} setPushForm={setPushForm} sendPush={sendPush} pushHistory={pushHistory} />}
+          {tab === 'users' && <AdminUsers adminUsers={adminUsers} allUsers={allUsers} showUserForm={showUserForm} setShowUserForm={setShowUserForm} userForm={userForm} setUserForm={setUserForm} userView={userView} setUserView={setUserView} loadUsers={loadUsers} />}
+          {tab === 'settings' && <AdminSettings whatsappPhone={whatsappPhone} setWhatsappPhone={setWhatsappPhone} saveWhatsApp={saveWhatsApp} stats={stats} />}
+        </Suspense>
       </div>
     </div>
   );
