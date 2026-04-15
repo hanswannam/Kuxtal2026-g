@@ -107,7 +107,7 @@ export default function CommerceDetailPage() {
             <h2 className="font-heading text-lg font-semibold mb-4 flex items-center gap-2"><Image className="w-5 h-5 text-primary" /> Fotos</h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {commerce.photos.map((url, i) => (
-                <div key={i} className="aspect-square rounded-xl overflow-hidden border border-border">
+                <div key={url} className="aspect-square rounded-xl overflow-hidden border border-border">
                   <img src={url} alt="" className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
                 </div>
               ))}

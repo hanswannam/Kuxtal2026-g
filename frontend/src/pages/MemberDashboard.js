@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import axios from 'axios';
+import api from '../lib/api';
+import DOMPurify from 'dompurify';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
@@ -9,8 +10,6 @@ import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
 import { Calendar, MapPin, FileText, Bell, MessageSquare, Send, Clock, CheckCircle2, Package, Star, Store, Gift, Users, Plus, Trash2, Share2, Copy, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
-
-const API = process.env.REACT_APP_BACKEND_URL;
 
 export default function MemberDashboard() {
   const { user } = useAuth();
@@ -28,32 +27,33 @@ export default function MemberDashboard() {
   const [familyForm, setFamilyForm] = useState({ name: '', dpi: '', relationship: 'familiar' });
   const [reqForm, setReqForm] = useState({ destination: '', travel_date: '', guests: 1, message: '' });
 
-  useEffect(() => {
+  const loadMemberData = useCallback(() => {
     if (user?.member) setMember(user.member);
     else if (user?.member_id) {
-      axios.get(`${API}/api/auth/me`, { withCredentials: true }).then(r => setMember(r.data.member)).catch(() => {});
+      api.get('/auth/me').then(r => setMember(r.data.member)).catch(e => console.error('Failed to load member:', e));
     }
-    axios.get(`${API}/api/quotations`, { withCredentials: true }).then(r => setQuotations(r.data)).catch(() => {});
-    axios.get(`${API}/api/announcements?target=members`).then(r => setAnnouncements(r.data)).catch(() => {});
-    axios.get(`${API}/api/vacation-requests`, { withCredentials: true }).then(r => setVacationRequests(r.data)).catch(() => {});
-    axios.get(`${API}/api/packages?featured=true`).then(r => setPackages(r.data.slice(0, 3))).catch(() => {});
-    axios.get(`${API}/api/commerce`).then(r => setCommerces(r.data.slice(0, 4))).catch(() => {});
-    // Load family members if member_id available
+    api.get('/quotations').then(r => setQuotations(r.data)).catch(e => console.error('Failed to load quotations:', e));
+    api.get('/announcements?target=members').then(r => setAnnouncements(r.data)).catch(e => console.error('Failed to load announcements:', e));
+    api.get('/vacation-requests').then(r => setVacationRequests(r.data)).catch(e => console.error('Failed to load requests:', e));
+    api.get('/packages?featured=true').then(r => setPackages(r.data.slice(0, 3))).catch(e => console.error('Failed to load packages:', e));
+    api.get('/commerce').then(r => setCommerces(r.data.slice(0, 4))).catch(e => console.error('Failed to load commerce:', e));
     const memberId = user?.member?._id || user?.member_id;
     if (memberId) {
-      axios.get(`${API}/api/members/${memberId}/family`, { withCredentials: true }).then(r => setFamilyMembers(r.data)).catch(() => {});
+      api.get(`/members/${memberId}/family`).then(r => setFamilyMembers(r.data)).catch(e => console.error('Failed to load family:', e));
     }
-    axios.get(`${API}/api/referral/my-code`, { withCredentials: true }).then(r => setReferralData(r.data)).catch(() => {});
+    api.get('/referral/my-code').then(r => setReferralData(r.data)).catch(e => console.error('Failed to load referral:', e));
   }, [user]);
+
+  useEffect(() => { loadMemberData(); }, [loadMemberData]);
 
   const submitRequest = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(`${API}/api/vacation-requests`, reqForm, { withCredentials: true });
+      await api.post('/vacation-requests', reqForm);
       toast.success('Solicitud enviada');
       setShowRequestForm(false);
       setReqForm({ destination: '', travel_date: '', guests: 1, message: '' });
-      const r = await axios.get(`${API}/api/vacation-requests`, { withCredentials: true });
+      const r = await api.get('/vacation-requests');
       setVacationRequests(r.data);
     } catch { toast.error('Error al enviar solicitud'); }
   };
@@ -62,11 +62,11 @@ export default function MemberDashboard() {
     e.preventDefault();
     const memberId = member?._id || user?.member_id;
     try {
-      await axios.post(`${API}/api/members/${memberId}/family`, familyForm, { withCredentials: true });
+      await api.post(`/members/${memberId}/family`, familyForm);
       toast.success('Familiar agregado');
       setShowFamilyForm(false);
       setFamilyForm({ name: '', dpi: '', relationship: 'familiar' });
-      const r = await axios.get(`${API}/api/members/${memberId}/family`, { withCredentials: true });
+      const r = await api.get(`/members/${memberId}/family`);
       setFamilyMembers(r.data);
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Error al agregar familiar');
@@ -75,9 +75,9 @@ export default function MemberDashboard() {
 
   const removeFamilyMember = async (familyId) => {
     const memberId = member?._id || user?.member_id;
-    await axios.delete(`${API}/api/members/${memberId}/family/${familyId}`, { withCredentials: true });
+    await api.delete(`/members/${memberId}/family/${familyId}`);
     toast.success('Familiar eliminado');
-    const r = await axios.get(`${API}/api/members/${memberId}/family`, { withCredentials: true });
+    const r = await api.get(`/members/${memberId}/family`);
     setFamilyMembers(r.data);
   };
 
@@ -235,7 +235,7 @@ export default function MemberDashboard() {
                   </div>
                   {q.message && <p className="text-sm text-muted-foreground mb-2">{q.message}</p>}
                   {q.response_html && (
-                    <div className="mt-3 p-4 bg-accent/50 rounded-xl text-sm" dangerouslySetInnerHTML={{ __html: q.response_html }} />
+                    <div className="mt-3 p-4 bg-accent/50 rounded-xl text-sm" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(q.response_html) }} />
                   )}
                   {q.response && !q.response_html && (
                     <div className="mt-3 p-4 bg-accent/50 rounded-xl text-sm">{q.response}</div>
@@ -303,7 +303,7 @@ export default function MemberDashboard() {
                   {r.messages && r.messages.length > 0 && (
                     <div className="space-y-2 mt-3 pt-3 border-t border-border">
                       {r.messages.map((m, j) => (
-                        <div key={j} className="text-sm">
+                        <div key={`${m.from}-${j}`} className="text-sm">
                           <span className="font-medium text-xs">{m.from}:</span>
                           <span className="text-muted-foreground ml-2">{m.text}</span>
                         </div>

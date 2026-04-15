@@ -79,8 +79,8 @@ export default function HomePage() {
               { icon: Shield, title: 'Seguridad Total', desc: 'Viaja con la tranquilidad de estar respaldado por expertos' },
               { icon: Heart, title: 'Experiencias Únicas', desc: 'Actividades exclusivas diseñadas para crear recuerdos' },
               { icon: Globe, title: 'Destinos Premium', desc: 'Acceso a los mejores destinos en Latinoamérica y el mundo' },
-            ].map((item, i) => (
-              <div key={i} className="flex items-start gap-4 p-6 rounded-2xl hover:bg-secondary/50 transition-colors duration-300" data-testid={`value-prop-${i}`}>
+            ].map((item) => (
+              <div key={item.title} className="flex items-start gap-4 p-6 rounded-2xl hover:bg-secondary/50 transition-colors duration-300" data-testid={`value-prop-${item.title}`}>
                 <div className="p-3 rounded-xl bg-accent">
                   <item.icon className="w-6 h-6 text-primary" strokeWidth={1.5} />
                 </div>
@@ -230,12 +230,12 @@ export default function HomePage() {
               { icon: '🐾', label: 'Mascotas' },
               { icon: '🏥', label: 'Hospitales' },
               { icon: '🎭', label: 'Entretenimiento' },
-            ].map((cat, i) => (
+            ].map((cat) => (
               <Link
-                key={i}
+                key={cat.label}
                 to={`/benefits?category=${cat.label}`}
                 className="flex flex-col items-center p-4 rounded-2xl border border-border hover:border-primary/30 hover:bg-accent/30 transition-all group"
-                data-testid={`benefit-cat-${i}`}
+                data-testid={`benefit-cat-${cat.label}`}
               >
                 <span className="text-3xl mb-2 group-hover:scale-110 transition-transform">{cat.icon}</span>
                 <span className="text-xs font-medium text-muted-foreground group-hover:text-primary transition-colors">{cat.label}</span>

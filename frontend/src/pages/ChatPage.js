@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import axios from 'axios';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
@@ -27,14 +26,14 @@ export default function ChatPage() {
     try {
       const { data } = await ax.get('/chat/conversations');
       setConversations(data);
-    } catch {}
+    } catch (err) { console.error('Failed to load conversations:', err); }
   }, []);
 
   const loadMessages = useCallback(async (convId) => {
     try {
       const { data } = await ax.get(`/chat/conversations/${convId}/messages`);
       setMessages(data);
-    } catch {}
+    } catch (err) { console.error('Failed to load messages:', err); }
   }, []);
 
   useEffect(() => { loadConversations(); }, [loadConversations]);

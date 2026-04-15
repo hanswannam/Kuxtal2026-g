@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import axios from 'axios';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
@@ -239,16 +238,16 @@ export default function AdminDashboard() {
             {/* Quick Stats */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
               {[
-                { label: 'Socios Activos', value: stats.active_members || 0, icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-                { label: 'Paquetes', value: stats.total_packages || 0, icon: Package, color: 'text-blue-600', bg: 'bg-blue-50' },
-                { label: 'Cotizaciones', value: stats.pending_quotations || 0, icon: FileText, color: 'text-amber-600', bg: 'bg-amber-50' },
-                { label: 'Comercios', value: stats.total_commerce || 0, icon: Store, color: 'text-violet-600', bg: 'bg-violet-50' },
-                { label: 'Referidos', value: stats.total_referrals || 0, icon: Gift, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-                { label: 'Chats', value: stats.unread_chats || 0, icon: MessageSquare, color: 'text-cyan-600', bg: 'bg-cyan-50' },
-                { label: 'Solicitudes', value: stats.pending_requests || 0, icon: Clock, color: 'text-orange-600', bg: 'bg-orange-50' },
-                { label: 'Anuncios', value: stats.total_announcements || 0, icon: Bell, color: 'text-rose-600', bg: 'bg-rose-50' },
-              ].map((s, i) => (
-                <div key={i} className="bg-white rounded-2xl p-4 border border-border hover:shadow-md transition-all cursor-pointer" onClick={() => setTab(s.label === 'Socios Activos' ? 'members' : s.label === 'Paquetes' ? 'packages' : s.label === 'Cotizaciones' ? 'quotations' : s.label === 'Comercios' ? 'commerce' : s.label === 'Referidos' ? 'referrals' : s.label === 'Chats' ? 'settings' : s.label === 'Solicitudes' ? 'requests' : 'announcements')} data-testid={`stat-${i}`}>
+                { label: 'Socios Activos', value: stats.active_members || 0, icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-50', tab: 'members' },
+                { label: 'Paquetes', value: stats.total_packages || 0, icon: Package, color: 'text-blue-600', bg: 'bg-blue-50', tab: 'packages' },
+                { label: 'Cotizaciones', value: stats.pending_quotations || 0, icon: FileText, color: 'text-amber-600', bg: 'bg-amber-50', tab: 'quotations' },
+                { label: 'Comercios', value: stats.total_commerce || 0, icon: Store, color: 'text-violet-600', bg: 'bg-violet-50', tab: 'commerce' },
+                { label: 'Referidos', value: stats.total_referrals || 0, icon: Gift, color: 'text-indigo-600', bg: 'bg-indigo-50', tab: 'referrals' },
+                { label: 'Chats', value: stats.unread_chats || 0, icon: MessageSquare, color: 'text-cyan-600', bg: 'bg-cyan-50', tab: 'settings' },
+                { label: 'Solicitudes', value: stats.pending_requests || 0, icon: Clock, color: 'text-orange-600', bg: 'bg-orange-50', tab: 'requests' },
+                { label: 'Anuncios', value: stats.total_announcements || 0, icon: Bell, color: 'text-rose-600', bg: 'bg-rose-50', tab: 'announcements' },
+              ].map((s) => (
+                <div key={s.label} className="bg-white rounded-2xl p-4 border border-border hover:shadow-md transition-all cursor-pointer" onClick={() => setTab(s.tab)} data-testid={`stat-${s.tab}`}>
                   <div className="flex items-center gap-3">
                     <div className={`p-2.5 rounded-xl ${s.bg} ${s.color}`}><s.icon className="w-5 h-5" /></div>
                     <div>
@@ -267,10 +266,10 @@ export default function AdminDashboard() {
                 { label: 'Nuevo Paquete', icon: Package, action: () => { setTab('packages'); setTimeout(() => { setShowPackageForm(true); setEditingPackage(null); }, 100); }, color: 'from-blue-500 to-blue-600' },
                 { label: 'Nuevo Comercio', icon: Store, action: () => window.location.href = '/admin/new-commerce', color: 'from-violet-500 to-violet-600' },
                 { label: 'Ver Mensajes', icon: MessageSquare, action: () => window.location.href = '/chat', color: 'from-cyan-500 to-cyan-600' },
-              ].map((a, i) => (
-                <button key={i} onClick={a.action}
+              ].map((a) => (
+                <button key={a.label} onClick={a.action}
                   className={`flex items-center gap-3 p-4 rounded-2xl bg-gradient-to-r ${a.color} text-white font-semibold text-sm shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all`}
-                  data-testid={`quick-action-${i}`}>
+                  data-testid={`quick-action-${a.label.replace(/\s/g, '-').toLowerCase()}`}>
                   <a.icon className="w-5 h-5" /> {a.label}
                 </button>
               ))}
@@ -317,7 +316,7 @@ export default function AdminDashboard() {
                   <h3 className="font-heading text-lg font-semibold mb-4">Top Paquetes por Cotizaciones</h3>
                   <div className="space-y-3">
                     {analytics.top_packages.map((p, i) => (
-                      <div key={i} className="flex items-center justify-between" data-testid={`top-pkg-${i}`}>
+                      <div key={p.name || i} className="flex items-center justify-between" data-testid={`top-pkg-${i}`}>
                         <div className="flex items-center gap-3">
                           <span className="w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center">{i + 1}</span>
                           <span className="text-sm font-medium line-clamp-1">{p.name}</span>
@@ -336,8 +335,8 @@ export default function AdminDashboard() {
                   <ResponsiveContainer width="100%" height={250}>
                     <RechartPie>
                       <Pie data={analytics.country_distribution} dataKey="count" nameKey="country" cx="50%" cy="50%" outerRadius={80} label={({ country, count }) => `${country} (${count})`}>
-                        {analytics.country_distribution.map((_, i) => (
-                          <Cell key={i} fill={['#C1121F','#1E40AF','#059669','#D97706','#7C3AED','#DB2777'][i % 6]} />
+                        {analytics.country_distribution.map((entry, i) => (
+                          <Cell key={entry.country || i} fill={['#C1121F','#1E40AF','#059669','#D97706','#7C3AED','#DB2777'][i % 6]} />
                         ))}
                       </Pie>
                       <Tooltip />
@@ -579,8 +578,8 @@ export default function AdminDashboard() {
                         <Button type="button" onClick={addInclude} size="sm" className="rounded-xl" data-testid="pf-add-include">+</Button>
                       </div>
                       <div className="flex flex-wrap gap-1 mt-2">
-                        {packageForm.includes.map((inc, idx) => (
-                          <span key={idx} className="inline-flex items-center gap-1 px-2 py-1 bg-secondary rounded-full text-xs">
+                        {packageForm.includes.map((inc) => (
+                          <span key={inc} className="inline-flex items-center gap-1 px-2 py-1 bg-secondary rounded-full text-xs">
                             {inc}<button type="button" onClick={() => removeInclude(idx)}><X className="w-3 h-3" /></button>
                           </span>
                         ))}
@@ -726,7 +725,7 @@ export default function AdminDashboard() {
                   </Badge>
                 </div>
                 {r.messages?.map((m, j) => (
-                  <div key={j} className="text-sm mt-1"><span className="font-medium text-xs">{m.from}:</span><span className="text-muted-foreground ml-1">{m.text}</span></div>
+                  <div key={`${m.from}-${j}`} className="text-sm mt-1"><span className="font-medium text-xs">{m.from}:</span><span className="text-muted-foreground ml-1">{m.text}</span></div>
                 ))}
                 {r.status === 'pending' && (
                   <div className="flex gap-2 mt-3 pt-3 border-t border-border">

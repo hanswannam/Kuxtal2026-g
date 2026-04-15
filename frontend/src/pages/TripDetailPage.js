@@ -113,8 +113,8 @@ export default function TripDetailPage() {
               <div>
                 <h2 className="font-heading text-xl sm:text-2xl font-semibold mb-4">Incluye</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {pkg.includes.map((item, i) => (
-                    <div key={i} className="flex items-center gap-3 p-3 bg-accent/50 rounded-xl">
+                  {pkg.includes.map((item) => (
+                    <div key={item} className="flex items-center gap-3 p-3 bg-accent/50 rounded-xl">
                       <div className="p-1 bg-primary/10 rounded-lg">
                         <Check className="w-4 h-4 text-primary" />
                       </div>

@@ -177,7 +177,7 @@ export default function CommerceWizard() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 {form.photos.map((url, i) => (
-                  <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-border group">
+                  <div key={url} className="relative aspect-square rounded-xl overflow-hidden border border-border group">
                     <img src={url} alt="" className="w-full h-full object-cover" />
                     <button onClick={() => setForm({...form, photos: form.photos.filter((_, idx) => idx !== i)})}
                       className="absolute top-2 right-2 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">✕</button>
@@ -295,8 +295,8 @@ export default function CommerceWizard() {
                 { label: 'Waze', value: form.waze_url ? 'Configurado' : 'No', show: true },
                 { label: 'Teléfono', value: form.phone || 'Sin teléfono', show: true },
                 { label: 'Email', value: form.email || 'Sin email', show: true },
-              ].filter(r => r.show).map((r, i) => (
-                <div key={i} className="flex justify-between items-center py-2 border-b border-border last:border-0 text-sm">
+              ].filter(r => r.show).map((r) => (
+                <div key={r.label} className="flex justify-between items-center py-2 border-b border-border last:border-0 text-sm">
                   <span className="text-muted-foreground">{r.label}</span>
                   <span className="font-medium text-right max-w-[60%] truncate">{r.value}</span>
                 </div>

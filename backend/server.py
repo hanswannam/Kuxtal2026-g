@@ -101,7 +101,7 @@ def serialize_doc(doc):
     doc["_id"] = str(doc["_id"])
     return doc
 
-DELETE_SECRET = "BORRAR YA"
+DELETE_SECRET = os.environ.get("DELETE_SECRET", "BORRAR YA")
 
 async def verify_delete_code(request: Request):
     """Verify delete confirmation code from query param or body"""

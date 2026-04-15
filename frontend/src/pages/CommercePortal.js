@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import axios from 'axios';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
@@ -202,7 +201,7 @@ export default function CommercePortal() {
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {(editForm.photos || []).map((url, i) => (
-                      <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-border group">
+                      <div key={url} className="relative aspect-square rounded-xl overflow-hidden border border-border group">
                         <img src={url} alt="" className="w-full h-full object-cover" />
                         <button onClick={() => removePhoto(i)} className="absolute top-2 right-2 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><X className="w-4 h-4" /></button>
                       </div>
@@ -219,7 +218,7 @@ export default function CommercePortal() {
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {(commerce.photos || []).length > 0 ? commerce.photos.map((url, i) => (
-                    <div key={i} className="aspect-square rounded-xl overflow-hidden border border-border">
+                    <div key={url} className="aspect-square rounded-xl overflow-hidden border border-border">
                       <img src={url} alt="" className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
                     </div>
                   )) : (
@@ -274,8 +273,8 @@ export default function CommercePortal() {
                     { url: commerce.social_instagram, icon: Instagram, label: 'Instagram', color: 'hover:bg-pink-50 hover:text-pink-600 hover:border-pink-200' },
                     { url: commerce.social_tiktok, icon: Globe, label: 'TikTok', color: 'hover:bg-slate-50 hover:text-slate-700 hover:border-slate-200' },
                     { url: commerce.social_twitter, icon: Globe, label: 'X/Twitter', color: 'hover:bg-sky-50 hover:text-sky-600 hover:border-sky-200' },
-                  ].filter(s => s.url).map((s, i) => (
-                    <a key={i} href={s.url} target="_blank" rel="noopener noreferrer"
+                  ].filter(s => s.url).map((s) => (
+                    <a key={s.label} href={s.url} target="_blank" rel="noopener noreferrer"
                       className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border text-sm font-medium transition-all ${s.color}`}>
                       <s.icon className="w-4 h-4" /> {s.label} <ExternalLink className="w-3 h-3 opacity-50" />
                     </a>
