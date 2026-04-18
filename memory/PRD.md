@@ -1,10 +1,10 @@
 # Kuxtal Travel - Club Vacacional PRD
 
 ## Problem Statement
-Sistema CRM para club vacacional con web publica estilo Expedia, portal de socios, CRM admin, portal de comercios, referidos, chat, analytics, importacion AI de paquetes (individual y en lote).
+Sistema CRM para club vacacional con web publica estilo Expedia, portal de socios, CRM admin, portal de comercios, referidos, chat, analytics, importacion AI de paquetes con extraccion de imagenes.
 
 ## Architecture
-- **Backend:** FastAPI + MongoDB + pywebpush + emergentintegrations (Gemini 2.5 Flash)
+- **Backend:** FastAPI + MongoDB + pywebpush + emergentintegrations (Gemini 2.5 Flash) + PyMuPDF
 - **Frontend:** React 18 + Tailwind + Shadcn UI + Recharts + React.lazy
 - **Auth:** JWT (httpOnly cookies + localStorage Bearer token fallback)
 - **AI:** Gemini 2.5 Flash (document/image analysis, package extraction)
@@ -22,26 +22,20 @@ Sistema CRM para club vacacional con web publica estilo Expedia, portal de socio
 - [x] XSS fix, DELETE_SECRET, backend anti-patterns, React keys
 - [x] Component refactoring + lazy loading + ErrorBoundary + SEO
 
-### AI Import (Phase 7-9)
-- [x] **Individual**: Google Drive link -> Gemini AI -> Pre-filled review form
-- [x] **Lote (Batch)**: Multiple Google Drive links (max 20) -> Sequential AI processing -> Progress bar -> Results list with checkboxes -> Bulk create
+### AI Import Complete (Phase 7-9)
+- [x] Individual: Google Drive link -> Gemini AI -> Pre-filled review form
+- [x] Lote (Batch): Multiple links (max 20) -> Sequential AI -> Progress bar -> Bulk create
+- [x] PDF Image Extraction: PyMuPDF extracts images >15KB from PDFs, uploads to storage, auto-populates gallery
+- [x] Image files: Source uploaded directly as main image
 - [x] Multi-format: PDF, Images, Word, Excel
 - [x] Enriched fields: itinerary, accommodation_type, difficulty, min/max group
-- [x] Expand/collapse per result, inline editing, select/deselect, remove
+- [x] Gallery preview with thumbnails, Principal badge, remove buttons
 
 ### Public Website Redesign (Phase 8)
 - [x] Homepage: Expedia-style hero + search tabs + popular destinations
 - [x] Search: Category tabs, country/price/duration filters, 6 sort options
 - [x] Trip Detail: Gallery, itinerary timeline, includes grid, sticky price sidebar, quote modal
 - [x] Accent-insensitive search (normalize_search)
-
-## Package Schema
-```
-title, description, short_description, country, price, member_price,
-duration_days, category, includes[], itinerary[{day,title,description}],
-accommodation_type, difficulty, min_group, max_group,
-rating, image_url, gallery[], featured, status
-```
 
 ## Test Credentials
 - Admin: admin@kuxtaltravels.com / KuxtalAdmin2024!
@@ -53,5 +47,5 @@ rating, image_url, gallery[], featured, status
 ## Pending / Backlog
 - [ ] Configurar dominio kuxtaltravelgt.com (Deploy > Custom Domain)
 - [ ] Notificaciones por email (SendGrid/Resend)
-- [ ] Image extraction from PDFs for package gallery
 - [ ] Sistema de reviews/testimonios
+- [ ] Modo oscuro para admin
