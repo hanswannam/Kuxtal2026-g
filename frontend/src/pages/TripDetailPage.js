@@ -2,10 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Textarea } from '../components/ui/textarea';
-import { Label } from '../components/ui/label';
-import { Star, MapPin, Calendar, Check, ArrowLeft, Users, Send } from 'lucide-react';
+import { Badge } from '../components/ui/badge';
+import { MapPin, Star, Calendar, Users, Check, Clock, Hotel, Mountain, ArrowLeft, Share2, Heart, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { toast } from 'sonner';
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -14,109 +13,135 @@ export default function TripDetailPage() {
   const { id } = useParams();
   const [pkg, setPkg] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [isMember, setIsMember] = useState(false);
-  const [form, setForm] = useState({ name: '', email: '', phone: '', contract_number: '', message: '', guests: 1 });
-  const [submitting, setSubmitting] = useState(false);
+  const [showQuoteForm, setShowQuoteForm] = useState(false);
+  const [quoteForm, setQuoteForm] = useState({ name: '', email: '', phone: '', contract_number: '', message: '', guests: 2 });
+  const [galleryIndex, setGalleryIndex] = useState(0);
+  useDocumentTitle(pkg?.title || 'Detalle del Paquete');
 
   useEffect(() => {
     axios.get(`${API}/api/packages/${id}`).then(r => { setPkg(r.data); setLoading(false); }).catch(() => setLoading(false));
   }, [id]);
 
-  const handleSubmit = async (e) => {
+  const submitQuote = async (e) => {
     e.preventDefault();
-    setSubmitting(true);
     try {
-      await axios.post(`${API}/api/quotations`, { ...form, package_id: id });
-      toast.success('Solicitud de cotización enviada correctamente');
-      setShowForm(false);
-      setForm({ name: '', email: '', phone: '', contract_number: '', message: '', guests: 1 });
-    } catch (err) {
-      toast.error('Error al enviar la solicitud');
-    }
-    setSubmitting(false);
+      await axios.post(`${API}/api/quotations`, { ...quoteForm, package_id: id });
+      toast.success('Cotizacion enviada correctamente');
+      setShowQuoteForm(false);
+      setQuoteForm({ name: '', email: '', phone: '', contract_number: '', message: '', guests: 2 });
+    } catch { toast.error('Error al enviar cotizacion'); }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen pt-24 flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  const allImages = pkg ? [pkg.image_url, ...(pkg.gallery || [])].filter(Boolean) : [];
 
-  if (!pkg) {
-    return (
-      <div className="min-h-screen pt-24 flex flex-col items-center justify-center">
-        <h2 className="font-heading text-2xl font-bold mb-4">Paquete no encontrado</h2>
-        <Link to="/search"><Button className="rounded-full">Volver a destinos</Button></Link>
+  if (loading) return (
+    <div className="min-h-screen pt-20 bg-secondary/20">
+      <div className="max-w-6xl mx-auto px-4 py-8 animate-pulse">
+        <div className="aspect-[21/9] bg-muted rounded-2xl mb-8" />
+        <div className="h-8 bg-muted rounded w-1/2 mb-4" />
+        <div className="h-4 bg-muted rounded w-full mb-2" />
+        <div className="h-4 bg-muted rounded w-3/4" />
       </div>
-    );
-  }
+    </div>
+  );
+
+  if (!pkg) return (
+    <div className="min-h-screen pt-20 flex items-center justify-center">
+      <div className="text-center">
+        <h2 className="font-heading text-2xl font-bold mb-3">Paquete no encontrado</h2>
+        <Link to="/search"><Button className="rounded-full">Volver a buscar</Button></Link>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen pt-20 pb-16" data-testid="trip-detail-page">
-      {/* Hero Image */}
-      <div className="relative h-[50vh] min-h-[350px]">
-        <img
-          src={pkg.image_url || 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200'}
-          alt={pkg.title}
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
-        <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8 lg:p-12">
-          <div className="max-w-7xl mx-auto">
-            <Link to="/search" className="inline-flex items-center gap-1 text-white/80 text-sm mb-4 hover:text-white transition-colors" data-testid="back-to-search">
-              <ArrowLeft className="w-4 h-4" /> Volver a destinos
-            </Link>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="px-3 py-1 bg-primary text-white rounded-full text-xs font-semibold">
-                {pkg.category === 'alojamiento' ? 'Alojamiento' : pkg.category === 'experiencia' ? 'Experiencia' : 'Paquete'}
-              </span>
-              <div className="flex items-center gap-1 px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full">
-                <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-                <span className="text-white text-xs font-medium">{pkg.rating}</span>
+    <div className="min-h-screen pt-20 bg-secondary/20" data-testid="trip-detail-page">
+      {/* Breadcrumb */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-4">
+        <Link to="/search" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors" data-testid="back-to-search">
+          <ArrowLeft className="w-4 h-4" /> Volver a resultados
+        </Link>
+      </div>
+
+      {/* Hero / Gallery */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
+        <div className="relative rounded-2xl overflow-hidden aspect-[21/9] sm:aspect-[2.5/1]" data-testid="trip-gallery">
+          <img
+            src={allImages[galleryIndex] || 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200'}
+            alt={pkg.title}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+
+          {/* Gallery controls */}
+          {allImages.length > 1 && (
+            <>
+              <button onClick={() => setGalleryIndex((galleryIndex - 1 + allImages.length) % allImages.length)} className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 backdrop-blur rounded-full flex items-center justify-center hover:bg-white transition-colors" data-testid="gallery-prev">
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <button onClick={() => setGalleryIndex((galleryIndex + 1) % allImages.length)} className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 backdrop-blur rounded-full flex items-center justify-center hover:bg-white transition-colors" data-testid="gallery-next">
+                <ChevronRight className="w-5 h-5" />
+              </button>
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
+                {allImages.map((_, i) => (
+                  <button key={`dot-${i}`} onClick={() => setGalleryIndex(i)} className={`w-2 h-2 rounded-full transition-all ${i === galleryIndex ? 'bg-white w-6' : 'bg-white/50'}`} />
+                ))}
               </div>
-            </div>
-            <h1 className="font-heading text-3xl sm:text-4xl lg:text-5xl text-white font-bold tracking-tight">
-              {pkg.title}
-            </h1>
+            </>
+          )}
+
+          {/* Category badge */}
+          <div className="absolute top-4 left-4 flex gap-2">
+            <Badge className="bg-white/90 backdrop-blur text-foreground rounded-full px-3 py-1">
+              {pkg.category === 'alojamiento' ? 'Alojamiento' : pkg.category === 'experiencia' ? 'Experiencia' : 'Paquete'}
+            </Badge>
+            {pkg.featured && <Badge className="bg-primary text-white rounded-full px-3 py-1">Destacado</Badge>}
           </div>
+
+          {/* Share button */}
+          <button className="absolute top-4 right-4 w-10 h-10 bg-white/80 backdrop-blur rounded-full flex items-center justify-center hover:bg-white transition-colors" onClick={() => {navigator.clipboard.writeText(window.location.href); toast.success('Enlace copiado');}} data-testid="share-btn">
+            <Share2 className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
       {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
-          {/* Left - Details */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Quick Info */}
-            <div className="flex flex-wrap gap-4">
-              <div className="flex items-center gap-2 px-4 py-2 bg-secondary rounded-xl">
-                <Calendar className="w-4 h-4 text-primary" />
-                <span className="text-sm font-medium">{pkg.duration_days} días</span>
-              </div>
-              <div className="flex items-center gap-2 px-4 py-2 bg-secondary rounded-xl">
-                <MapPin className="w-4 h-4 text-primary" />
-                <span className="text-sm font-medium">{pkg.country}</span>
+            {/* Title & Meta */}
+            <div>
+              <h1 className="font-heading text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight mb-3" data-testid="trip-title">
+                {pkg.title}
+              </h1>
+              <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-primary" />{pkg.country}</span>
+                <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4" />{pkg.duration_days} dias</span>
+                <span className="flex items-center gap-1.5"><Star className="w-4 h-4 text-amber-400 fill-amber-400" />{pkg.rating}/5</span>
+                {pkg.accommodation_type && <span className="flex items-center gap-1.5"><Hotel className="w-4 h-4" />{pkg.accommodation_type}</span>}
+                {pkg.difficulty && <span className="flex items-center gap-1.5"><Mountain className="w-4 h-4" />{pkg.difficulty}</span>}
+                {pkg.max_group && <span className="flex items-center gap-1.5"><Users className="w-4 h-4" />{pkg.min_group || 1}-{pkg.max_group} personas</span>}
               </div>
             </div>
 
             {/* Description */}
-            <div>
-              <h2 className="font-heading text-xl sm:text-2xl font-semibold mb-4">Descripción</h2>
-              <p className="text-foreground/80 leading-relaxed">{pkg.description}</p>
+            <div className="bg-white rounded-2xl p-6 border border-border">
+              <h2 className="font-heading text-lg font-semibold mb-3">Descripcion</h2>
+              <p className="text-muted-foreground leading-relaxed whitespace-pre-line" data-testid="trip-description">
+                {pkg.description}
+              </p>
             </div>
 
             {/* Includes */}
             {pkg.includes && pkg.includes.length > 0 && (
-              <div>
-                <h2 className="font-heading text-xl sm:text-2xl font-semibold mb-4">Incluye</h2>
+              <div className="bg-white rounded-2xl p-6 border border-border" data-testid="trip-includes">
+                <h2 className="font-heading text-lg font-semibold mb-4">Que Incluye</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {pkg.includes.map((item) => (
-                    <div key={item} className="flex items-center gap-3 p-3 bg-accent/50 rounded-xl">
-                      <div className="p-1 bg-primary/10 rounded-lg">
-                        <Check className="w-4 h-4 text-primary" />
+                    <div key={item} className="flex items-center gap-3 p-3 bg-emerald-50/50 rounded-xl border border-emerald-100">
+                      <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
                       </div>
                       <span className="text-sm font-medium">{item}</span>
                     </div>
@@ -124,94 +149,134 @@ export default function TripDetailPage() {
                 </div>
               </div>
             )}
+
+            {/* Itinerary */}
+            {pkg.itinerary && pkg.itinerary.length > 0 && (
+              <div className="bg-white rounded-2xl p-6 border border-border" data-testid="trip-itinerary">
+                <h2 className="font-heading text-lg font-semibold mb-4">Itinerario Dia por Dia</h2>
+                <div className="space-y-4">
+                  {pkg.itinerary.map((day, i) => (
+                    <div key={`day-${day.day || i}`} className="flex gap-4">
+                      <div className="flex flex-col items-center">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 text-primary font-bold text-sm flex items-center justify-center shrink-0">
+                          {day.day || i + 1}
+                        </div>
+                        {i < pkg.itinerary.length - 1 && <div className="w-0.5 flex-1 bg-border mt-2" />}
+                      </div>
+                      <div className="pb-6">
+                        <h3 className="font-semibold text-sm mb-1">{day.title || `Dia ${day.day || i + 1}`}</h3>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{day.description}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Right - Pricing & CTA */}
+          {/* Sidebar - Pricing & CTA */}
           <div className="lg:col-span-1">
-            <div className="sticky top-24 bg-white border border-border rounded-2xl p-6 shadow-sm" data-testid="trip-pricing-card">
-              <div className="mb-4">
-                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Desde</p>
-                <p className="font-heading text-3xl font-bold text-primary">Q.{pkg.price?.toLocaleString()}</p>
-                <p className="text-xs text-muted-foreground mt-1">Por persona, habitación doble</p>
+            <div className="sticky top-36 space-y-4">
+              {/* Price Card */}
+              <div className="bg-white rounded-2xl p-6 border border-border shadow-lg" data-testid="trip-price-card">
+                <div className="mb-4">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Desde</p>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-3xl font-bold text-primary">Q.{pkg.price?.toLocaleString()}</span>
+                    <span className="text-sm text-muted-foreground">por persona</span>
+                  </div>
+                  {pkg.member_price > 0 && (
+                    <div className="mt-2 p-2 bg-primary/5 rounded-lg border border-primary/10">
+                      <p className="text-xs text-primary font-semibold">Precio Socio: Q.{pkg.member_price.toLocaleString()}</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-3 mb-5 text-sm">
+                  <div className="flex items-center justify-between py-2 border-b border-border">
+                    <span className="text-muted-foreground flex items-center gap-2"><Calendar className="w-3.5 h-3.5" /> Duracion</span>
+                    <span className="font-medium">{pkg.duration_days} dias</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-border">
+                    <span className="text-muted-foreground flex items-center gap-2"><MapPin className="w-3.5 h-3.5" /> Destino</span>
+                    <span className="font-medium">{pkg.country}</span>
+                  </div>
+                  {pkg.accommodation_type && (
+                    <div className="flex items-center justify-between py-2 border-b border-border">
+                      <span className="text-muted-foreground flex items-center gap-2"><Hotel className="w-3.5 h-3.5" /> Alojamiento</span>
+                      <span className="font-medium capitalize">{pkg.accommodation_type}</span>
+                    </div>
+                  )}
+                  {pkg.max_group && (
+                    <div className="flex items-center justify-between py-2">
+                      <span className="text-muted-foreground flex items-center gap-2"><Users className="w-3.5 h-3.5" /> Grupo</span>
+                      <span className="font-medium">{pkg.min_group || 1}-{pkg.max_group} personas</span>
+                    </div>
+                  )}
+                </div>
+
+                <Button
+                  onClick={() => setShowQuoteForm(true)}
+                  className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-base font-semibold shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
+                  data-testid="request-quote-btn"
+                >
+                  Solicitar Cotizacion
+                </Button>
+                <p className="text-[10px] text-center text-muted-foreground mt-3">Sin compromiso. Te respondemos en menos de 24 horas.</p>
               </div>
 
-              {pkg.member_price > 0 && (
-                <div className="p-3 bg-accent rounded-xl mb-4">
-                  <p className="text-xs text-primary font-semibold mb-1">Precio Socio Club</p>
-                  <p className="font-heading text-xl font-bold text-primary">Q.{pkg.member_price?.toLocaleString()}</p>
+              {/* Trust signals */}
+              <div className="bg-white rounded-2xl p-5 border border-border">
+                <div className="space-y-3 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-500" /><span>Asesoría personalizada</span></div>
+                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-500" /><span>Precios exclusivos para socios</span></div>
+                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-500" /><span>Pago en cuotas disponible</span></div>
+                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-500" /><span>Garantia de mejor precio</span></div>
                 </div>
-              )}
-
-              <Button
-                onClick={() => { setShowForm(true); setIsMember(false); }}
-                className="w-full rounded-xl h-12 bg-primary hover:bg-primary/90 text-base font-semibold transition-all hover:-translate-y-0.5 mb-3"
-                data-testid="quote-btn"
-              >
-                <Send className="w-4 h-4 mr-2" /> Cotizar
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => { setShowForm(true); setIsMember(true); }}
-                className="w-full rounded-xl h-12 text-sm"
-                data-testid="member-quote-btn"
-              >
-                Soy Socio - Cotizar con Descuento
-              </Button>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Quote Modal */}
-      {showForm && (
+      {showQuoteForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in" data-testid="quote-modal">
           <div className="bg-white rounded-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
-            <h3 className="font-heading text-xl font-semibold mb-1">
-              {isMember ? 'Cotización para Socios' : 'Solicitar Cotización'}
-            </h3>
-            <p className="text-sm text-muted-foreground mb-6">{pkg.title}</p>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {isMember ? (
-                <div>
-                  <Label>Número de Contrato</Label>
-                  <Input
-                    value={form.contract_number}
-                    onChange={e => setForm({...form, contract_number: e.target.value})}
-                    placeholder="Ej: KT-001"
-                    required
-                    className="rounded-xl mt-1"
-                    data-testid="quote-contract-input"
-                  />
-                </div>
-              ) : (
-                <>
-                  <div>
-                    <Label>Nombre completo</Label>
-                    <Input value={form.name} onChange={e => setForm({...form, name: e.target.value})} required className="rounded-xl mt-1" data-testid="quote-name-input" />
-                  </div>
-                  <div>
-                    <Label>Email</Label>
-                    <Input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} required className="rounded-xl mt-1" data-testid="quote-email-input" />
-                  </div>
-                  <div>
-                    <Label>Teléfono</Label>
-                    <Input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} required className="rounded-xl mt-1" data-testid="quote-phone-input" />
-                  </div>
-                </>
-              )}
+            <h3 className="font-heading text-xl font-semibold mb-1">Solicitar Cotizacion</h3>
+            <p className="text-sm text-muted-foreground mb-5">Para: {pkg.title}</p>
+            <form onSubmit={submitQuote} className="space-y-3">
               <div>
-                <Label>Huéspedes</Label>
-                <Input type="number" min="1" value={form.guests} onChange={e => setForm({...form, guests: parseInt(e.target.value)})} className="rounded-xl mt-1" data-testid="quote-guests-input" />
+                <label className="text-xs font-medium">Nombre completo</label>
+                <input value={quoteForm.name} onChange={e => setQuoteForm({...quoteForm, name: e.target.value})} required className="w-full mt-1 h-10 rounded-xl border border-input px-3 text-sm" data-testid="quote-name" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium">Email</label>
+                  <input type="email" value={quoteForm.email} onChange={e => setQuoteForm({...quoteForm, email: e.target.value})} required className="w-full mt-1 h-10 rounded-xl border border-input px-3 text-sm" data-testid="quote-email" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium">Telefono</label>
+                  <input value={quoteForm.phone} onChange={e => setQuoteForm({...quoteForm, phone: e.target.value})} required className="w-full mt-1 h-10 rounded-xl border border-input px-3 text-sm" data-testid="quote-phone" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium">No. Contrato (socio)</label>
+                  <input value={quoteForm.contract_number} onChange={e => setQuoteForm({...quoteForm, contract_number: e.target.value})} placeholder="Opcional" className="w-full mt-1 h-10 rounded-xl border border-input px-3 text-sm" data-testid="quote-contract" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium">Viajeros</label>
+                  <input type="number" min="1" value={quoteForm.guests} onChange={e => setQuoteForm({...quoteForm, guests: parseInt(e.target.value)})} className="w-full mt-1 h-10 rounded-xl border border-input px-3 text-sm" data-testid="quote-guests" />
+                </div>
               </div>
               <div>
-                <Label>Mensaje (opcional)</Label>
-                <Textarea value={form.message} onChange={e => setForm({...form, message: e.target.value})} placeholder="Cuéntanos sobre tu viaje ideal..." className="rounded-xl mt-1" data-testid="quote-message-input" />
+                <label className="text-xs font-medium">Mensaje (opcional)</label>
+                <textarea value={quoteForm.message} onChange={e => setQuoteForm({...quoteForm, message: e.target.value})} rows={3} placeholder="Fechas preferidas, requisitos especiales..." className="w-full mt-1 rounded-xl border border-input px-3 py-2 text-sm resize-none" data-testid="quote-message" />
               </div>
               <div className="flex gap-3 pt-2">
-                <Button type="button" variant="outline" onClick={() => setShowForm(false)} className="flex-1 rounded-xl" data-testid="quote-cancel-btn">Cancelar</Button>
-                <Button type="submit" disabled={submitting} className="flex-1 rounded-xl bg-primary hover:bg-primary/90" data-testid="quote-submit-btn">
-                  {submitting ? 'Enviando...' : 'Enviar'}
-                </Button>
+                <Button type="button" variant="outline" onClick={() => setShowQuoteForm(false)} className="flex-1 rounded-xl">Cancelar</Button>
+                <Button type="submit" className="flex-1 rounded-xl bg-primary hover:bg-primary/90" data-testid="quote-submit-btn">Enviar Cotizacion</Button>
               </div>
             </form>
           </div>

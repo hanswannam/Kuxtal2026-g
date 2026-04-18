@@ -180,6 +180,11 @@ class PackageCreate(BaseModel):
     duration_days: int
     category: str = "paquete"
     includes: List[str] = []
+    itinerary: List[dict] = []  # [{day: 1, title: "...", description: "..."}]
+    accommodation_type: Optional[str] = ""  # hotel, resort, villa, hostel, camping
+    difficulty: Optional[str] = ""  # facil, moderado, dificil
+    min_group: Optional[int] = 1
+    max_group: Optional[int] = 20
     rating: float = 4.8
     image_url: Optional[str] = ""
     gallery: List[str] = []
@@ -420,7 +425,7 @@ def normalize_search(text: str) -> str:
     return ''.join(result)
 
 @api_router.get("/packages")
-async def list_packages(category: Optional[str] = None, country: Optional[str] = None, search: Optional[str] = None, featured: Optional[bool] = None):
+async def list_packages(category: Optional[str] = None, country: Optional[str] = None, search: Optional[str] = None, featured: Optional[bool] = None, min_price: Optional[float] = None, max_price: Optional[float] = None, min_days: Optional[int] = None, max_days: Optional[int] = None, sort: Optional[str] = None):
     query = {"status": "active"}
     if category:
         query["category"] = category
@@ -434,10 +439,37 @@ async def list_packages(category: Optional[str] = None, country: Optional[str] =
             {"description": {"$regex": search_pattern, "$options": "i"}},
             {"country": {"$regex": search_pattern, "$options": "i"}}
         ]
+    if min_price is not None:
+        query.setdefault("price", {})["$gte"] = min_price
+    if max_price is not None:
+        query.setdefault("price", {})["$lte"] = max_price
+    if min_days is not None:
+        query.setdefault("duration_days", {})["$gte"] = min_days
+    if max_days is not None:
+        query.setdefault("duration_days", {})["$lte"] = max_days
     if featured is not None:
         query["featured"] = featured
+
+    sort_field = "created_at"
+    sort_dir = -1
+    if sort == "price_asc":
+        sort_field = "price"
+        sort_dir = 1
+    elif sort == "price_desc":
+        sort_field = "price"
+        sort_dir = -1
+    elif sort == "duration_asc":
+        sort_field = "duration_days"
+        sort_dir = 1
+    elif sort == "duration_desc":
+        sort_field = "duration_days"
+        sort_dir = -1
+    elif sort == "rating":
+        sort_field = "rating"
+        sort_dir = -1
+
     packages = []
-    async for p in db.packages.find(query).sort("created_at", -1).limit(200):
+    async for p in db.packages.find(query).sort(sort_field, sort_dir).limit(200):
         packages.append(serialize_doc(p))
     return packages
 
@@ -548,30 +580,39 @@ def extract_text_from_xlsx(file_path: str) -> str:
 
 PACKAGE_EXTRACTION_PROMPT = """Eres un asistente experto en turismo que extrae informacion de documentos para crear paquetes de viaje.
 
-Analiza el documento proporcionado y extrae la siguiente informacion en formato JSON. Si no encuentras algún campo, usa un valor por defecto razonable.
+Analiza el documento proporcionado y extrae la siguiente informacion en formato JSON. Si no encuentras algun campo, usa un valor por defecto razonable.
 
 Responde UNICAMENTE con un JSON valido (sin markdown, sin ```json), con esta estructura exacta:
 {
   "title": "Nombre del paquete/tour",
   "short_description": "Descripcion corta en 1-2 lineas",
-  "description": "Descripcion completa del paquete",
+  "description": "Descripcion completa del paquete con detalles",
   "country": "Pais o destino principal",
   "price": 0,
   "member_price": 0,
   "duration_days": 1,
   "category": "paquete",
   "includes": ["item1", "item2"],
+  "itinerary": [{"day": 1, "title": "Titulo del dia", "description": "Actividades del dia"}],
+  "accommodation_type": "hotel",
+  "difficulty": "facil",
+  "min_group": 1,
+  "max_group": 20,
   "rating": 4.8,
   "featured": false
 }
 
 Notas:
 - "category" debe ser: "paquete", "alojamiento" o "experiencia"
-- Los precios deben ser numeros sin simbolo de moneda. Si hay precio en quetzales, dolares o cualquier moneda, usa el numero
-- "includes" es una lista de lo que incluye el paquete (transporte, hospedaje, comidas, etc)
-- Si hay multiples paquetes en el documento, extrae solo el principal o el primero
+- Los precios deben ser numeros sin simbolo de moneda
+- "includes" es una lista de lo que incluye (transporte, hospedaje, comidas, etc)
+- "itinerary" es el programa dia por dia. Cada item tiene day (numero), title y description
+- "accommodation_type" puede ser: "hotel", "resort", "villa", "hostel", "camping", "airbnb" o vacio
+- "difficulty" puede ser: "facil", "moderado", "dificil" o vacio
+- "min_group" y "max_group" son el minimo y maximo de personas del grupo
+- Si hay multiples paquetes, extrae solo el principal
 - Si el precio no es claro, usa 0
-- "member_price" es el precio especial para socios, si existe. Si no, dejalo en 0"""
+- "member_price" es el precio especial para socios. Si no existe, dejalo en 0"""
 
 @api_router.post("/packages/import-from-drive")
 async def import_package_from_drive(request: Request):
@@ -652,6 +693,11 @@ async def import_package_from_drive(request: Request):
         package_data.setdefault("duration_days", 1)
         package_data.setdefault("category", "paquete")
         package_data.setdefault("includes", [])
+        package_data.setdefault("itinerary", [])
+        package_data.setdefault("accommodation_type", "")
+        package_data.setdefault("difficulty", "")
+        package_data.setdefault("min_group", 1)
+        package_data.setdefault("max_group", 20)
         package_data.setdefault("rating", 4.8)
         package_data.setdefault("featured", False)
         package_data["price"] = float(package_data.get("price", 0) or 0)

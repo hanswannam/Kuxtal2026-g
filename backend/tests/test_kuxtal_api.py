@@ -534,5 +534,231 @@ class TestHomepageSearchNavigation:
                 assert pkg.get('category') == category, f"Package category mismatch: expected {category}, got {pkg.get('category')}"
 
 
+class TestSearchPageFiltersAndSorting:
+    """Test search page filters and sorting - Iteration 11"""
+    
+    @pytest.fixture
+    def admin_token(self):
+        response = requests.post(f"{BASE_URL}/api/auth/login", json={
+            "email": ADMIN_EMAIL,
+            "password": ADMIN_PASSWORD
+        })
+        return response.json()["token"]
+    
+    def test_sort_by_price_asc(self):
+        """Sort by price ascending should work"""
+        response = requests.get(f"{BASE_URL}/api/packages?sort=price_asc")
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, list)
+        if len(data) >= 2:
+            prices = [p.get('price', 0) for p in data]
+            # Verify ascending order
+            for i in range(len(prices) - 1):
+                assert prices[i] <= prices[i+1], f"Price not ascending: {prices[i]} > {prices[i+1]}"
+    
+    def test_sort_by_price_desc(self):
+        """Sort by price descending should work"""
+        response = requests.get(f"{BASE_URL}/api/packages?sort=price_desc")
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, list)
+        if len(data) >= 2:
+            prices = [p.get('price', 0) for p in data]
+            # Verify descending order
+            for i in range(len(prices) - 1):
+                assert prices[i] >= prices[i+1], f"Price not descending: {prices[i]} < {prices[i+1]}"
+    
+    def test_sort_by_duration_asc(self):
+        """Sort by duration ascending should work"""
+        response = requests.get(f"{BASE_URL}/api/packages?sort=duration_asc")
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, list)
+        if len(data) >= 2:
+            durations = [p.get('duration_days', 0) for p in data]
+            for i in range(len(durations) - 1):
+                assert durations[i] <= durations[i+1], f"Duration not ascending"
+    
+    def test_sort_by_duration_desc(self):
+        """Sort by duration descending should work"""
+        response = requests.get(f"{BASE_URL}/api/packages?sort=duration_desc")
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, list)
+        if len(data) >= 2:
+            durations = [p.get('duration_days', 0) for p in data]
+            for i in range(len(durations) - 1):
+                assert durations[i] >= durations[i+1], f"Duration not descending"
+    
+    def test_sort_by_rating(self):
+        """Sort by rating should work"""
+        response = requests.get(f"{BASE_URL}/api/packages?sort=rating")
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, list)
+        if len(data) >= 2:
+            ratings = [p.get('rating', 0) for p in data]
+            for i in range(len(ratings) - 1):
+                assert ratings[i] >= ratings[i+1], f"Rating not descending"
+    
+    def test_min_price_filter(self):
+        """Filter by minimum price should work"""
+        response = requests.get(f"{BASE_URL}/api/packages?min_price=5000")
+        assert response.status_code == 200
+        data = response.json()
+        for pkg in data:
+            assert pkg.get('price', 0) >= 5000, f"Package price {pkg.get('price')} is below min_price 5000"
+    
+    def test_max_price_filter(self):
+        """Filter by maximum price should work"""
+        response = requests.get(f"{BASE_URL}/api/packages?max_price=10000")
+        assert response.status_code == 200
+        data = response.json()
+        for pkg in data:
+            assert pkg.get('price', 0) <= 10000, f"Package price {pkg.get('price')} is above max_price 10000"
+    
+    def test_price_range_filter(self):
+        """Filter by price range should work"""
+        response = requests.get(f"{BASE_URL}/api/packages?min_price=1000&max_price=20000")
+        assert response.status_code == 200
+        data = response.json()
+        for pkg in data:
+            price = pkg.get('price', 0)
+            assert 1000 <= price <= 20000, f"Package price {price} is outside range 1000-20000"
+    
+    def test_min_days_filter(self):
+        """Filter by minimum days should work"""
+        response = requests.get(f"{BASE_URL}/api/packages?min_days=3")
+        assert response.status_code == 200
+        data = response.json()
+        for pkg in data:
+            assert pkg.get('duration_days', 0) >= 3, f"Package duration {pkg.get('duration_days')} is below min_days 3"
+    
+    def test_max_days_filter(self):
+        """Filter by maximum days should work"""
+        response = requests.get(f"{BASE_URL}/api/packages?max_days=7")
+        assert response.status_code == 200
+        data = response.json()
+        for pkg in data:
+            assert pkg.get('duration_days', 0) <= 7, f"Package duration {pkg.get('duration_days')} is above max_days 7"
+    
+    def test_combined_filters(self):
+        """Combined filters should work together"""
+        response = requests.get(f"{BASE_URL}/api/packages?category=paquete&min_price=1000&sort=price_asc")
+        assert response.status_code == 200
+        data = response.json()
+        for pkg in data:
+            assert pkg.get('category') == 'paquete', "Category filter not applied"
+            assert pkg.get('price', 0) >= 1000, "Min price filter not applied"
+
+
+class TestEnrichedPackageModel:
+    """Test enriched package model with itinerary, accommodation, difficulty, group - Iteration 11"""
+    
+    @pytest.fixture
+    def admin_token(self):
+        response = requests.post(f"{BASE_URL}/api/auth/login", json={
+            "email": ADMIN_EMAIL,
+            "password": ADMIN_PASSWORD
+        })
+        return response.json()["token"]
+    
+    def test_create_package_with_itinerary(self, admin_token):
+        """Create package with itinerary should work"""
+        import uuid
+        unique_id = str(uuid.uuid4())[:8]
+        response = requests.post(f"{BASE_URL}/api/packages",
+            headers={"Authorization": f"Bearer {admin_token}"},
+            json={
+                "title": f"TEST_Itinerary_{unique_id}",
+                "description": "Test package with itinerary",
+                "country": "Guatemala",
+                "price": 5000,
+                "member_price": 4500,
+                "duration_days": 3,
+                "category": "paquete",
+                "includes": ["Hotel", "Transporte", "Comidas"],
+                "itinerary": [
+                    {"day": 1, "title": "Llegada", "description": "Llegada al aeropuerto y traslado al hotel"},
+                    {"day": 2, "title": "Tour", "description": "Tour por la ciudad"},
+                    {"day": 3, "title": "Regreso", "description": "Traslado al aeropuerto"}
+                ],
+                "accommodation_type": "hotel",
+                "difficulty": "facil",
+                "min_group": 2,
+                "max_group": 10,
+                "status": "active"
+            }
+        )
+        assert response.status_code == 200, f"Create package failed: {response.text}"
+        data = response.json()
+        assert data["title"] == f"TEST_Itinerary_{unique_id}"
+        assert len(data["itinerary"]) == 3
+        assert data["accommodation_type"] == "hotel"
+        assert data["difficulty"] == "facil"
+        assert data["min_group"] == 2
+        assert data["max_group"] == 10
+        return data["_id"]
+    
+    def test_get_package_with_enriched_fields(self, admin_token):
+        """Get package should return enriched fields"""
+        # First create a package with enriched fields
+        import uuid
+        unique_id = str(uuid.uuid4())[:8]
+        create_resp = requests.post(f"{BASE_URL}/api/packages",
+            headers={"Authorization": f"Bearer {admin_token}"},
+            json={
+                "title": f"TEST_Enriched_{unique_id}",
+                "description": "Test enriched package",
+                "country": "México",
+                "price": 8000,
+                "duration_days": 5,
+                "category": "experiencia",
+                "itinerary": [{"day": 1, "title": "Dia 1", "description": "Actividades"}],
+                "accommodation_type": "resort",
+                "difficulty": "moderado",
+                "min_group": 4,
+                "max_group": 15,
+                "status": "active"
+            }
+        )
+        package_id = create_resp.json()["_id"]
+        
+        # Get the package
+        response = requests.get(f"{BASE_URL}/api/packages/{package_id}")
+        assert response.status_code == 200
+        data = response.json()
+        assert "itinerary" in data
+        assert "accommodation_type" in data
+        assert "difficulty" in data
+        assert "min_group" in data
+        assert "max_group" in data
+        assert data["accommodation_type"] == "resort"
+        assert data["difficulty"] == "moderado"
+
+
+class TestQuotationsAPI:
+    """Test quotations endpoint - Iteration 11"""
+    
+    def test_create_quotation(self):
+        """Create quotation should work without auth"""
+        import uuid
+        unique_id = str(uuid.uuid4())[:8]
+        response = requests.post(f"{BASE_URL}/api/quotations", json={
+            "name": f"Test User {unique_id}",
+            "email": f"test{unique_id}@example.com",
+            "phone": "+502 1234-5678",
+            "contract_number": "",
+            "message": "Test quotation request",
+            "guests": 2
+        })
+        assert response.status_code == 200, f"Create quotation failed: {response.text}"
+        data = response.json()
+        assert data["name"] == f"Test User {unique_id}"
+        assert data["status"] == "pending"
+        assert "_id" in data
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

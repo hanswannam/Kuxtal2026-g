@@ -219,6 +219,40 @@ export function AdminImport({ onPackageCreated }) {
             <Input value={editForm.image_url || ''} onChange={e => setEditForm({...editForm, image_url: e.target.value})} placeholder="URL de la imagen del paquete" className="rounded-xl mt-1" data-testid="import-image" />
           </div>
 
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <Label className="text-xs">Alojamiento</Label>
+              <select value={editForm.accommodation_type || ''} onChange={e => setEditForm({...editForm, accommodation_type: e.target.value})} className="w-full mt-1 h-10 rounded-xl border border-input px-3 text-sm" data-testid="import-accommodation">
+                <option value="">Sin especificar</option>
+                <option value="hotel">Hotel</option>
+                <option value="resort">Resort</option>
+                <option value="villa">Villa</option>
+                <option value="hostel">Hostel</option>
+                <option value="camping">Camping</option>
+                <option value="airbnb">Airbnb</option>
+              </select>
+            </div>
+            <div>
+              <Label className="text-xs">Dificultad</Label>
+              <select value={editForm.difficulty || ''} onChange={e => setEditForm({...editForm, difficulty: e.target.value})} className="w-full mt-1 h-10 rounded-xl border border-input px-3 text-sm" data-testid="import-difficulty">
+                <option value="">Sin especificar</option>
+                <option value="facil">Facil</option>
+                <option value="moderado">Moderado</option>
+                <option value="dificil">Dificil</option>
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs">Min. grupo</Label>
+                <Input type="number" value={editForm.min_group || 1} onChange={e => setEditForm({...editForm, min_group: parseInt(e.target.value) || 1})} className="rounded-xl mt-1" data-testid="import-min-group" />
+              </div>
+              <div>
+                <Label className="text-xs">Max. grupo</Label>
+                <Input type="number" value={editForm.max_group || 20} onChange={e => setEditForm({...editForm, max_group: parseInt(e.target.value) || 20})} className="rounded-xl mt-1" data-testid="import-max-group" />
+              </div>
+            </div>
+          </div>
+
           <div>
             <Label className="text-xs">Incluye</Label>
             <div className="flex gap-2 mt-1">
@@ -238,6 +272,25 @@ export function AdminImport({ onPackageCreated }) {
             <input type="checkbox" checked={editForm.featured || false} onChange={e => setEditForm({...editForm, featured: e.target.checked})} id="import-featured" data-testid="import-featured" />
             <Label htmlFor="import-featured" className="text-xs">Destacado</Label>
           </div>
+
+          {/* Itinerary */}
+          {editForm.itinerary && editForm.itinerary.length > 0 && (
+            <div data-testid="import-itinerary">
+              <Label className="text-xs font-semibold">Itinerario ({editForm.itinerary.length} dias)</Label>
+              <div className="space-y-2 mt-2">
+                {editForm.itinerary.map((day, idx) => (
+                  <div key={`day-${idx}`} className="p-3 bg-secondary/50 rounded-xl text-sm">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0">{day.day || idx + 1}</span>
+                      <input value={day.title || ''} onChange={e => { const it = [...editForm.itinerary]; it[idx] = {...it[idx], title: e.target.value}; setEditForm({...editForm, itinerary: it}); }} className="flex-1 bg-white rounded-lg border border-input px-2 py-1 text-xs font-medium" />
+                      <button onClick={() => setEditForm({...editForm, itinerary: editForm.itinerary.filter((_, i) => i !== idx)})} className="text-muted-foreground hover:text-destructive"><X className="w-3 h-3" /></button>
+                    </div>
+                    <textarea value={day.description || ''} onChange={e => { const it = [...editForm.itinerary]; it[idx] = {...it[idx], description: e.target.value}; setEditForm({...editForm, itinerary: it}); }} rows={2} className="w-full bg-white rounded-lg border border-input px-2 py-1 text-xs resize-none" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="flex gap-3 pt-3 border-t border-border">
             <Button variant="outline" onClick={() => { setEditForm(null); setExtracted(null); }} className="flex-1 rounded-xl" data-testid="import-cancel">
