@@ -1,11 +1,11 @@
 # Kuxtal Travel - Club Vacacional PRD
 
 ## Problem Statement
-Sistema integral CRM para club vacacional con web publica estilo Expedia, portal de socios, CRM admin, portal de comercios, referidos, chat, analytics, importacion AI de paquetes.
+Sistema CRM para club vacacional con web publica estilo Expedia, portal de socios, CRM admin, portal de comercios, referidos, chat, analytics, importacion AI de paquetes (individual y en lote).
 
 ## Architecture
 - **Backend:** FastAPI + MongoDB + pywebpush + emergentintegrations (Gemini 2.5 Flash)
-- **Frontend:** React 18 + Tailwind + Shadcn UI + Recharts
+- **Frontend:** React 18 + Tailwind + Shadcn UI + Recharts + React.lazy
 - **Auth:** JWT (httpOnly cookies + localStorage Bearer token fallback)
 - **AI:** Gemini 2.5 Flash (document/image analysis, package extraction)
 - **PWA:** manifest.json + service worker v3
@@ -20,31 +20,27 @@ Sistema integral CRM para club vacacional con web publica estilo Expedia, portal
 
 ### Security & Quality (Phase 5-6)
 - [x] XSS fix, DELETE_SECRET, backend anti-patterns, React keys
-- [x] Component refactoring: Admin 12 components, Member 7 components
-- [x] Lazy loading (route + tab level), ErrorBoundary, SEO OG tags
+- [x] Component refactoring + lazy loading + ErrorBoundary + SEO
 
-### AI Import (Phase 7)
-- [x] Google Drive link → Gemini 2.5 Flash → Pre-filled review form
+### AI Import (Phase 7-9)
+- [x] **Individual**: Google Drive link -> Gemini AI -> Pre-filled review form
+- [x] **Lote (Batch)**: Multiple Google Drive links (max 20) -> Sequential AI processing -> Progress bar -> Results list with checkboxes -> Bulk create
 - [x] Multi-format: PDF, Images, Word, Excel
-- [x] Enriched extraction: itinerary, accommodation, difficulty, group size
+- [x] Enriched fields: itinerary, accommodation_type, difficulty, min/max group
+- [x] Expand/collapse per result, inline editing, select/deselect, remove
 
-### Public Website Redesign (Phase 8) - DONE
-- [x] **Homepage**: Expedia-style hero + search tabs (Paquetes/Alojamientos/Experiencias) + destination/date/guests + popular destinations bar + improved cards
-- [x] **Search Page**: Category tabs, country filter, price range, duration filter, 6 sort options (price asc/desc, duration, rating), professional card grid with price overlay
-- [x] **Trip Detail**: Gallery with nav arrows, itinerary day-by-day timeline, includes grid, sticky price sidebar, quote modal, share button, trust signals
-- [x] **Enriched Package Model**: itinerary[], accommodation_type, difficulty, min_group, max_group
-- [x] **Backend**: Accent-insensitive search (normalize_search), price/duration/sort filters, enriched PackageCreate model
+### Public Website Redesign (Phase 8)
+- [x] Homepage: Expedia-style hero + search tabs + popular destinations
+- [x] Search: Category tabs, country/price/duration filters, 6 sort options
+- [x] Trip Detail: Gallery, itinerary timeline, includes grid, sticky price sidebar, quote modal
+- [x] Accent-insensitive search (normalize_search)
 
 ## Package Schema
 ```
-{
-  title, description, short_description, country, price, member_price,
-  duration_days, category (paquete|alojamiento|experiencia),
-  includes[], itinerary[{day, title, description}],
-  accommodation_type (hotel|resort|villa|hostel|camping|airbnb),
-  difficulty (facil|moderado|dificil), min_group, max_group,
-  rating, image_url, gallery[], featured, status
-}
+title, description, short_description, country, price, member_price,
+duration_days, category, includes[], itinerary[{day,title,description}],
+accommodation_type, difficulty, min_group, max_group,
+rating, image_url, gallery[], featured, status
 ```
 
 ## Test Credentials
@@ -57,5 +53,5 @@ Sistema integral CRM para club vacacional con web publica estilo Expedia, portal
 ## Pending / Backlog
 - [ ] Configurar dominio kuxtaltravelgt.com (Deploy > Custom Domain)
 - [ ] Notificaciones por email (SendGrid/Resend)
-- [ ] Importacion en lote (multiples archivos Google Drive)
 - [ ] Image extraction from PDFs for package gallery
+- [ ] Sistema de reviews/testimonios
