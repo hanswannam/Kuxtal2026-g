@@ -335,46 +335,92 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Benefits / Commerce Section */}
-      <section className="py-20 bg-white" data-testid="benefits-section">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <p className="text-xs uppercase tracking-[0.2em] text-primary font-semibold mb-2">Beneficios Exclusivos</p>
-            <h2 className="font-heading text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight mb-4">
-              Descuentos en Comercios Aliados
-            </h2>
-            <p className="text-muted-foreground max-w-lg mx-auto text-sm">
-              Como socio, accede a descuentos y promociones especiales en restaurantes, spas, gimnasios y mas
-            </p>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-            {[
-              { icon: Store, label: 'Restaurantes', color: 'text-orange-600 bg-orange-50' },
-              { icon: Heart, label: 'Belleza', color: 'text-pink-600 bg-pink-50' },
-              { icon: Shield, label: 'Deportes', color: 'text-emerald-600 bg-emerald-50' },
-              { icon: Gift, label: 'Mascotas', color: 'text-amber-600 bg-amber-50' },
-              { icon: Globe, label: 'Hospitales', color: 'text-blue-600 bg-blue-50' },
-              { icon: Star, label: 'Entretenimiento', color: 'text-violet-600 bg-violet-50' },
-            ].map((cat) => (
-              <Link
-                key={cat.label}
-                to={`/benefits?category=${cat.label}`}
-                className="flex flex-col items-center p-5 rounded-2xl border border-border hover:border-primary/30 hover:shadow-md transition-all group"
-                data-testid={`benefit-cat-${cat.label}`}
-              >
-                <div className={`p-3 rounded-xl ${cat.color} mb-3 group-hover:scale-110 transition-transform`}>
-                  <cat.icon className="w-6 h-6" />
+      {/* ══════ KUXTAL CLUB - Benefits Section ══════ */}
+      <section className="py-0 bg-[#0a0f1a]" data-testid="kuxtal-club-section">
+        {/* Hero Banner */}
+        <div className="relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#0a0f1a] via-[#111827] to-[#1a0a0a]" />
+          <div className="absolute inset-0 opacity-[0.04]" style={{backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '40px 40px'}} />
+          
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+              {/* Left - Content */}
+              <div>
+                <div className="flex items-center gap-3 mb-6">
+                  <img
+                    src="https://customer-assets.emergentagent.com/job_vacation-club-portal/artifacts/s1oay7h5_Kuxtal%20Club.png"
+                    alt="Kuxtal Club"
+                    className="h-20 sm:h-24 w-auto"
+                    data-testid="kuxtal-club-logo"
+                  />
                 </div>
-                <span className="text-xs font-semibold text-muted-foreground group-hover:text-primary transition-colors">{cat.label}</span>
-              </Link>
-            ))}
-          </div>
-          <div className="text-center">
-            <Link to="/benefits">
-              <Button className="rounded-full bg-primary hover:bg-primary/90 transition-all hover:-translate-y-0.5" data-testid="view-benefits-btn">
-                <Store className="w-4 h-4 mr-2" /> Ver Todos los Comercios
-              </Button>
-            </Link>
+                <h2 className="font-heading text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight leading-tight mb-5">
+                  Tu tarjeta de<br />
+                  <span className="bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 bg-clip-text text-transparent">
+                    beneficios exclusivos
+                  </span>
+                </h2>
+                <p className="text-white/60 text-base sm:text-lg leading-relaxed mb-8 max-w-lg">
+                  Como socio de Kuxtal Club accede a descuentos y promociones especiales en los mejores comercios aliados de Guatemala.
+                </p>
+
+                {/* Stats Row */}
+                <div className="flex gap-8 mb-8">
+                  <div>
+                    <p className="text-3xl font-bold text-white">150+</p>
+                    <p className="text-xs text-white/40 uppercase tracking-wider">Comercios</p>
+                  </div>
+                  <div className="w-px bg-white/10" />
+                  <div>
+                    <p className="text-3xl font-bold text-white">12</p>
+                    <p className="text-xs text-white/40 uppercase tracking-wider">Categorias</p>
+                  </div>
+                  <div className="w-px bg-white/10" />
+                  <div>
+                    <p className="text-3xl font-bold bg-gradient-to-r from-amber-400 to-yellow-300 bg-clip-text text-transparent">50%</p>
+                    <p className="text-xs text-white/40 uppercase tracking-wider">Hasta descuento</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <Link to="/benefits">
+                    <Button size="lg" className="rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black font-bold shadow-lg shadow-amber-500/20 transition-all hover:-translate-y-0.5 px-8" data-testid="kuxtal-club-explore-btn">
+                      <Store className="w-5 h-5 mr-2" /> Explorar Beneficios
+                    </Button>
+                  </Link>
+                  <Link to="/login">
+                    <Button size="lg" variant="outline" className="rounded-full border-white/20 text-white hover:bg-white/10 font-semibold" data-testid="kuxtal-club-login-btn">
+                      Acceso Socios
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+
+              {/* Right - Category Grid */}
+              <div className="grid grid-cols-3 gap-3" data-testid="kuxtal-club-categories">
+                {[
+                  { icon: Store, label: 'Restaurantes', desc: 'Gastronomia', color: 'from-orange-500/20 to-orange-600/10', iconColor: 'text-orange-400', border: 'border-orange-500/20' },
+                  { icon: Heart, label: 'Belleza', desc: 'Spa & Estetica', color: 'from-pink-500/20 to-pink-600/10', iconColor: 'text-pink-400', border: 'border-pink-500/20' },
+                  { icon: Shield, label: 'Deportes', desc: 'Fitness & Gym', color: 'from-emerald-500/20 to-emerald-600/10', iconColor: 'text-emerald-400', border: 'border-emerald-500/20' },
+                  { icon: Gift, label: 'Mascotas', desc: 'Veterinarias', color: 'from-amber-500/20 to-amber-600/10', iconColor: 'text-amber-400', border: 'border-amber-500/20' },
+                  { icon: Globe, label: 'Salud', desc: 'Hospitales', color: 'from-blue-500/20 to-blue-600/10', iconColor: 'text-blue-400', border: 'border-blue-500/20' },
+                  { icon: Star, label: 'Diversion', desc: 'Entretenimiento', color: 'from-violet-500/20 to-violet-600/10', iconColor: 'text-violet-400', border: 'border-violet-500/20' },
+                ].map((cat) => (
+                  <Link
+                    key={cat.label}
+                    to={`/benefits?category=${cat.label}`}
+                    className={`group relative p-4 sm:p-5 rounded-2xl bg-gradient-to-br ${cat.color} border ${cat.border} backdrop-blur-sm hover:scale-[1.03] transition-all duration-300`}
+                    data-testid={`club-cat-${cat.label}`}
+                  >
+                    <div className={`${cat.iconColor} mb-3`}>
+                      <cat.icon className="w-7 h-7" strokeWidth={1.5} />
+                    </div>
+                    <p className="text-white font-semibold text-sm">{cat.label}</p>
+                    <p className="text-white/40 text-[10px] mt-0.5">{cat.desc}</p>
+                  </Link>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </section>
