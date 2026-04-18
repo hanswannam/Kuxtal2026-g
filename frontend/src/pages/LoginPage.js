@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { ArrowRight, Store, Copy, Check } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Store, Copy, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
 
@@ -69,7 +69,8 @@ export default function LoginPage() {
 
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12">
         <div className="w-full max-w-md">
-          <Link to="/" className="lg:hidden flex items-center gap-2 mb-6">
+          <Link to="/" className="inline-flex items-center gap-2 mb-6 group" data-testid="login-back-home">
+            <ArrowLeft className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
             <img src={LOGO_URL} alt="Kuxtal Travel" className="h-10 w-auto" />
           </Link>
 
