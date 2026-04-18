@@ -283,14 +283,14 @@ export default function HomePage() {
                   </div>
                   {pkg.featured && (
                     <div className="absolute top-3 right-3">
-                      <span className="px-3 py-1 bg-primary text-white rounded-full text-xs font-semibold">
+                      <span className="px-3 py-1 text-white rounded-full text-xs font-semibold" style={{backgroundColor: '#99D63B', color: '#1B325F'}}>
                         Destacado
                       </span>
                     </div>
                   )}
                   {/* Price overlay */}
                   <div className="absolute bottom-3 right-3">
-                    <span className="px-3 py-1.5 bg-black/70 backdrop-blur-sm text-white rounded-lg text-sm font-bold">
+                    <span className="px-3 py-1.5 backdrop-blur-sm text-white rounded-lg text-sm font-bold" style={{backgroundColor: 'rgba(27,50,95,0.85)'}}>
                       Q.{pkg.price?.toLocaleString()}
                     </span>
                   </div>
@@ -304,12 +304,12 @@ export default function HomePage() {
                     </div>
                     <span className="text-xs text-muted-foreground">{pkg.duration_days} dias</span>
                   </div>
-                  <h3 className="font-heading text-lg font-semibold mb-1 group-hover:text-primary transition-colors line-clamp-1">
+                  <h3 className="font-heading text-lg font-semibold mb-1 transition-colors line-clamp-1" style={{color: '#1B325F'}}>
                     {pkg.title}
                   </h3>
                   <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{pkg.short_description || pkg.description}</p>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <MapPin className="w-3.5 h-3.5 text-primary" />
+                    <MapPin className="w-3.5 h-3.5" style={{color: '#99D63B'}} />
                     <span>{pkg.country}</span>
                   </div>
                 </div>

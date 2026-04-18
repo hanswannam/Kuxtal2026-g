@@ -98,7 +98,8 @@ export default function SearchPage() {
             <Button
               variant="outline"
               onClick={() => setShowFilters(!showFilters)}
-              className={`rounded-xl h-11 shrink-0 ${showFilters ? 'bg-primary text-white border-primary' : ''}`}
+              className={`rounded-xl h-11 shrink-0 ${showFilters ? 'text-white border-transparent' : ''}`}
+              style={showFilters ? {backgroundColor: '#1B325F'} : {}}
               data-testid="toggle-filters-btn"
             >
               <SlidersHorizontal className="w-4 h-4 mr-2" /> Filtros
@@ -113,9 +114,10 @@ export default function SearchPage() {
                 onClick={() => setCategory(cat.id)}
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
                   category === cat.id
-                    ? 'bg-primary text-white shadow-sm'
+                    ? 'text-white shadow-sm'
                     : 'bg-secondary/80 text-muted-foreground hover:bg-secondary hover:text-foreground'
                 }`}
+                style={category === cat.id ? {backgroundColor: '#1B325F'} : {}}
                 data-testid={`filter-cat-${cat.id || 'all'}`}
               >
                 <cat.icon className="w-3.5 h-3.5" />
@@ -158,7 +160,7 @@ export default function SearchPage() {
         {/* Results header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="font-heading text-xl sm:text-2xl font-bold">
+            <h1 className="font-heading text-xl sm:text-2xl font-bold" style={{color: '#1B325F'}}>
               {search ? `Resultados para "${search}"` : country ? `Destinos en ${country}` : 'Todos los Destinos'}
             </h1>
             <p className="text-sm text-muted-foreground mt-1">{packages.length} {packages.length === 1 ? 'resultado' : 'resultados'} encontrados</p>
@@ -210,13 +212,13 @@ export default function SearchPage() {
                     </span>
                   </div>
                   <div className="absolute bottom-3 right-3">
-                    <span className="px-3 py-1.5 bg-black/70 backdrop-blur-sm text-white rounded-lg text-sm font-bold">
+                    <span className="px-3 py-1.5 backdrop-blur-sm text-white rounded-lg text-sm font-bold" style={{backgroundColor: 'rgba(27,50,95,0.85)'}}>
                       Q.{pkg.price?.toLocaleString()}
                     </span>
                   </div>
                   {pkg.member_price > 0 && (
                     <div className="absolute bottom-3 left-3">
-                      <span className="px-2 py-1 bg-primary text-white rounded-lg text-[10px] font-semibold">
+                      <span className="px-2 py-1 text-white rounded-lg text-[10px] font-semibold" style={{backgroundColor: '#99D63B', color: '#1B325F'}}>
                         Socio: Q.{pkg.member_price.toLocaleString()}
                       </span>
                     </div>
@@ -233,7 +235,7 @@ export default function SearchPage() {
                       <span>{pkg.duration_days} dias</span>
                     </div>
                   </div>
-                  <h3 className="font-heading text-lg font-semibold mb-1 group-hover:text-primary transition-colors line-clamp-1">
+                  <h3 className="font-heading text-lg font-semibold mb-1 transition-colors line-clamp-1" style={{color: '#1B325F'}}>
                     {pkg.title}
                   </h3>
                   <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
@@ -241,7 +243,7 @@ export default function SearchPage() {
                   </p>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                      <MapPin className="w-3.5 h-3.5 text-primary" />
+                      <MapPin className="w-3.5 h-3.5" style={{color: '#99D63B'}} />
                       <span>{pkg.country}</span>
                     </div>
                     {pkg.max_group && (
