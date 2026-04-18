@@ -32,7 +32,7 @@ export default function Navbar() {
     { to: '/search?category=alojamiento', label: 'Alojamientos' },
     { to: '/search?category=experiencia', label: 'Experiencias' },
     { to: '/search?category=paquete', label: 'Paquetes' },
-    { to: '/benefits', label: 'Beneficios' },
+    { to: '/benefits', label: 'Kuxtal Club' },
   ];
 
   const getDashboardPath = () => {
