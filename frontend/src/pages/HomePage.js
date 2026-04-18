@@ -145,7 +145,8 @@ export default function HomePage() {
                 <div className="flex items-end">
                   <Button
                     type="submit"
-                    className="h-12 px-8 rounded-xl bg-primary hover:bg-primary/90 shadow-lg transition-all hover:-translate-y-0.5 w-full sm:w-auto text-base font-semibold"
+                    className="h-12 px-8 rounded-xl shadow-lg transition-all hover:-translate-y-0.5 w-full sm:w-auto text-base font-semibold text-white"
+                    style={{backgroundColor: '#1B325F'}}
                     data-testid="hero-search-btn"
                   >
                     <Search className="w-5 h-5 mr-2" />
@@ -195,21 +196,48 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* Value Props */}
-      <section className="py-16 bg-white">
+      {/* Value Props - Visual Cards with Images */}
+      <section className="py-16 sm:py-20 bg-white" data-testid="value-props-section">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="text-center mb-12">
+            <p className="text-xs uppercase tracking-[0.2em] font-semibold mb-2" style={{color: '#99D63B'}}>Por que elegirnos</p>
+            <h2 className="font-heading text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight" style={{color: '#1B325F'}}>
+              La experiencia Kuxtal Travel
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6">
             {[
-              { icon: Shield, title: 'Seguridad Total', desc: 'Viaja con la tranquilidad de estar respaldado por expertos en viajes' },
-              { icon: Heart, title: 'Experiencias Unicas', desc: 'Actividades exclusivas disenadas para crear recuerdos inolvidables' },
-              { icon: Globe, title: 'Destinos Premium', desc: 'Acceso a los mejores destinos en Latinoamerica y el mundo' },
+              {
+                icon: Shield,
+                title: 'Seguridad Total',
+                desc: 'Viaja con la tranquilidad de estar respaldado por expertos en viajes con mas de 10 anos de experiencia',
+                img: 'https://images.unsplash.com/photo-1772305436753-e308844ecda2?w=600&h=400&fit=crop',
+              },
+              {
+                icon: Heart,
+                title: 'Experiencias Unicas',
+                desc: 'Actividades exclusivas disenadas para crear recuerdos inolvidables con tu familia y amigos',
+                img: 'https://images.unsplash.com/photo-1702387267777-9e6b312720c7?w=600&h=400&fit=crop',
+              },
+              {
+                icon: Globe,
+                title: 'Destinos Premium',
+                desc: 'Acceso a los mejores destinos en Latinoamerica y el mundo con precios exclusivos para socios',
+                img: 'https://images.unsplash.com/photo-1580259401966-d14193bdade2?w=600&h=400&fit=crop',
+              },
             ].map((item) => (
-              <div key={item.title} className="flex items-start gap-4 p-6 rounded-2xl hover:bg-secondary/50 transition-colors duration-300" data-testid={`value-prop-${item.title}`}>
-                <div className="p-3 rounded-xl bg-accent">
-                  <item.icon className="w-6 h-6 text-primary" strokeWidth={1.5} />
+              <div key={item.title} className="group rounded-2xl overflow-hidden border border-border hover:shadow-xl transition-all duration-300 hover:-translate-y-1" data-testid={`value-prop-${item.title}`}>
+                <div className="relative h-48 sm:h-56 overflow-hidden">
+                  <img src={item.img} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                  <div className="absolute bottom-4 left-4">
+                    <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{backgroundColor: '#1B325F'}}>
+                      <item.icon className="w-5 h-5 text-white" strokeWidth={1.5} />
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-heading text-lg font-semibold mb-1">{item.title}</h3>
+                <div className="p-5">
+                  <h3 className="font-heading text-lg font-semibold mb-2" style={{color: '#1B325F'}}>{item.title}</h3>
                   <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
                 </div>
               </div>
@@ -219,16 +247,16 @@ export default function HomePage() {
       </section>
 
       {/* Featured Packages */}
-      <section className="py-20 bg-secondary/30" data-testid="featured-packages">
+      <section className="py-20 bg-[#F8FAFC]" data-testid="featured-packages">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-end justify-between mb-12">
             <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-primary font-semibold mb-2">Descubre</p>
-              <h2 className="font-heading text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight">
+              <p className="text-xs uppercase tracking-[0.2em] font-semibold mb-2" style={{color: '#99D63B'}}>Descubre</p>
+              <h2 className="font-heading text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight" style={{color: '#1B325F'}}>
                 Destinos Destacados
               </h2>
             </div>
-            <Link to="/search" className="hidden sm:flex items-center gap-2 text-primary text-sm font-medium hover:gap-3 transition-all" data-testid="view-all-link">
+            <Link to="/search" className="hidden sm:flex items-center gap-2 text-sm font-medium hover:gap-3 transition-all" style={{color: '#1B325F'}} data-testid="view-all-link">
               Ver todos <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
@@ -291,7 +319,7 @@ export default function HomePage() {
 
           <div className="text-center mt-10">
             <Link to="/search">
-              <Button size="lg" className="rounded-full bg-primary hover:bg-primary/90 px-8" data-testid="view-all-packages-btn">
+              <Button size="lg" className="rounded-full px-8 text-white hover:opacity-90 transition-opacity" style={{backgroundColor: '#1B325F'}} data-testid="view-all-packages-btn">
                 Ver Todos los Destinos <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </Link>
@@ -317,9 +345,9 @@ export default function HomePage() {
                 <p className="text-white/70 mb-6 text-sm leading-relaxed">
                   Como socio de Kuxtal Travel obten precios exclusivos, acceso a promociones y beneficios en comercios aliados.
                 </p>
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-3">
                   <Link to="/search">
-                    <Button size="lg" className="rounded-full bg-primary hover:bg-primary/90 transition-all hover:-translate-y-0.5" data-testid="cta-explore-btn">
+                    <Button size="lg" className="rounded-full text-white transition-all hover:-translate-y-0.5 hover:opacity-90" style={{backgroundColor: '#99D63B', color: '#1B325F'}} data-testid="cta-explore-btn">
                       <Plane className="w-4 h-4 mr-2" /> Explorar Destinos
                     </Button>
                   </Link>
