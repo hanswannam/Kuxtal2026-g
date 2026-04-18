@@ -404,18 +404,35 @@ async def delete_member(member_id: str, request: Request):
 
 # ── Packages CRUD ──
 
+def normalize_search(text: str) -> str:
+    """Convert search text to accent-insensitive regex pattern."""
+    replacements = {
+        'a': '[aáàâä]', 'e': '[eéèêë]', 'i': '[iíìîï]',
+        'o': '[oóòôö]', 'u': '[uúùûü]', 'n': '[nñ]',
+    }
+    result = []
+    for ch in text:
+        lower = ch.lower()
+        if lower in replacements:
+            result.append(replacements[lower])
+        else:
+            result.append(re_module.escape(ch))
+    return ''.join(result)
+
 @api_router.get("/packages")
 async def list_packages(category: Optional[str] = None, country: Optional[str] = None, search: Optional[str] = None, featured: Optional[bool] = None):
     query = {"status": "active"}
     if category:
         query["category"] = category
     if country:
-        query["country"] = {"$regex": country, "$options": "i"}
+        country_pattern = normalize_search(country)
+        query["country"] = {"$regex": country_pattern, "$options": "i"}
     if search:
+        search_pattern = normalize_search(search)
         query["$or"] = [
-            {"title": {"$regex": search, "$options": "i"}},
-            {"description": {"$regex": search, "$options": "i"}},
-            {"country": {"$regex": search, "$options": "i"}}
+            {"title": {"$regex": search_pattern, "$options": "i"}},
+            {"description": {"$regex": search_pattern, "$options": "i"}},
+            {"country": {"$regex": search_pattern, "$options": "i"}}
         ]
     if featured is not None:
         query["featured"] = featured

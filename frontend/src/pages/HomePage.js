@@ -3,84 +3,206 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { Search, MapPin, Star, Calendar, Users, ArrowRight, Shield, Heart, Globe, Store, Gift, Plane } from 'lucide-react';
+import { Search, MapPin, Star, Calendar, Users, ArrowRight, Shield, Heart, Globe, Store, Gift, Plane, Hotel, Compass, Package, ChevronDown } from 'lucide-react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 const LOGO_URL = "https://customer-assets.emergentagent.com/job_vacation-club-portal/artifacts/ikgtmopq_logo%20kuxtal.avif";
 
+const SEARCH_TABS = [
+  { id: 'paquete', label: 'Paquetes', icon: Package, placeholder: 'Cancun, Riviera Maya...' },
+  { id: 'alojamiento', label: 'Alojamientos', icon: Hotel, placeholder: 'Hotel, Resort, Villa...' },
+  { id: 'experiencia', label: 'Experiencias', icon: Compass, placeholder: 'Tours, Aventuras...' },
+];
+
 export default function HomePage() {
   const [packages, setPackages] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchTab, setSearchTab] = useState('paquete');
+  const [destination, setDestination] = useState('');
+  const [dates, setDates] = useState('');
+  const [guests, setGuests] = useState('2');
+  const [countries, setCountries] = useState([]);
   const navigate = useNavigate();
   useDocumentTitle(null);
 
   useEffect(() => {
     axios.get(`${API}/api/packages?featured=true`).then(r => setPackages(r.data.slice(0, 6))).catch(() => {});
+    axios.get(`${API}/api/countries`).then(r => setCountries(r.data)).catch(() => {});
   }, []);
 
   const handleSearch = (e) => {
     e.preventDefault();
-    navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+    const params = new URLSearchParams();
+    if (destination) params.set('q', destination);
+    if (searchTab) params.set('category', searchTab);
+    navigate(`/search?${params.toString()}`);
   };
+
+  const currentTab = SEARCH_TABS.find(t => t.id === searchTab) || SEARCH_TABS[0];
 
   return (
     <div className="min-h-screen" data-testid="home-page">
       {/* Hero Section */}
-      <section className="relative h-[85vh] min-h-[600px] flex items-center overflow-hidden">
+      <section className="relative min-h-[600px] lg:min-h-[700px] flex items-center overflow-hidden">
         <div className="absolute inset-0">
           <img
-            src="https://images.pexels.com/photos/6875499/pexels-photo-6875499.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
-            alt="Tropical beach resort"
+            src="https://images.unsplash.com/photo-1770185998570-db739db7af47?crop=entropy&cs=srgb&fm=jpg&ixlib=rb-4.1.0&q=85&w=1920"
+            alt="Resort tropical aereo"
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/60" />
         </div>
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          <div className="max-w-2xl animate-fade-in-up">
-            <p className="text-xs uppercase tracking-[0.3em] text-white/70 font-body font-semibold mb-4">
-              Club Vacacional Premium
-            </p>
-            <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl text-white font-bold tracking-tighter leading-tight mb-6">
-              Viajes diseñados a tu medida
-            </h1>
-            <p className="text-lg text-white/80 font-body mb-8 max-w-lg leading-relaxed">
-              Experiencias inolvidables en los destinos más exclusivos del mundo. Descubre el privilegio de viajar con Kuxtal Travel.
-            </p>
 
-            {/* Search Bar */}
-            <form onSubmit={handleSearch} className="flex gap-2 max-w-lg" data-testid="hero-search-form">
-              <div className="relative flex-1">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <Input
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  placeholder="Buscar destino, país..."
-                  className="pl-12 h-14 rounded-full bg-white/95 border-0 text-foreground placeholder:text-muted-foreground shadow-lg focus-visible:ring-2 focus-visible:ring-primary"
-                  data-testid="hero-search-input"
-                />
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full pt-28 pb-16">
+          {/* Title */}
+          <div className="text-center mb-10 animate-fade-in-up">
+            <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl text-white font-bold tracking-tighter leading-tight mb-4">
+              Tu destino perfecto te espera
+            </h1>
+            <p className="text-base sm:text-lg text-white/80 font-body max-w-2xl mx-auto leading-relaxed">
+              Paquetes exclusivos, alojamientos premium y experiencias unicas en los mejores destinos del mundo.
+            </p>
+          </div>
+
+          {/* Search Box - Expedia Style */}
+          <div className="max-w-4xl mx-auto" data-testid="hero-search-box">
+            {/* Tabs */}
+            <div className="flex gap-1 mb-0" data-testid="search-tabs">
+              {SEARCH_TABS.map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setSearchTab(tab.id)}
+                  className={`flex items-center gap-2 px-5 py-3 rounded-t-xl text-sm font-semibold transition-all ${
+                    searchTab === tab.id
+                      ? 'bg-white text-foreground shadow-sm'
+                      : 'bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm'
+                  }`}
+                  data-testid={`search-tab-${tab.id}`}
+                >
+                  <tab.icon className="w-4 h-4" />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Search Form */}
+            <form onSubmit={handleSearch} className="bg-white rounded-2xl rounded-tl-none shadow-2xl p-3 sm:p-4" data-testid="hero-search-form">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                {/* Destination */}
+                <div className="flex-[2] relative">
+                  <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-0.5 block">Destino</label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      value={destination}
+                      onChange={e => setDestination(e.target.value)}
+                      placeholder={currentTab.placeholder}
+                      className="pl-10 h-12 rounded-xl border-border bg-secondary/30 focus:bg-white"
+                      data-testid="hero-search-input"
+                      list="country-suggestions"
+                    />
+                    <datalist id="country-suggestions">
+                      {countries.map(c => <option key={c} value={c} />)}
+                    </datalist>
+                  </div>
+                </div>
+
+                {/* Dates */}
+                <div className="flex-1">
+                  <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-0.5 block">Fecha</label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      type="date"
+                      value={dates}
+                      onChange={e => setDates(e.target.value)}
+                      className="pl-10 h-12 rounded-xl border-border bg-secondary/30 focus:bg-white"
+                      data-testid="hero-search-date"
+                    />
+                  </div>
+                </div>
+
+                {/* Guests */}
+                <div className="flex-1 sm:max-w-[140px]">
+                  <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-0.5 block">Viajeros</label>
+                  <div className="relative">
+                    <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <select
+                      value={guests}
+                      onChange={e => setGuests(e.target.value)}
+                      className="w-full pl-10 h-12 rounded-xl border border-border bg-secondary/30 focus:bg-white text-sm appearance-none cursor-pointer"
+                      data-testid="hero-search-guests"
+                    >
+                      {[1,2,3,4,5,6,7,8].map(n => (
+                        <option key={n} value={n}>{n} {n === 1 ? 'viajero' : 'viajeros'}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                  </div>
+                </div>
+
+                {/* Search Button */}
+                <div className="flex items-end">
+                  <Button
+                    type="submit"
+                    className="h-12 px-8 rounded-xl bg-primary hover:bg-primary/90 shadow-lg transition-all hover:-translate-y-0.5 w-full sm:w-auto text-base font-semibold"
+                    data-testid="hero-search-btn"
+                  >
+                    <Search className="w-5 h-5 mr-2" />
+                    Buscar
+                  </Button>
+                </div>
               </div>
-              <Button
-                type="submit"
-                size="lg"
-                className="h-14 px-8 rounded-full bg-primary hover:bg-primary/90 shadow-lg transition-all duration-300 hover:-translate-y-0.5"
-                data-testid="hero-search-btn"
-              >
-                Buscar
-              </Button>
             </form>
+          </div>
+
+          {/* Quick Stats */}
+          <div className="flex justify-center gap-8 sm:gap-12 mt-8 text-white/80 text-sm">
+            <div className="text-center">
+              <p className="text-2xl font-bold text-white">{packages.length > 0 ? '50+' : '---'}</p>
+              <p className="text-xs">Destinos</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-white">4.8</p>
+              <p className="text-xs">Calificacion</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-white">1000+</p>
+              <p className="text-xs">Viajeros</p>
+            </div>
           </div>
         </div>
       </section>
+
+      {/* Popular Destinations - Quick Access */}
+      {countries.length > 0 && (
+        <section className="py-10 bg-white border-b border-border">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center gap-4 overflow-x-auto pb-2 scrollbar-hide">
+              <span className="text-sm font-semibold text-muted-foreground whitespace-nowrap">Destinos populares:</span>
+              {countries.slice(0, 8).map(c => (
+                <Link
+                  key={c}
+                  to={`/search?country=${encodeURIComponent(c)}`}
+                  className="px-4 py-2 bg-secondary/60 hover:bg-primary/10 hover:text-primary rounded-full text-sm font-medium whitespace-nowrap transition-all border border-transparent hover:border-primary/20"
+                  data-testid={`popular-dest-${c}`}
+                >
+                  <MapPin className="w-3 h-3 inline mr-1" />{c}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Value Props */}
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { icon: Shield, title: 'Seguridad Total', desc: 'Viaja con la tranquilidad de estar respaldado por expertos' },
-              { icon: Heart, title: 'Experiencias Únicas', desc: 'Actividades exclusivas diseñadas para crear recuerdos' },
-              { icon: Globe, title: 'Destinos Premium', desc: 'Acceso a los mejores destinos en Latinoamérica y el mundo' },
+              { icon: Shield, title: 'Seguridad Total', desc: 'Viaja con la tranquilidad de estar respaldado por expertos en viajes' },
+              { icon: Heart, title: 'Experiencias Unicas', desc: 'Actividades exclusivas disenadas para crear recuerdos inolvidables' },
+              { icon: Globe, title: 'Destinos Premium', desc: 'Acceso a los mejores destinos en Latinoamerica y el mundo' },
             ].map((item) => (
               <div key={item.title} className="flex items-start gap-4 p-6 rounded-2xl hover:bg-secondary/50 transition-colors duration-300" data-testid={`value-prop-${item.title}`}>
                 <div className="p-3 rounded-xl bg-accent">
@@ -116,7 +238,7 @@ export default function HomePage() {
               <Link
                 key={pkg._id}
                 to={`/trip/${pkg._id}`}
-                className="trip-card group bg-white rounded-2xl overflow-hidden border border-border opacity-0 animate-fade-in-up"
+                className="trip-card group bg-white rounded-2xl overflow-hidden border border-border opacity-0 animate-fade-in-up hover:shadow-xl transition-shadow duration-300"
                 data-testid={`trip-card-${i}`}
               >
                 <div className="relative aspect-[4/3] overflow-hidden">
@@ -124,6 +246,7 @@ export default function HomePage() {
                     src={pkg.image_url || 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600'}
                     alt={pkg.title}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    loading="lazy"
                   />
                   <div className="absolute top-3 left-3 flex gap-2">
                     <span className="px-3 py-1 bg-white/90 backdrop-blur-sm rounded-full text-xs font-semibold text-foreground">
@@ -137,40 +260,40 @@ export default function HomePage() {
                       </span>
                     </div>
                   )}
+                  {/* Price overlay */}
+                  <div className="absolute bottom-3 right-3">
+                    <span className="px-3 py-1.5 bg-black/70 backdrop-blur-sm text-white rounded-lg text-sm font-bold">
+                      Q.{pkg.price?.toLocaleString()}
+                    </span>
+                  </div>
                 </div>
                 <div className="p-5">
-                  <div className="flex items-center gap-1 mb-2">
-                    <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-                    <span className="text-sm font-medium">{pkg.rating}</span>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-1">
+                      <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                      <span className="text-sm font-semibold">{pkg.rating}</span>
+                      <span className="text-xs text-muted-foreground">/5</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground">{pkg.duration_days} dias</span>
                   </div>
-                  <h3 className="font-heading text-lg font-semibold mb-2 group-hover:text-primary transition-colors line-clamp-1">
+                  <h3 className="font-heading text-lg font-semibold mb-1 group-hover:text-primary transition-colors line-clamp-1">
                     {pkg.title}
                   </h3>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-                    <span className="flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5" /> {pkg.duration_days} días
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <MapPin className="w-3.5 h-3.5" /> {pkg.country}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Desde</p>
-                      <p className="text-xl font-bold text-primary">Q.{pkg.price?.toLocaleString()}</p>
-                    </div>
-                    <Button size="sm" className="rounded-full bg-primary hover:bg-primary/90 transition-all hover:-translate-y-0.5" data-testid={`trip-card-${i}-btn`}>
-                      Ver Viaje
-                    </Button>
+                  <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{pkg.short_description || pkg.description}</p>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <MapPin className="w-3.5 h-3.5 text-primary" />
+                    <span>{pkg.country}</span>
                   </div>
                 </div>
               </Link>
             ))}
           </div>
 
-          <div className="sm:hidden text-center mt-8">
+          <div className="text-center mt-10">
             <Link to="/search">
-              <Button variant="outline" className="rounded-full">Ver todos los destinos</Button>
+              <Button size="lg" className="rounded-full bg-primary hover:bg-primary/90 px-8" data-testid="view-all-packages-btn">
+                Ver Todos los Destinos <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
             </Link>
           </div>
         </div>
@@ -182,17 +305,17 @@ export default function HomePage() {
           <div className="relative rounded-3xl overflow-hidden">
             <img
               src="https://images.unsplash.com/photo-1626970356891-a6339d8eece6?w=1200"
-              alt="Vacation experience"
+              alt="Experiencia vacacional"
               className="w-full h-[400px] object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent flex items-center">
               <div className="px-8 sm:px-12 lg:px-16 max-w-xl">
-                <p className="text-xs uppercase tracking-[0.3em] text-white/60 font-semibold mb-3">Únete al Club</p>
+                <p className="text-xs uppercase tracking-[0.3em] text-white/60 font-semibold mb-3">Unete al Club</p>
                 <h2 className="font-heading text-2xl sm:text-3xl lg:text-4xl text-white font-bold tracking-tight mb-4">
-                  Transforma tus sueños en aventuras
+                  Transforma tus suenos en aventuras
                 </h2>
                 <p className="text-white/70 mb-6 text-sm leading-relaxed">
-                  Como socio de Kuxtal Travel obtén precios exclusivos, acceso a promociones y beneficios en comercios aliados.
+                  Como socio de Kuxtal Travel obten precios exclusivos, acceso a promociones y beneficios en comercios aliados.
                 </p>
                 <div className="flex gap-3">
                   <Link to="/search">
@@ -221,26 +344,28 @@ export default function HomePage() {
               Descuentos en Comercios Aliados
             </h2>
             <p className="text-muted-foreground max-w-lg mx-auto text-sm">
-              Como socio, accede a descuentos y promociones especiales en restaurantes, spas, gimnasios y más
+              Como socio, accede a descuentos y promociones especiales en restaurantes, spas, gimnasios y mas
             </p>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
             {[
-              { icon: '🍽️', label: 'Restaurantes' },
-              { icon: '💆', label: 'Belleza' },
-              { icon: '🏋️', label: 'Deportes' },
-              { icon: '🐾', label: 'Mascotas' },
-              { icon: '🏥', label: 'Hospitales' },
-              { icon: '🎭', label: 'Entretenimiento' },
+              { icon: Store, label: 'Restaurantes', color: 'text-orange-600 bg-orange-50' },
+              { icon: Heart, label: 'Belleza', color: 'text-pink-600 bg-pink-50' },
+              { icon: Shield, label: 'Deportes', color: 'text-emerald-600 bg-emerald-50' },
+              { icon: Gift, label: 'Mascotas', color: 'text-amber-600 bg-amber-50' },
+              { icon: Globe, label: 'Hospitales', color: 'text-blue-600 bg-blue-50' },
+              { icon: Star, label: 'Entretenimiento', color: 'text-violet-600 bg-violet-50' },
             ].map((cat) => (
               <Link
                 key={cat.label}
                 to={`/benefits?category=${cat.label}`}
-                className="flex flex-col items-center p-4 rounded-2xl border border-border hover:border-primary/30 hover:bg-accent/30 transition-all group"
+                className="flex flex-col items-center p-5 rounded-2xl border border-border hover:border-primary/30 hover:shadow-md transition-all group"
                 data-testid={`benefit-cat-${cat.label}`}
               >
-                <span className="text-3xl mb-2 group-hover:scale-110 transition-transform">{cat.icon}</span>
-                <span className="text-xs font-medium text-muted-foreground group-hover:text-primary transition-colors">{cat.label}</span>
+                <div className={`p-3 rounded-xl ${cat.color} mb-3 group-hover:scale-110 transition-transform`}>
+                  <cat.icon className="w-6 h-6" />
+                </div>
+                <span className="text-xs font-semibold text-muted-foreground group-hover:text-primary transition-colors">{cat.label}</span>
               </Link>
             ))}
           </div>
@@ -263,7 +388,7 @@ export default function HomePage() {
                 <img src={LOGO_URL} alt="Kuxtal Travel" className="h-10 w-auto brightness-0 invert" />
               </div>
               <p className="text-sm text-white/60 leading-relaxed">
-                "Kuxtal" significa "vida" en maya. Transformamos sueños en aventuras inolvidables.
+                "Kuxtal" significa "vida" en maya. Transformamos suenos en aventuras inolvidables.
               </p>
             </div>
             <div>
@@ -271,13 +396,14 @@ export default function HomePage() {
               <div className="space-y-2 text-sm text-white/60">
                 <Link to="/search" className="block hover:text-white transition-colors">Destinos</Link>
                 <Link to="/search?category=experiencia" className="block hover:text-white transition-colors">Experiencias</Link>
+                <Link to="/search?category=alojamiento" className="block hover:text-white transition-colors">Alojamientos</Link>
                 <Link to="/login" className="block hover:text-white transition-colors">Acceso Socios</Link>
               </div>
             </div>
             <div>
               <h4 className="font-semibold mb-3 text-sm uppercase tracking-wider">Contacto</h4>
               <div className="space-y-2 text-sm text-white/60">
-                <p>Guatemala, Centro América</p>
+                <p>Guatemala, Centro America</p>
                 <p>info@kuxtaltravels.com</p>
               </div>
             </div>

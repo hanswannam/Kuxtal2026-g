@@ -469,5 +469,70 @@ class TestPackageImportFromDrive:
             assert "Error al descargar" in response.json()["detail"], f"URL format not recognized: {url}"
 
 
+class TestAccentInsensitiveSearch:
+    """Test accent-insensitive search for packages - Iteration 10"""
+    
+    def test_search_mexico_without_accent(self):
+        """Search 'Mexico' should match 'México'"""
+        response = requests.get(f"{BASE_URL}/api/packages?search=Mexico")
+        assert response.status_code == 200
+        data = response.json()
+        # Should find packages with México
+        mexico_packages = [p for p in data if 'México' in p.get('country', '') or 'Mexico' in p.get('country', '')]
+        assert len(mexico_packages) > 0, "Should find packages with México when searching 'Mexico'"
+    
+    def test_search_peru_without_accent(self):
+        """Search 'Peru' should match 'Perú'"""
+        response = requests.get(f"{BASE_URL}/api/packages?search=Peru")
+        assert response.status_code == 200
+        data = response.json()
+        # Should find packages with Perú
+        peru_packages = [p for p in data if 'Perú' in p.get('country', '') or 'Peru' in p.get('country', '')]
+        assert len(peru_packages) > 0, "Should find packages with Perú when searching 'Peru'"
+    
+    def test_search_panama_without_accent(self):
+        """Search 'Panama' should match 'Panamá'"""
+        response = requests.get(f"{BASE_URL}/api/packages?search=Panama")
+        assert response.status_code == 200
+        data = response.json()
+        # Should find packages with Panamá
+        panama_packages = [p for p in data if 'Panamá' in p.get('country', '') or 'Panama' in p.get('country', '')]
+        assert len(panama_packages) > 0, "Should find packages with Panamá when searching 'Panama'"
+    
+    def test_country_filter_accent_insensitive(self):
+        """Country filter should also be accent-insensitive"""
+        response = requests.get(f"{BASE_URL}/api/packages?country=Mexico")
+        assert response.status_code == 200
+        data = response.json()
+        # Should find packages with México country
+        assert len(data) > 0, "Should find packages with México when filtering by 'Mexico'"
+        for pkg in data:
+            assert 'Méx' in pkg.get('country', '') or 'Mex' in pkg.get('country', ''), f"Package country should contain Mexico/México: {pkg.get('country')}"
+
+
+class TestHomepageSearchNavigation:
+    """Test homepage search functionality - Iteration 10"""
+    
+    def test_countries_endpoint(self):
+        """Countries endpoint should return list of countries"""
+        response = requests.get(f"{BASE_URL}/api/countries")
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, list)
+        assert len(data) > 0
+        # Should include countries with accents
+        assert any('México' in c for c in data), "Should include México"
+    
+    def test_packages_by_category(self):
+        """Packages can be filtered by category"""
+        for category in ['paquete', 'alojamiento', 'experiencia']:
+            response = requests.get(f"{BASE_URL}/api/packages?category={category}")
+            assert response.status_code == 200
+            data = response.json()
+            # All returned packages should have the correct category
+            for pkg in data:
+                assert pkg.get('category') == category, f"Package category mismatch: expected {category}, got {pkg.get('category')}"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
