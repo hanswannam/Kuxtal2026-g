@@ -1,28 +1,40 @@
 # Kuxtal Travel - Club Vacacional PRD
 
 ## Problem Statement
-Sistema CRM para club vacacional con web publica estilo Expedia, seccion Kuxtal Club para beneficios, portal de socios, CRM admin, portal de comercios, referidos, chat, analytics, importacion AI de paquetes.
+Sistema CRM para club vacacional con web publica estilo Expedia, programa Kuxtal Club de beneficios con cupones digitales QR, portal de socios, CRM admin, portal de comercios, referidos, chat, analytics, importacion AI de paquetes.
 
 ## Architecture
 - Backend: FastAPI + MongoDB + pywebpush + emergentintegrations (Gemini 2.5 Flash) + PyMuPDF
-- Frontend: React 18 + Tailwind + Shadcn UI + Recharts + React.lazy
+- Frontend: React 18 + Tailwind + Shadcn UI + Recharts + React.lazy + qrcode.react
 - Auth: JWT, AI: Gemini 2.5 Flash, PWA: SW v3
 
 ## All Implemented Features
 
-### Core (Phase 1-4): Website, Member portal, Admin CRM, Commerce, Auth, Push, PWA, Chat, Referrals, Analytics
-### Security (Phase 5-6): XSS fix, refactoring, lazy loading, ErrorBoundary, SEO
-### AI Import (Phase 7-9): Individual + Batch Google Drive, PDF image extraction (PyMuPDF)
-### Website Redesign (Phase 8): Expedia-style homepage, search with filters, trip detail with gallery/itinerary
-### Kuxtal Club Branding (Phase 10-11) - DONE
-- [x] Homepage: Premium dark section with Kuxtal Club logo, gold gradient title, stats, 3x2 category grid
-- [x] Benefits Page: Dark header with logo, "Comercios Aliados" gold title, category pills with icons, colored banner per category, cards with accent bar + gold benefit box, bottom CTA for commerce registration
-- [x] Navbar: "Beneficios" renamed to "Kuxtal Club"
-- [x] 12 category colors (orange/pink/emerald/amber/blue/violet/slate/cyan/indigo/rose/sky/teal)
+### Core: Website, Member portal (8 tabs), Admin CRM (13 tabs), Commerce, Auth (5 roles), Push, PWA, Chat, Referrals, Analytics
+### Security: XSS fix, refactoring, lazy loading (route+tab), ErrorBoundary, SEO OG tags
+### AI Import: Individual + Batch Google Drive, PDF image extraction (PyMuPDF), Gemini 2.5 Flash
+### Website: Expedia-style homepage, search with filters/sort, trip detail with gallery/itinerary
+### Kuxtal Club: Premium branding (homepage + benefits page), navbar renamed to "Kuxtal Club"
 
-## Logos
-- Kuxtal Travel: https://customer-assets.emergentagent.com/job_vacation-club-portal/artifacts/ikgtmopq_logo%20kuxtal.avif
-- Kuxtal Club: https://customer-assets.emergentagent.com/job_vacation-club-portal/artifacts/s1oay7h5_Kuxtal%20Club.png
+### Digital Coupon QR System (NEW) - DONE
+- [x] Member generates QR coupon from "Cupones" tab → selects commerce → "Generar"
+- [x] QR modal with scannable QR code (qrcode.react) + text code (KX-XXXXXX format)
+- [x] Active/Used coupon cards with "Ver QR" button
+- [x] Public validation page /validate/:code - shows CUPON VALIDO/UTILIZADO, discount, member info, visit history
+- [x] Manual code input on /validate for commerces without camera
+- [x] "Canjear Cupon" button marks coupon as used (one-time use)
+- [x] Visit recorded in commerce_visits collection on redemption
+- [x] Admin creates special coupons via POST /api/admin/coupons
+- [x] Commerce sees coupon history via GET /api/commerce/{id}/coupons
+- [x] Prevents duplicate active coupons per member+commerce
+
+## Coupon API
+- POST /api/coupons/generate (member auth) - generates coupon for commerce
+- GET /api/coupons/my (member auth) - member's coupons
+- GET /api/coupons/validate/{code} (public) - coupon details + visit history
+- POST /api/coupons/redeem/{code} (public) - marks as used
+- POST /api/admin/coupons (admin auth) - creates special coupon
+- GET /api/commerce/{id}/coupons (commerce/admin auth) - coupon history
 
 ## Test Credentials
 - Admin: admin@kuxtaltravels.com / KuxtalAdmin2024!
@@ -35,4 +47,4 @@ Sistema CRM para club vacacional con web publica estilo Expedia, seccion Kuxtal 
 - [ ] Configurar dominio kuxtaltravelgt.com
 - [ ] Notificaciones por email (SendGrid/Resend)
 - [ ] Sistema de reviews/testimonios
-- [ ] Modo oscuro para admin
+- [ ] Commerce Portal: QR scanner integration for coupon validation
