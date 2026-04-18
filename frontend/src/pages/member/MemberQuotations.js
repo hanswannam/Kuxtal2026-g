@@ -26,7 +26,7 @@ export function MemberQuotations({ quotations }) {
             </div>
             {q.message && <p className="text-sm text-muted-foreground mb-2">{q.message}</p>}
             {q.response_html && (
-              <div className="mt-3 p-4 bg-accent/50 rounded-xl text-sm" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(q.response_html) }} />
+              <div className="mt-3 p-4 bg-accent/50 rounded-xl text-sm [&_a]:text-primary [&_a]:underline [&_script]:hidden [&_iframe]:hidden" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(q.response_html, { ALLOWED_TAGS: ['p','br','b','strong','i','em','ul','ol','li','a','h3','h4','span'], ALLOWED_ATTR: ['href','target','rel','class'] }) }} />
             )}
             {q.response && !q.response_html && (
               <div className="mt-3 p-4 bg-accent/50 rounded-xl text-sm">{q.response}</div>

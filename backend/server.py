@@ -17,6 +17,7 @@ import requests
 from pywebpush import webpush, WebPushException
 import json as json_module
 import random
+import secrets
 from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel, Field
 from typing import List, Optional
@@ -1058,7 +1059,7 @@ def generate_coupon_code():
     """Generate a unique 8-char alphanumeric coupon code."""
     import string
     chars = string.ascii_uppercase + string.digits
-    return 'KX-' + ''.join(random.choices(chars, k=6))
+    return 'KX-' + ''.join(secrets.choice(chars) for _ in range(6))
 
 @api_router.post("/coupons/generate")
 async def member_generate_coupon(request: Request):
@@ -1267,10 +1268,9 @@ async def play_scratch_card(commerce_id: str, request: Request):
     if not card:
         raise HTTPException(status_code=404, detail="No hay raspable activo")
     attempts = await db.scratch_attempts.count_documents({"commerce_id": commerce_id, "user_id": user["_id"]})
-    import random
     won = False
     if card["frequency_type"] == "percentage":
-        won = random.randint(1, 100) <= card["frequency_value"]
+        won = secrets.randbelow(100) + 1 <= card["frequency_value"]
     elif card["frequency_type"] == "after_attempts":
         won = (attempts + 1) % card["frequency_value"] == 0
     await db.scratch_attempts.insert_one({

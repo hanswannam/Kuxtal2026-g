@@ -82,11 +82,11 @@ export default function AdminDashboard() {
       setStats(s.data); setMembers(m.data); setPackages(p.data);
       setQuotations(q.data); setAnnouncements(a.data); setVacationReqs(v.data);
       setWhatsappPhone(w.data.phone || '');
-      api.get('/commerce').then(r => setCommerces(r.data)).catch(() => {});
-      api.get('/commerce/categories').then(r => setCommerceCategories(r.data)).catch(() => {});
-      api.get('/push/history').then(r => setPushHistory(r.data)).catch(() => {});
-      api.get('/analytics').then(r => setAnalytics(r.data)).catch(() => {});
-      api.get('/referrals').then(r => setReferrals(r.data)).catch(() => {});
+      api.get('/commerce').then(r => setCommerces(r.data)).catch(e => console.error('Failed to load commerce:', e));
+      api.get('/commerce/categories').then(r => setCommerceCategories(r.data)).catch(e => console.error('Failed to load categories:', e));
+      api.get('/push/history').then(r => setPushHistory(r.data)).catch(e => console.error('Failed to load push history:', e));
+      api.get('/analytics').then(r => setAnalytics(r.data)).catch(e => console.error('Failed to load analytics:', e));
+      api.get('/referrals').then(r => setReferrals(r.data)).catch(e => console.error('Failed to load referrals:', e));
     } catch (e) { console.error(e); }
   }, []);
 

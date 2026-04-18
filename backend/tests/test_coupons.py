@@ -8,11 +8,11 @@ import os
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
-# Test credentials
-ADMIN_EMAIL = "admin@kuxtaltravels.com"
-ADMIN_PASSWORD = "KuxtalAdmin2024!"
-MEMBER_CONTRACT = "KT-001"
-MEMBER_DPI = "1234567890101"
+# Test credentials from environment
+ADMIN_EMAIL = os.environ.get('TEST_ADMIN_EMAIL', 'admin@kuxtaltravels.com')
+ADMIN_PASSWORD = os.environ.get('TEST_ADMIN_PASSWORD', 'KuxtalAdmin2024!')
+MEMBER_CONTRACT = os.environ.get('TEST_MEMBER_CONTRACT', 'KT-001')
+MEMBER_DPI = os.environ.get('TEST_MEMBER_DPI', '1234567890101')
 
 
 class TestCouponSystem:

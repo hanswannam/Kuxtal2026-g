@@ -8,13 +8,13 @@ import os
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
-# Test credentials
-ADMIN_EMAIL = "admin@kuxtaltravels.com"
-ADMIN_PASSWORD = "KuxtalAdmin2024!"
-MEMBER_CONTRACT = "KT-001"
-MEMBER_DPI = "1234567890101"
-FAMILY_DPI = "9876543210101"
-DELETE_SECRET = "BORRAR YA"
+# Test credentials from environment
+ADMIN_EMAIL = os.environ.get('TEST_ADMIN_EMAIL', 'admin@kuxtaltravels.com')
+ADMIN_PASSWORD = os.environ.get('TEST_ADMIN_PASSWORD', 'KuxtalAdmin2024!')
+MEMBER_CONTRACT = os.environ.get('TEST_MEMBER_CONTRACT', 'KT-001')
+MEMBER_DPI = os.environ.get('TEST_MEMBER_DPI', '1234567890101')
+FAMILY_DPI = os.environ.get('TEST_FAMILY_DPI', '9876543210101')
+DELETE_SECRET = os.environ.get('TEST_DELETE_SECRET', 'BORRAR YA')
 
 
 class TestAuthFlows:
@@ -53,7 +53,7 @@ class TestAuthFlows:
         assert data["role"] == "member"
         assert data["contract_number"] == MEMBER_CONTRACT
         assert "member" in data
-        assert data["is_family_member"] == False
+        assert data["is_family_member"] is False
     
     def test_family_member_login_success(self):
         """Family member login should work"""
@@ -63,7 +63,7 @@ class TestAuthFlows:
         })
         assert response.status_code == 200, f"Family login failed: {response.text}"
         data = response.json()
-        assert data["is_family_member"] == True
+        assert data["is_family_member"] is True
     
     def test_member_login_invalid_dpi(self):
         """Invalid DPI should return 401"""

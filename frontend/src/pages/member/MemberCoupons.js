@@ -19,14 +19,14 @@ export function MemberCoupons() {
 
   useEffect(() => {
     loadCoupons();
-    api.get('/commerce').then(r => setCommerces(r.data)).catch(() => {});
+    api.get('/commerce').then(r => setCommerces(r.data)).catch(e => console.error('Failed to load commerces:', e));
   }, []);
 
   const loadCoupons = async () => {
     try {
       const { data } = await api.get('/coupons/my');
       setCoupons(data);
-    } catch { /* empty */ }
+    } catch (e) { console.error('Failed to load coupons:', e); }
     setLoading(false);
   };
 

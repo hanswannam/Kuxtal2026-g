@@ -28,7 +28,7 @@ export function CommerceCouponsTab({ commerceId, commerceName }) {
     try {
       const { data } = await api.get(`/commerce/${commerceId}/coupons`);
       setHistory(data);
-    } catch { /* empty */ }
+    } catch (e) { console.error('Failed to load coupon history:', e); }
     setLoadingHistory(false);
   };
 
@@ -60,7 +60,7 @@ export function CommerceCouponsTab({ commerceId, commerceName }) {
     try {
       const { Html5Qrcode } = await import('html5-qrcode');
       if (scannerInstanceRef.current) {
-        try { await scannerInstanceRef.current.stop(); } catch { /* empty */ }
+        try { await scannerInstanceRef.current.stop(); } catch (e) { console.warn('Scanner stop:', e); }
       }
       const scanner = new Html5Qrcode("commerce-qr-reader");
       scannerInstanceRef.current = scanner;
@@ -89,7 +89,7 @@ export function CommerceCouponsTab({ commerceId, commerceName }) {
 
   const stopCamera = useCallback(async () => {
     if (scannerInstanceRef.current) {
-      try { await scannerInstanceRef.current.stop(); } catch { /* empty */ }
+      try { await scannerInstanceRef.current.stop(); } catch (e) { console.warn('Scanner stop cleanup:', e); }
       scannerInstanceRef.current = null;
     }
   }, []);
