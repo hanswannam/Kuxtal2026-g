@@ -60,13 +60,13 @@ export default function BenefitsPage() {
         <div className="absolute inset-0 opacity-[0.03]" style={{backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '40px 40px'}} />
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
-          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 mb-8">
-            <img src={CLUB_LOGO} alt="Kuxtal Club" className="h-20 sm:h-24 w-auto" data-testid="benefits-club-logo" />
-            <div className="text-center sm:text-left">
-              <h1 className="font-heading text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight leading-tight">
+          <div className="flex flex-col items-center text-center sm:text-left sm:items-start gap-4 mb-8">
+            <img src={CLUB_LOGO} alt="Kuxtal Club" className="h-16 sm:h-20 w-auto" data-testid="benefits-club-logo" />
+            <div>
+              <h1 className="font-heading text-2xl sm:text-3xl lg:text-5xl font-bold text-white tracking-tight leading-tight">
                 Comercios <span className="bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 bg-clip-text text-transparent">Aliados</span>
               </h1>
-              <p className="text-white/50 mt-2 text-sm sm:text-base max-w-lg">
+              <p className="text-white/50 mt-2 text-xs sm:text-sm max-w-lg mx-auto sm:mx-0">
                 Descuentos y beneficios exclusivos en los mejores comercios de Guatemala para socios Kuxtal
               </p>
             </div>
@@ -86,11 +86,11 @@ export default function BenefitsPage() {
             </div>
           </div>
 
-          {/* Category Pills */}
-          <div className="flex gap-2 flex-wrap mt-6" data-testid="category-filters">
+          {/* Category Grid */}
+          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2 mt-6" data-testid="category-filters">
             <button
               onClick={() => setCategory('')}
-              className={`px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+              className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
                 category === '' ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-black shadow-lg shadow-amber-500/20' : 'bg-white/10 text-white/70 hover:bg-white/15 hover:text-white border border-white/10'
               }`}
               data-testid="cat-all"
@@ -104,7 +104,7 @@ export default function BenefitsPage() {
                 <button
                   key={cat}
                   onClick={() => setCategory(cat)}
-                  className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+                  className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all truncate ${
                     category === cat ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-black shadow-lg shadow-amber-500/20' : 'bg-white/10 text-white/70 hover:bg-white/15 hover:text-white border border-white/10'
                   }`}
                   data-testid={`cat-${cat}`}
