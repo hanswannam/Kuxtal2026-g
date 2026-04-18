@@ -112,11 +112,11 @@ export default function TripDetailPage() {
           <div className="lg:col-span-2 space-y-8">
             {/* Title & Meta */}
             <div>
-              <h1 className="font-heading text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight mb-3" style={{color: '#1B325F'}} data-testid="trip-title">
+              <h1 className="font-heading text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight mb-3 text-primary" data-testid="trip-title">
                 {pkg.title}
               </h1>
               <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4" style={{color: '#99D63B'}} />{pkg.country}</span>
+                <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-accent-foreground" />{pkg.country}</span>
                 <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4" />{pkg.duration_days} dias</span>
                 <span className="flex items-center gap-1.5"><Star className="w-4 h-4 text-amber-400 fill-amber-400" />{pkg.rating}/5</span>
                 {pkg.accommodation_type && <span className="flex items-center gap-1.5"><Hotel className="w-4 h-4" />{pkg.accommodation_type}</span>}
@@ -127,7 +127,7 @@ export default function TripDetailPage() {
 
             {/* Description */}
             <div className="bg-white rounded-2xl p-6 border border-border">
-              <h2 className="font-heading text-lg font-semibold mb-3" style={{color: '#1B325F'}}>Descripcion</h2>
+              <h2 className="font-heading text-lg font-semibold mb-3 text-primary">Descripcion</h2>
               <p className="text-muted-foreground leading-relaxed whitespace-pre-line" data-testid="trip-description">
                 {pkg.description}
               </p>
@@ -136,7 +136,7 @@ export default function TripDetailPage() {
             {/* Includes */}
             {pkg.includes && pkg.includes.length > 0 && (
               <div className="bg-white rounded-2xl p-6 border border-border" data-testid="trip-includes">
-                <h2 className="font-heading text-lg font-semibold mb-4" style={{color: '#1B325F'}}>Que Incluye</h2>
+                <h2 className="font-heading text-lg font-semibold mb-4 text-primary">Que Incluye</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {pkg.includes.map((item) => (
                     <div key={item} className="flex items-center gap-3 p-3 bg-emerald-50/50 rounded-xl border border-emerald-100">
@@ -153,12 +153,12 @@ export default function TripDetailPage() {
             {/* Itinerary */}
             {pkg.itinerary && pkg.itinerary.length > 0 && (
               <div className="bg-white rounded-2xl p-6 border border-border" data-testid="trip-itinerary">
-                <h2 className="font-heading text-lg font-semibold mb-4" style={{color: '#1B325F'}}>Itinerario Dia por Dia</h2>
+                <h2 className="font-heading text-lg font-semibold mb-4 text-primary">Itinerario Dia por Dia</h2>
                 <div className="space-y-4">
                   {pkg.itinerary.map((day, i) => (
                     <div key={`day-${day.day || i}`} className="flex gap-4">
                       <div className="flex flex-col items-center">
-                        <div className="w-10 h-10 rounded-full font-bold text-sm flex items-center justify-center shrink-0 text-white" style={{backgroundColor: '#1B325F'}}>
+                        <div className="w-10 h-10 rounded-full font-bold text-sm flex items-center justify-center shrink-0 text-white bg-primary">
                           {day.day || i + 1}
                         </div>
                         {i < pkg.itinerary.length - 1 && <div className="w-0.5 flex-1 bg-border mt-2" />}
@@ -182,12 +182,12 @@ export default function TripDetailPage() {
                 <div className="mb-4">
                   <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Desde</p>
                   <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-bold" style={{color: '#1B325F'}}>Q.{pkg.price?.toLocaleString()}</span>
+                    <span className="text-3xl font-bold text-primary">Q.{pkg.price?.toLocaleString()}</span>
                     <span className="text-sm text-muted-foreground">por persona</span>
                   </div>
                   {pkg.member_price > 0 && (
-                    <div className="mt-2 p-2 rounded-lg border" style={{backgroundColor: '#99D63B15', borderColor: '#99D63B30'}}>
-                      <p className="text-xs font-semibold" style={{color: '#99D63B'}}>Precio Socio: Q.{pkg.member_price.toLocaleString()}</p>
+                    <div className="mt-2 p-2 rounded-lg border bg-accent/10 border-accent/20">
+                      <p className="text-xs font-semibold text-accent-foreground">Precio Socio: Q.{pkg.member_price.toLocaleString()}</p>
                     </div>
                   )}
                 </div>
@@ -217,8 +217,7 @@ export default function TripDetailPage() {
 
                 <Button
                   onClick={() => setShowQuoteForm(true)}
-                  className="w-full h-12 rounded-xl text-white text-base font-semibold shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
-                  style={{backgroundColor: '#1B325F'}}
+                  className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-white text-base font-semibold shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
                   data-testid="request-quote-btn"
                 >
                   Solicitar Cotizacion
@@ -229,10 +228,10 @@ export default function TripDetailPage() {
               {/* Trust signals */}
               <div className="bg-white rounded-2xl p-5 border border-border">
                 <div className="space-y-3 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-2"><Check className="w-4 h-4" style={{color: '#99D63B'}} /><span>Asesoria personalizada</span></div>
-                  <div className="flex items-center gap-2"><Check className="w-4 h-4" style={{color: '#99D63B'}} /><span>Precios exclusivos para socios</span></div>
-                  <div className="flex items-center gap-2"><Check className="w-4 h-4" style={{color: '#99D63B'}} /><span>Pago en cuotas disponible</span></div>
-                  <div className="flex items-center gap-2"><Check className="w-4 h-4" style={{color: '#99D63B'}} /><span>Garantia de mejor precio</span></div>
+                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-accent-foreground" /><span>Asesoria personalizada</span></div>
+                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-accent-foreground" /><span>Precios exclusivos para socios</span></div>
+                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-accent-foreground" /><span>Pago en cuotas disponible</span></div>
+                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-accent-foreground" /><span>Garantia de mejor precio</span></div>
                 </div>
               </div>
             </div>
@@ -277,7 +276,7 @@ export default function TripDetailPage() {
               </div>
               <div className="flex gap-3 pt-2">
                 <Button type="button" variant="outline" onClick={() => setShowQuoteForm(false)} className="flex-1 rounded-xl">Cancelar</Button>
-                <Button type="submit" className="flex-1 rounded-xl text-white" style={{backgroundColor: '#1B325F'}} data-testid="quote-submit-btn">Enviar Cotizacion</Button>
+                <Button type="submit" className="flex-1 rounded-xl bg-primary hover:bg-primary/90 text-white" data-testid="quote-submit-btn">Enviar Cotizacion</Button>
               </div>
             </form>
           </div>

@@ -145,8 +145,7 @@ export default function HomePage() {
                 <div className="flex items-end">
                   <Button
                     type="submit"
-                    className="h-12 px-8 rounded-xl shadow-lg transition-all hover:-translate-y-0.5 w-full sm:w-auto text-base font-semibold text-white"
-                    style={{backgroundColor: '#1B325F'}}
+                    className="h-12 px-8 rounded-xl bg-primary hover:bg-primary/90 shadow-lg transition-all hover:-translate-y-0.5 w-full sm:w-auto text-base font-semibold text-white"
                     data-testid="hero-search-btn"
                   >
                     <Search className="w-5 h-5 mr-2" />
@@ -200,8 +199,8 @@ export default function HomePage() {
       <section className="py-16 sm:py-20 bg-white" data-testid="value-props-section">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <p className="text-xs uppercase tracking-[0.2em] font-semibold mb-2" style={{color: '#99D63B'}}>Por que elegirnos</p>
-            <h2 className="font-heading text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight" style={{color: '#1B325F'}}>
+            <p className="text-xs uppercase tracking-[0.2em] font-semibold mb-2 text-accent-foreground">Por que elegirnos</p>
+            <h2 className="font-heading text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-primary">
               La experiencia Kuxtal Travel
             </h2>
           </div>
@@ -231,13 +230,13 @@ export default function HomePage() {
                   <img src={item.img} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                   <div className="absolute bottom-4 left-4">
-                    <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{backgroundColor: '#1B325F'}}>
+                    <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-primary">
                       <item.icon className="w-5 h-5 text-white" strokeWidth={1.5} />
                     </div>
                   </div>
                 </div>
                 <div className="p-5">
-                  <h3 className="font-heading text-lg font-semibold mb-2" style={{color: '#1B325F'}}>{item.title}</h3>
+                  <h3 className="font-heading text-lg font-semibold mb-2 text-primary">{item.title}</h3>
                   <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
                 </div>
               </div>
@@ -251,12 +250,12 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-end justify-between mb-12">
             <div>
-              <p className="text-xs uppercase tracking-[0.2em] font-semibold mb-2" style={{color: '#99D63B'}}>Descubre</p>
-              <h2 className="font-heading text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight" style={{color: '#1B325F'}}>
+              <p className="text-xs uppercase tracking-[0.2em] font-semibold mb-2 text-accent-foreground">Descubre</p>
+              <h2 className="font-heading text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-primary">
                 Destinos Destacados
               </h2>
             </div>
-            <Link to="/search" className="hidden sm:flex items-center gap-2 text-sm font-medium hover:gap-3 transition-all" style={{color: '#1B325F'}} data-testid="view-all-link">
+            <Link to="/search" className="hidden sm:flex items-center gap-2 text-primary text-sm font-medium hover:gap-3 transition-all" data-testid="view-all-link">
               Ver todos <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
@@ -283,14 +282,14 @@ export default function HomePage() {
                   </div>
                   {pkg.featured && (
                     <div className="absolute top-3 right-3">
-                      <span className="px-3 py-1 text-white rounded-full text-xs font-semibold" style={{backgroundColor: '#99D63B', color: '#1B325F'}}>
+                      <span className="px-3 py-1 bg-accent text-primary rounded-full text-xs font-semibold">
                         Destacado
                       </span>
                     </div>
                   )}
                   {/* Price overlay */}
                   <div className="absolute bottom-3 right-3">
-                    <span className="px-3 py-1.5 backdrop-blur-sm text-white rounded-lg text-sm font-bold" style={{backgroundColor: 'rgba(27,50,95,0.85)'}}>
+                    <span className="px-3 py-1.5 bg-primary/85 backdrop-blur-sm text-white rounded-lg text-sm font-bold">
                       Q.{pkg.price?.toLocaleString()}
                     </span>
                   </div>
@@ -304,12 +303,12 @@ export default function HomePage() {
                     </div>
                     <span className="text-xs text-muted-foreground">{pkg.duration_days} dias</span>
                   </div>
-                  <h3 className="font-heading text-lg font-semibold mb-1 transition-colors line-clamp-1" style={{color: '#1B325F'}}>
+                  <h3 className="font-heading text-lg font-semibold mb-1 text-primary transition-colors line-clamp-1">
                     {pkg.title}
                   </h3>
                   <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{pkg.short_description || pkg.description}</p>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <MapPin className="w-3.5 h-3.5" style={{color: '#99D63B'}} />
+                    <MapPin className="w-3.5 h-3.5 text-accent-foreground" />
                     <span>{pkg.country}</span>
                   </div>
                 </div>
@@ -319,7 +318,7 @@ export default function HomePage() {
 
           <div className="text-center mt-10">
             <Link to="/search">
-              <Button size="lg" className="rounded-full px-8 text-white hover:opacity-90 transition-opacity" style={{backgroundColor: '#1B325F'}} data-testid="view-all-packages-btn">
+              <Button size="lg" className="rounded-full bg-primary hover:bg-primary/90 px-8 text-white" data-testid="view-all-packages-btn">
                 Ver Todos los Destinos <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </Link>
@@ -347,7 +346,7 @@ export default function HomePage() {
                 </p>
                 <div className="flex flex-wrap gap-3">
                   <Link to="/search">
-                    <Button size="lg" className="rounded-full text-white transition-all hover:-translate-y-0.5 hover:opacity-90" style={{backgroundColor: '#99D63B', color: '#1B325F'}} data-testid="cta-explore-btn">
+                    <Button size="lg" className="rounded-full bg-accent text-accent-foreground transition-all hover:-translate-y-0.5 hover:opacity-90 font-bold" data-testid="cta-explore-btn">
                       <Plane className="w-4 h-4 mr-2" /> Explorar Destinos
                     </Button>
                   </Link>
