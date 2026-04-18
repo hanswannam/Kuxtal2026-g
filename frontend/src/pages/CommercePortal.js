@@ -8,10 +8,11 @@ import { Badge } from '../components/ui/badge';
 import {
   Store, Gift, Users, Plus, Trash2, Calendar, Star, Edit, Save,
   Play, Image, MapPin, Phone, Globe, Facebook, Instagram, Youtube,
-  X, ExternalLink, Sparkles, Navigation, Upload, Mail
+  X, ExternalLink, Sparkles, Navigation, Upload, Mail, QrCode
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../lib/api';
+import { CommerceCouponsTab } from '../components/CommerceCouponsTab';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 const ax = api;
@@ -86,6 +87,7 @@ export default function CommercePortal() {
 
   const tabs = [
     { id: 'profile', label: 'Mi Perfil', icon: Store },
+    { id: 'coupons', label: 'Cupones', icon: QrCode },
     { id: 'promotions', label: 'Promociones', icon: Gift },
     { id: 'scratch', label: 'Raspable', icon: Sparkles },
     { id: 'visits', label: 'Visitas', icon: Users },
@@ -374,6 +376,11 @@ export default function CommercePortal() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* COUPONS TAB */}
+        {tab === 'coupons' && (
+          <CommerceCouponsTab commerceId={commerceId} commerceName={commerce?.name} />
         )}
 
         {/* PROMOTIONS TAB */}
