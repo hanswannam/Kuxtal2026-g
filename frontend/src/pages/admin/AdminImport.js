@@ -37,9 +37,12 @@ export function AdminImport({ onPackageCreated }) {
     setLoading(true); setEditForm(null);
     try {
       const { data } = await api.post('/packages/import-from-drive', { drive_url: driveUrl });
-      setEditForm({ ...data.extracted, image_url: '', gallery: [], status: 'active' });
+      const gallery = data.extracted_gallery || [];
+      const imageUrl = gallery.length > 0 ? gallery[0] : '';
+      setEditForm({ ...data.extracted, image_url: imageUrl, gallery: gallery.slice(1), status: 'active' });
       setMimeType(data.mime_type || '');
-      toast.success('Datos extraidos correctamente');
+      const imgMsg = gallery.length > 0 ? ` (${gallery.length} imagenes extraidas)` : '';
+      toast.success(`Datos extraidos correctamente${imgMsg}`);
     } catch (err) { toast.error(err.response?.data?.detail || 'Error al procesar el documento'); }
     setLoading(false);
   };
@@ -74,9 +77,10 @@ export function AdminImport({ onPackageCreated }) {
       setBatchProgress({ current: i + 1, total: urls.length, status: `Procesando ${i + 1} de ${urls.length}...` });
       try {
         const { data } = await api.post('/packages/import-from-drive', { drive_url: urls[i] });
+        const gallery = data.extracted_gallery || [];
         results.push({
           url: urls[i],
-          extracted: { ...data.extracted, image_url: '', gallery: [], status: 'active' },
+          extracted: { ...data.extracted, image_url: gallery.length > 0 ? gallery[0] : '', gallery: gallery.slice(1), status: 'active' },
           mime_type: data.mime_type || '',
           error: null,
           expanded: false,
@@ -385,6 +389,19 @@ export function AdminImport({ onPackageCreated }) {
                           </div>
                         </div>
                       )}
+                      {/* Gallery Preview in Batch */}
+                      {(item.extracted.image_url || item.extracted.gallery?.length > 0) && (
+                        <div>
+                          <Label className="text-xs">Imagenes ({[item.extracted.image_url, ...(item.extracted.gallery || [])].filter(Boolean).length})</Label>
+                          <div className="grid grid-cols-6 gap-1 mt-1">
+                            {[item.extracted.image_url, ...(item.extracted.gallery || [])].filter(Boolean).map((url, imgIdx) => (
+                              <div key={url} className="aspect-square rounded-lg overflow-hidden border border-border">
+                                <img src={url.startsWith('/api') ? `${process.env.REACT_APP_BACKEND_URL}${url}` : url} alt={`Img ${imgIdx+1}`} className="w-full h-full object-cover" />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                       {item.extracted.itinerary?.length > 0 && (
                         <div>
                           <Label className="text-xs">Itinerario ({item.extracted.itinerary.length} dias)</Label>
@@ -448,7 +465,34 @@ function SingleEditForm({ editForm, setEditForm, mimeType, includeInput, setIncl
         <div><Label className="text-xs">Dias</Label><Input type="number" value={editForm.duration_days} onChange={e => setEditForm({...editForm, duration_days: e.target.value})} className="rounded-xl mt-1" data-testid="import-days" /></div>
       </div>
 
-      <div><Label className="text-xs">URL Imagen</Label><Input value={editForm.image_url || ''} onChange={e => setEditForm({...editForm, image_url: e.target.value})} placeholder="URL de la imagen del paquete" className="rounded-xl mt-1" data-testid="import-image" /></div>
+      <div><Label className="text-xs">URL Imagen Principal</Label><Input value={editForm.image_url || ''} onChange={e => setEditForm({...editForm, image_url: e.target.value})} placeholder="URL de la imagen del paquete" className="rounded-xl mt-1" data-testid="import-image" /></div>
+
+      {/* Gallery Preview */}
+      {((editForm.image_url || editForm.gallery?.length > 0)) && (
+        <div data-testid="import-gallery-preview">
+          <Label className="text-xs font-semibold flex items-center gap-2">
+            <Image className="w-3 h-3" /> Galeria Extraida ({[editForm.image_url, ...(editForm.gallery || [])].filter(Boolean).length} imagenes)
+          </Label>
+          <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 mt-2">
+            {[editForm.image_url, ...(editForm.gallery || [])].filter(Boolean).map((url, idx) => (
+              <div key={url} className="relative aspect-square rounded-xl overflow-hidden border border-border group">
+                <img src={url.startsWith('/api') ? `${process.env.REACT_APP_BACKEND_URL}${url}` : url} alt={`Imagen ${idx + 1}`} className="w-full h-full object-cover" />
+                {idx === 0 && <span className="absolute top-1 left-1 px-1.5 py-0.5 bg-primary text-white text-[9px] font-bold rounded">Principal</span>}
+                <button
+                  onClick={() => {
+                    const allImgs = [editForm.image_url, ...(editForm.gallery || [])].filter(Boolean);
+                    const filtered = allImgs.filter((_, i) => i !== idx);
+                    setEditForm({ ...editForm, image_url: filtered[0] || '', gallery: filtered.slice(1) });
+                  }}
+                  className="absolute top-1 right-1 w-5 h-5 bg-black/60 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-3 gap-3">
         <div>

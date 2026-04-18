@@ -578,6 +578,46 @@ def extract_text_from_xlsx(file_path: str) -> str:
                 text_parts.append(" | ".join(cells))
     return "\n".join(text_parts)[:8000]
 
+def extract_images_from_pdf(file_path: str, max_images: int = 10, min_size: int = 15000) -> list:
+    """Extract images from PDF using PyMuPDF. Returns list of uploaded image URLs."""
+    import fitz
+    extracted_urls = []
+    try:
+        doc = fitz.open(file_path)
+        img_count = 0
+        for page_num in range(min(len(doc), 30)):
+            page = doc[page_num]
+            image_list = page.get_images(full=True)
+            for img_info in image_list:
+                if img_count >= max_images:
+                    break
+                xref = img_info[0]
+                try:
+                    base_image = doc.extract_image(xref)
+                    if not base_image:
+                        continue
+                    image_bytes = base_image["image"]
+                    # Skip tiny images (icons, logos under 15KB)
+                    if len(image_bytes) < min_size:
+                        continue
+                    ext = base_image.get("ext", "png")
+                    if ext not in ("png", "jpg", "jpeg", "webp"):
+                        ext = "png"
+                    content_type = f"image/{ext}" if ext != "jpg" else "image/jpeg"
+                    storage_path = f"{APP_NAME}/gallery/{uuid.uuid4().hex}.{ext}"
+                    put_object(storage_path, image_bytes, content_type)
+                    extracted_urls.append(f"/api/files/{storage_path}")
+                    img_count += 1
+                except Exception as img_err:
+                    logger.warning(f"Failed to extract image xref={xref}: {img_err}")
+                    continue
+            if img_count >= max_images:
+                break
+        doc.close()
+    except Exception as e:
+        logger.error(f"PDF image extraction failed: {e}")
+    return extracted_urls
+
 PACKAGE_EXTRACTION_PROMPT = """Eres un asistente experto en turismo que extrae informacion de documentos para crear paquetes de viaje.
 
 Analiza el documento proporcionado y extrae la siguiente informacion en formato JSON. Si no encuentras algun campo, usa un valor por defecto razonable.
@@ -704,7 +744,31 @@ async def import_package_from_drive(request: Request):
         package_data["member_price"] = float(package_data.get("member_price", 0) or 0)
         package_data["duration_days"] = int(package_data.get("duration_days", 1) or 1)
 
-        return {"extracted": package_data, "source_file_id": file_id, "mime_type": mime}
+        # Extract images from PDF and upload to gallery
+        extracted_gallery = []
+        if mime == 'application/pdf':
+            try:
+                extracted_gallery = extract_images_from_pdf(tmp_path)
+                if extracted_gallery:
+                    logger.info(f"Extracted {len(extracted_gallery)} images from PDF")
+            except Exception as img_err:
+                logger.warning(f"Image extraction from PDF failed: {img_err}")
+
+        # For image files, the source itself becomes the gallery
+        if mime.startswith('image/'):
+            try:
+                with open(tmp_path, 'rb') as f:
+                    img_bytes = f.read()
+                ext = mime.split('/')[-1]
+                if ext == 'jpeg':
+                    ext = 'jpg'
+                storage_path = f"{APP_NAME}/gallery/{uuid.uuid4().hex}.{ext}"
+                put_object(storage_path, img_bytes, mime)
+                extracted_gallery = [f"/api/files/{storage_path}"]
+            except Exception as img_err:
+                logger.warning(f"Image upload failed: {img_err}")
+
+        return {"extracted": package_data, "source_file_id": file_id, "mime_type": mime, "extracted_gallery": extracted_gallery}
 
     except json_module.JSONDecodeError:
         raise HTTPException(status_code=422, detail="El AI no pudo extraer datos estructurados del documento. Intenta con otro archivo.")
