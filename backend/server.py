@@ -16,6 +16,7 @@ import jwt
 import requests
 from pywebpush import webpush, WebPushException
 import json as json_module
+import random
 from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel, Field
 from typing import List, Optional
@@ -1051,6 +1052,192 @@ async def delete_commerce_promotion(commerce_id: str, promo_id: str, request: Re
     await db.commerce_promotions.update_one({"_id": ObjectId(promo_id)}, {"$set": {"status": "inactive"}})
     return {"message": "Promoción eliminada"}
 
+# ── Digital Coupons (QR) System ──
+
+def generate_coupon_code():
+    """Generate a unique 8-char alphanumeric coupon code."""
+    import string
+    chars = string.ascii_uppercase + string.digits
+    return 'KX-' + ''.join(random.choices(chars, k=6))
+
+@api_router.post("/coupons/generate")
+async def member_generate_coupon(request: Request):
+    """Member generates a coupon for a specific commerce."""
+    user = await get_current_user(request)
+    body = await request.json()
+    commerce_id = body.get("commerce_id")
+    if not commerce_id:
+        raise HTTPException(status_code=400, detail="commerce_id requerido")
+
+    commerce = await db.commerce.find_one({"_id": ObjectId(commerce_id), "status": "active"})
+    if not commerce:
+        raise HTTPException(status_code=404, detail="Comercio no encontrado")
+
+    # Check if member already has an active coupon for this commerce
+    existing = await db.coupons.find_one({
+        "member_id": str(user["_id"]),
+        "commerce_id": commerce_id,
+        "status": "active"
+    })
+    if existing:
+        existing_doc = serialize_doc(existing)
+        return existing_doc
+
+    code = generate_coupon_code()
+    # Ensure unique code
+    while await db.coupons.find_one({"code": code}):
+        code = generate_coupon_code()
+
+    member_name = user.get("name", "")
+    if not member_name and user.get("member_id"):
+        member_doc = await db.members.find_one({"_id": ObjectId(user["member_id"])})
+        if member_doc:
+            member_name = member_doc.get("name", "")
+
+    coupon = {
+        "code": code,
+        "member_id": str(user["_id"]),
+        "member_name": member_name,
+        "member_contract": user.get("contract_number", ""),
+        "commerce_id": commerce_id,
+        "commerce_name": commerce.get("name", ""),
+        "discount_description": commerce.get("benefit_description", "Descuento para socios Kuxtal"),
+        "status": "active",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by": "member",
+        "used_at": None,
+        "used_by_commerce": None,
+    }
+    result = await db.coupons.insert_one(coupon)
+    coupon["_id"] = str(result.inserted_id)
+    return coupon
+
+@api_router.post("/admin/coupons")
+async def admin_create_coupon(request: Request):
+    """Admin creates a special coupon for a member+commerce combo."""
+    user = await require_role("super_admin", "admin")(request)
+    body = await request.json()
+    member_id = body.get("member_id")
+    commerce_id = body.get("commerce_id")
+    discount_description = body.get("discount_description", "")
+
+    if not commerce_id:
+        raise HTTPException(status_code=400, detail="commerce_id requerido")
+
+    commerce = await db.commerce.find_one({"_id": ObjectId(commerce_id)})
+    if not commerce:
+        raise HTTPException(status_code=404, detail="Comercio no encontrado")
+
+    member_name = ""
+    member_contract = ""
+    if member_id:
+        member_doc = await db.members.find_one({"_id": ObjectId(member_id)})
+        if member_doc:
+            member_name = member_doc.get("name", "")
+            member_contract = member_doc.get("contract_number", "")
+
+    code = generate_coupon_code()
+    while await db.coupons.find_one({"code": code}):
+        code = generate_coupon_code()
+
+    coupon = {
+        "code": code,
+        "member_id": member_id or "",
+        "member_name": member_name,
+        "member_contract": member_contract,
+        "commerce_id": commerce_id,
+        "commerce_name": commerce.get("name", ""),
+        "discount_description": discount_description or commerce.get("benefit_description", "Descuento especial"),
+        "status": "active",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by": "admin",
+        "created_by_name": user.get("name", "Admin"),
+        "used_at": None,
+        "used_by_commerce": None,
+    }
+    result = await db.coupons.insert_one(coupon)
+    coupon["_id"] = str(result.inserted_id)
+    return coupon
+
+@api_router.get("/coupons/my")
+async def my_coupons(request: Request):
+    """Member sees their coupons."""
+    user = await get_current_user(request)
+    coupons = []
+    async for c in db.coupons.find({"member_id": str(user["_id"])}).sort("created_at", -1).limit(50):
+        coupons.append(serialize_doc(c))
+    return coupons
+
+@api_router.get("/coupons/validate/{code}")
+async def validate_coupon(code: str):
+    """Public endpoint - Commerce scans QR, sees coupon details."""
+    coupon = await db.coupons.find_one({"code": code.upper()})
+    if not coupon:
+        raise HTTPException(status_code=404, detail="Cupon no encontrado")
+    doc = serialize_doc(coupon)
+
+    # Get visit history for this member at this commerce
+    visits = []
+    if coupon.get("member_id") and coupon.get("commerce_id"):
+        async for v in db.commerce_visits.find({
+            "member_id": coupon["member_id"],
+            "commerce_id": coupon["commerce_id"]
+        }).sort("visited_at", -1).limit(10):
+            visits.append(serialize_doc(v))
+
+    doc["visit_history"] = visits
+    doc["visit_count"] = len(visits)
+    return doc
+
+@api_router.post("/coupons/redeem/{code}")
+async def redeem_coupon(code: str, request: Request):
+    """Commerce redeems a coupon (marks as used)."""
+    coupon = await db.coupons.find_one({"code": code.upper()})
+    if not coupon:
+        raise HTTPException(status_code=404, detail="Cupon no encontrado")
+    if coupon["status"] == "used":
+        raise HTTPException(status_code=400, detail="Este cupon ya fue utilizado")
+
+    # Determine who is redeeming
+    commerce_name = "Manual"
+    try:
+        user = await get_current_user(request)
+        commerce_name = user.get("name", "Comercio")
+    except Exception:
+        body = await request.json()
+        commerce_name = body.get("commerce_name", "Manual")
+
+    await db.coupons.update_one(
+        {"_id": coupon["_id"]},
+        {"$set": {
+            "status": "used",
+            "used_at": datetime.now(timezone.utc).isoformat(),
+            "used_by_commerce": commerce_name,
+        }}
+    )
+
+    # Record visit
+    visit = {
+        "member_id": coupon.get("member_id", ""),
+        "commerce_id": coupon.get("commerce_id", ""),
+        "coupon_code": code.upper(),
+        "visited_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.commerce_visits.insert_one(visit)
+
+    return {"message": "Cupon canjeado exitosamente", "code": code.upper()}
+
+@api_router.get("/commerce/{commerce_id}/coupons")
+async def commerce_coupon_history(commerce_id: str, request: Request):
+    """Commerce sees redeemed coupons history."""
+    user = await get_current_user(request)
+    if user["role"] not in ["super_admin", "admin"] and user.get("commerce_id") != commerce_id:
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    coupons = []
+    async for c in db.coupons.find({"commerce_id": commerce_id}).sort("created_at", -1).limit(100):
+        coupons.append(serialize_doc(c))
+    return coupons
+
 # ── Scratch Card System ──
 
 @api_router.get("/commerce/{commerce_id}/scratch-card")
@@ -1803,6 +1990,12 @@ async def startup():
     await db.packages.create_index("featured")
     await db.packages.create_index("country")
     await db.push_notifications.create_index([("sent_at", -1)])
+    await db.coupons.create_index("code", unique=True)
+    await db.coupons.create_index("member_id")
+    await db.coupons.create_index("commerce_id")
+    await db.coupons.create_index("status")
+    await db.commerce_visits.create_index("member_id")
+    await db.commerce_visits.create_index("commerce_id")
     logger.info("Kuxtal Travel API started")
 
 async def seed_commerce_data():

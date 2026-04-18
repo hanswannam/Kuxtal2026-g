@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../lib/api';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
-import { FileText, Bell, MessageSquare, Package, Store, Users, Share2, Loader2 } from 'lucide-react';
+import { FileText, Bell, MessageSquare, Package, Store, Users, Share2, Loader2, QrCode } from 'lucide-react';
 import { toast } from 'sonner';
 
 const MemberOverview = lazy(() => import('./member/MemberOverview').then(m => ({ default: m.MemberOverview })));
@@ -13,6 +13,7 @@ const MemberRequests = lazy(() => import('./member/MemberRequests').then(m => ({
 const MemberFamily = lazy(() => import('./member/MemberFamily').then(m => ({ default: m.MemberFamily })));
 const MemberReferrals = lazy(() => import('./member/MemberReferrals').then(m => ({ default: m.MemberReferrals })));
 const MemberBenefits = lazy(() => import('./member/MemberBenefits').then(m => ({ default: m.MemberBenefits })));
+const MemberCoupons = lazy(() => import('./member/MemberCoupons').then(m => ({ default: m.MemberCoupons })));
 
 function TabLoader() {
   return (
@@ -95,6 +96,7 @@ export default function MemberDashboard() {
 
   const tabs = [
     { id: 'dashboard', label: 'Inicio', icon: Package },
+    { id: 'coupons', label: 'Cupones', icon: QrCode },
     { id: 'quotations', label: 'Cotizaciones', icon: FileText },
     { id: 'announcements', label: 'Anuncios', icon: Bell },
     { id: 'requests', label: 'Solicitudes', icon: MessageSquare },
@@ -133,6 +135,7 @@ export default function MemberDashboard() {
 
         <Suspense fallback={<TabLoader />}>
           {tab === 'dashboard' && <MemberOverview member={member} quotations={quotations} announcements={announcements} vacationRequests={vacationRequests} packages={packages} commerces={commerces} />}
+          {tab === 'coupons' && <MemberCoupons />}
           {tab === 'quotations' && <MemberQuotations quotations={quotations} />}
           {tab === 'announcements' && <MemberAnnouncements announcements={announcements} />}
           {tab === 'requests' && <MemberRequests vacationRequests={vacationRequests} showRequestForm={showRequestForm} setShowRequestForm={setShowRequestForm} reqForm={reqForm} setReqForm={setReqForm} submitRequest={submitRequest} />}

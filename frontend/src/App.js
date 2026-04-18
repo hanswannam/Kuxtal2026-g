@@ -24,6 +24,7 @@ const CommercePortal = lazy(() => import("./pages/CommercePortal"));
 const ReferralPage = lazy(() => import("./pages/ReferralPage"));
 const ChatPage = lazy(() => import("./pages/ChatPage"));
 const CommerceWizard = lazy(() => import("./pages/CommerceWizard"));
+const CouponValidatePage = lazy(() => import("./pages/CouponValidatePage"));
 
 function PageLoader() {
   return (
@@ -59,6 +60,8 @@ function App() {
                     <Route path="/benefits" element={<BenefitsPage />} />
                     <Route path="/commerce/:id" element={<CommerceDetailPage />} />
                     <Route path="/referral/:code" element={<ReferralPage />} />
+                    <Route path="/validate/:code" element={<CouponValidatePage />} />
+                    <Route path="/validate" element={<CouponValidatePage />} />
                     <Route path="/member" element={
                       <ProtectedRoute roles={['member']}>
                         <MemberDashboard />
