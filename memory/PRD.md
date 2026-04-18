@@ -6,25 +6,19 @@ Sistema CRM para club vacacional con web publica estilo Expedia, seccion Kuxtal 
 ## Architecture
 - Backend: FastAPI + MongoDB + pywebpush + emergentintegrations (Gemini 2.5 Flash) + PyMuPDF
 - Frontend: React 18 + Tailwind + Shadcn UI + Recharts + React.lazy
-- Auth: JWT (httpOnly cookies + localStorage Bearer token fallback)
-- AI: Gemini 2.5 Flash (document/image analysis, package extraction)
-- PWA: manifest.json + service worker v3
+- Auth: JWT, AI: Gemini 2.5 Flash, PWA: SW v3
 
 ## All Implemented Features
 
-### Core (Phase 1-4): Public website, Member portal, Admin CRM, Commerce, Auth, Push, PWA, Chat, Referrals, Analytics
-### Security (Phase 5-6): XSS fix, component refactoring, lazy loading, ErrorBoundary, SEO
-### AI Import (Phase 7-9): Individual + Batch import from Google Drive, PDF image extraction (PyMuPDF), multi-format
+### Core (Phase 1-4): Website, Member portal, Admin CRM, Commerce, Auth, Push, PWA, Chat, Referrals, Analytics
+### Security (Phase 5-6): XSS fix, refactoring, lazy loading, ErrorBoundary, SEO
+### AI Import (Phase 7-9): Individual + Batch Google Drive, PDF image extraction (PyMuPDF)
 ### Website Redesign (Phase 8): Expedia-style homepage, search with filters, trip detail with gallery/itinerary
-
-### Kuxtal Club Section (Phase 10) - DONE
-- [x] Premium dark-themed section with Kuxtal Club logo prominently displayed
-- [x] Gold gradient title "Tu tarjeta de beneficios exclusivos"
-- [x] Stats: 150+ Comercios, 12 Categorias, 50% Hasta descuento
-- [x] CTA: "Explorar Beneficios" (gold button) + "Acceso Socios" (outline)
-- [x] 3x2 category grid with colored borders: Restaurantes, Belleza, Deportes, Mascotas, Salud, Diversion
-- [x] Each category links to /benefits?category={name}
-- [x] Dark premium background with subtle dot pattern
+### Kuxtal Club Branding (Phase 10-11) - DONE
+- [x] Homepage: Premium dark section with Kuxtal Club logo, gold gradient title, stats, 3x2 category grid
+- [x] Benefits Page: Dark header with logo, "Comercios Aliados" gold title, category pills with icons, colored banner per category, cards with accent bar + gold benefit box, bottom CTA for commerce registration
+- [x] Navbar: "Beneficios" renamed to "Kuxtal Club"
+- [x] 12 category colors (orange/pink/emerald/amber/blue/violet/slate/cyan/indigo/rose/sky/teal)
 
 ## Logos
 - Kuxtal Travel: https://customer-assets.emergentagent.com/job_vacation-club-portal/artifacts/ikgtmopq_logo%20kuxtal.avif
@@ -38,8 +32,7 @@ Sistema CRM para club vacacional con web publica estilo Expedia, seccion Kuxtal 
 - Delete Secret: BORRAR YA
 
 ## Pending / Backlog
-- [ ] Pagina de Beneficios (/benefits) mejorada con logo Kuxtal Club
-- [ ] Renombrar "Beneficios" a "Kuxtal Club" en navbar
 - [ ] Configurar dominio kuxtaltravelgt.com
 - [ ] Notificaciones por email (SendGrid/Resend)
 - [ ] Sistema de reviews/testimonios
+- [ ] Modo oscuro para admin
