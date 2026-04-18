@@ -4,7 +4,7 @@ import { Badge } from '../components/ui/badge';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import {
   LayoutDashboard, Users, Package, FileText, Bell, MessageSquare, Settings,
-  Send, Store, TrendingUp, Gift, Loader2
+  Send, Store, TrendingUp, Gift, Loader2, Sparkles
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../lib/api';
@@ -21,6 +21,7 @@ const AdminCommerces = lazy(() => import('./admin/AdminCommerces').then(m => ({ 
 const AdminPush = lazy(() => import('./admin/AdminPush').then(m => ({ default: m.AdminPush })));
 const AdminUsers = lazy(() => import('./admin/AdminUsers').then(m => ({ default: m.AdminUsers })));
 const AdminSettings = lazy(() => import('./admin/AdminSettings').then(m => ({ default: m.AdminSettings })));
+const AdminImport = lazy(() => import('./admin/AdminImport').then(m => ({ default: m.AdminImport })));
 
 function TabLoader() {
   return (
@@ -181,6 +182,7 @@ export default function AdminDashboard() {
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'import', label: 'Importar', icon: Sparkles },
     { id: 'analytics', label: 'Analytics', icon: TrendingUp },
     { id: 'members', label: 'Socios', icon: Users },
     { id: 'packages', label: 'Paquetes', icon: Package },
@@ -221,6 +223,7 @@ export default function AdminDashboard() {
 
         <Suspense fallback={<TabLoader />}>
           {tab === 'dashboard' && <AdminOverview stats={stats} setTab={setTab} setShowMemberForm={setShowMemberForm} setEditingMember={setEditingMember} setShowPackageForm={setShowPackageForm} setEditingPackage={setEditingPackage} />}
+          {tab === 'import' && <AdminImport onPackageCreated={loadData} />}
           {tab === 'analytics' && <AdminAnalytics analytics={analytics} stats={stats} />}
           {tab === 'members' && <AdminMembers members={members} memberForm={memberForm} setMemberForm={setMemberForm} showMemberForm={showMemberForm} setShowMemberForm={setShowMemberForm} editingMember={editingMember} setEditingMember={setEditingMember} saveMember={saveMember} editMember={editMember} deleteMember={deleteMember} />}
           {tab === 'packages' && <AdminPackages packages={packages} packageForm={packageForm} setPackageForm={setPackageForm} showPackageForm={showPackageForm} setShowPackageForm={setShowPackageForm} editingPackage={editingPackage} setEditingPackage={setEditingPackage} savePackage={savePackage} editPkg={editPkg} deletePkg={deletePkg} includesInput={includesInput} setIncludesInput={setIncludesInput} addInclude={addInclude} removeInclude={removeInclude} handleImageUpload={handleImageUpload} uploading={uploading} />}

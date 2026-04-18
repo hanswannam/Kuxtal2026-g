@@ -457,6 +457,205 @@ async def delete_package(package_id: str, request: Request):
     await db.packages.update_one({"_id": ObjectId(package_id)}, {"$set": {"status": "inactive"}})
     return {"message": "Paquete eliminado"}
 
+# ── Package Import from Google Drive ──
+
+import re as re_module
+import tempfile
+
+def extract_gdrive_file_id(url: str) -> str:
+    """Extract file ID from various Google Drive URL formats."""
+    patterns = [
+        r'/file/d/([a-zA-Z0-9_-]+)',
+        r'id=([a-zA-Z0-9_-]+)',
+        r'/d/([a-zA-Z0-9_-]+)',
+        r'open\?id=([a-zA-Z0-9_-]+)',
+    ]
+    for pattern in patterns:
+        match = re_module.search(pattern, url)
+        if match:
+            return match.group(1)
+    return None
+
+def download_gdrive_file(file_id: str, dest_path: str) -> str:
+    """Download file from Google Drive using direct download URL."""
+    download_url = f"https://drive.google.com/uc?export=download&id={file_id}&confirm=t"
+    resp = requests.get(download_url, stream=True, timeout=60, allow_redirects=True)
+    resp.raise_for_status()
+    content_type = resp.headers.get('Content-Type', '').lower()
+    with open(dest_path, 'wb') as f:
+        for chunk in resp.iter_content(chunk_size=8192):
+            f.write(chunk)
+    return content_type
+
+def detect_mime_type(file_path: str, content_type: str) -> str:
+    """Detect MIME type from file extension and content-type header."""
+    ext = file_path.rsplit('.', 1)[-1].lower() if '.' in file_path else ''
+    if 'pdf' in content_type or ext == 'pdf':
+        return 'application/pdf'
+    if 'image' in content_type or ext in ('png', 'jpg', 'jpeg', 'webp', 'avif'):
+        return f'image/{ext}' if ext else 'image/jpeg'
+    if 'word' in content_type or 'document' in content_type or ext in ('docx', 'doc'):
+        return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    if 'sheet' in content_type or 'excel' in content_type or ext in ('xlsx', 'xls'):
+        return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    if ext in ('png', 'jpg', 'jpeg', 'webp', 'gif'):
+        return f'image/{ext}'
+    return content_type or 'application/octet-stream'
+
+def extract_text_from_pdf(file_path: str) -> str:
+    import pdfplumber
+    text_parts = []
+    with pdfplumber.open(file_path) as pdf:
+        for page in pdf.pages[:20]:
+            t = page.extract_text()
+            if t:
+                text_parts.append(t)
+    return "\n".join(text_parts)[:8000]
+
+def extract_text_from_docx(file_path: str) -> str:
+    from docx import Document
+    doc = Document(file_path)
+    text_parts = [p.text for p in doc.paragraphs if p.text.strip()]
+    return "\n".join(text_parts)[:8000]
+
+def extract_text_from_xlsx(file_path: str) -> str:
+    from openpyxl import load_workbook
+    wb = load_workbook(file_path, data_only=True)
+    text_parts = []
+    for sheet in wb.worksheets[:5]:
+        for row in sheet.iter_rows(max_row=100, values_only=True):
+            cells = [str(c) for c in row if c is not None]
+            if cells:
+                text_parts.append(" | ".join(cells))
+    return "\n".join(text_parts)[:8000]
+
+PACKAGE_EXTRACTION_PROMPT = """Eres un asistente experto en turismo que extrae informacion de documentos para crear paquetes de viaje.
+
+Analiza el documento proporcionado y extrae la siguiente informacion en formato JSON. Si no encuentras algún campo, usa un valor por defecto razonable.
+
+Responde UNICAMENTE con un JSON valido (sin markdown, sin ```json), con esta estructura exacta:
+{
+  "title": "Nombre del paquete/tour",
+  "short_description": "Descripcion corta en 1-2 lineas",
+  "description": "Descripcion completa del paquete",
+  "country": "Pais o destino principal",
+  "price": 0,
+  "member_price": 0,
+  "duration_days": 1,
+  "category": "paquete",
+  "includes": ["item1", "item2"],
+  "rating": 4.8,
+  "featured": false
+}
+
+Notas:
+- "category" debe ser: "paquete", "alojamiento" o "experiencia"
+- Los precios deben ser numeros sin simbolo de moneda. Si hay precio en quetzales, dolares o cualquier moneda, usa el numero
+- "includes" es una lista de lo que incluye el paquete (transporte, hospedaje, comidas, etc)
+- Si hay multiples paquetes en el documento, extrae solo el principal o el primero
+- Si el precio no es claro, usa 0
+- "member_price" es el precio especial para socios, si existe. Si no, dejalo en 0"""
+
+@api_router.post("/packages/import-from-drive")
+async def import_package_from_drive(request: Request):
+    """Import a package from a Google Drive shared link using AI extraction."""
+    user = await require_role("super_admin", "admin")(request)
+    body = await request.json()
+    drive_url = body.get("drive_url", "").strip()
+
+    if not drive_url:
+        raise HTTPException(status_code=400, detail="URL de Google Drive requerida")
+
+    file_id = extract_gdrive_file_id(drive_url)
+    if not file_id:
+        raise HTTPException(status_code=400, detail="No se pudo extraer el ID del archivo de Google Drive. Verifica que el enlace sea correcto.")
+
+    # Download file
+    tmp_dir = tempfile.mkdtemp()
+    tmp_path = os.path.join(tmp_dir, f"gdrive_{file_id}")
+    try:
+        content_type = download_gdrive_file(file_id, tmp_path)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error al descargar archivo: asegurate de que el enlace sea publico/compartido. {str(e)}")
+
+    mime = detect_mime_type(tmp_path, content_type)
+    llm_key = os.environ.get("EMERGENT_LLM_KEY")
+    if not llm_key:
+        raise HTTPException(status_code=500, detail="LLM key no configurada")
+
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
+
+        chat = LlmChat(
+            api_key=llm_key,
+            session_id=f"import-{file_id}-{uuid.uuid4().hex[:8]}",
+            system_message=PACKAGE_EXTRACTION_PROMPT
+        ).with_model("gemini", "gemini-2.5-flash")
+
+        # For images and PDFs, use Gemini file attachment
+        if mime.startswith('image/') or mime == 'application/pdf':
+            file_content = FileContentWithMimeType(file_path=tmp_path, mime_type=mime)
+            msg = UserMessage(
+                text="Analiza este documento y extrae la informacion del paquete turistico. Responde solo con JSON.",
+                file_contents=[file_content]
+            )
+            response_text = await chat.send_message(msg)
+        else:
+            # For Word/Excel, extract text first then send to LLM
+            if 'word' in mime or 'document' in mime:
+                extracted_text = extract_text_from_docx(tmp_path)
+            elif 'sheet' in mime or 'excel' in mime:
+                extracted_text = extract_text_from_xlsx(tmp_path)
+            else:
+                # Try PDF as fallback
+                try:
+                    extracted_text = extract_text_from_pdf(tmp_path)
+                except Exception:
+                    extracted_text = ""
+
+            if not extracted_text.strip():
+                raise HTTPException(status_code=400, detail="No se pudo extraer texto del documento")
+
+            msg = UserMessage(text=f"Analiza el siguiente contenido de un documento de tour/viaje y extrae la informacion del paquete turistico. Responde solo con JSON.\n\n---\n{extracted_text}")
+            response_text = await chat.send_message(msg)
+
+        # Parse JSON from response
+        json_text = response_text.strip()
+        if json_text.startswith("```"):
+            json_text = json_text.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+        package_data = json_module.loads(json_text)
+
+        # Ensure required fields
+        package_data.setdefault("title", "Paquete Importado")
+        package_data.setdefault("description", "")
+        package_data.setdefault("short_description", "")
+        package_data.setdefault("country", "")
+        package_data.setdefault("price", 0)
+        package_data.setdefault("member_price", 0)
+        package_data.setdefault("duration_days", 1)
+        package_data.setdefault("category", "paquete")
+        package_data.setdefault("includes", [])
+        package_data.setdefault("rating", 4.8)
+        package_data.setdefault("featured", False)
+        package_data["price"] = float(package_data.get("price", 0) or 0)
+        package_data["member_price"] = float(package_data.get("member_price", 0) or 0)
+        package_data["duration_days"] = int(package_data.get("duration_days", 1) or 1)
+
+        return {"extracted": package_data, "source_file_id": file_id, "mime_type": mime}
+
+    except json_module.JSONDecodeError:
+        raise HTTPException(status_code=422, detail="El AI no pudo extraer datos estructurados del documento. Intenta con otro archivo.")
+    except Exception as e:
+        logger.error(f"Import error: {e}")
+        raise HTTPException(status_code=500, detail=f"Error al procesar documento: {str(e)}")
+    finally:
+        # Cleanup temp files
+        try:
+            os.remove(tmp_path)
+            os.rmdir(tmp_dir)
+        except Exception:
+            pass
+
 # ── Quotations ──
 
 @api_router.post("/quotations")

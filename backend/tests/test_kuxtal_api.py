@@ -405,5 +405,69 @@ class TestWhatsAppConfig:
         assert "phone" in data
 
 
+class TestPackageImportFromDrive:
+    """Test AI-powered package import from Google Drive - Iteration 9"""
+    
+    @pytest.fixture
+    def admin_token(self):
+        response = requests.post(f"{BASE_URL}/api/auth/login", json={
+            "email": ADMIN_EMAIL,
+            "password": ADMIN_PASSWORD
+        })
+        return response.json()["token"]
+    
+    def test_import_requires_auth(self):
+        """Import endpoint should require admin authentication"""
+        response = requests.post(f"{BASE_URL}/api/packages/import-from-drive", json={
+            "drive_url": "https://drive.google.com/file/d/test/view"
+        })
+        assert response.status_code == 401, f"Expected 401, got {response.status_code}"
+    
+    def test_import_empty_url_returns_400(self, admin_token):
+        """Empty drive_url should return 400"""
+        response = requests.post(f"{BASE_URL}/api/packages/import-from-drive",
+            headers={"Authorization": f"Bearer {admin_token}"},
+            json={"drive_url": ""}
+        )
+        assert response.status_code == 400
+        assert "URL de Google Drive requerida" in response.json()["detail"]
+    
+    def test_import_invalid_url_returns_400(self, admin_token):
+        """Invalid URL format should return 400"""
+        response = requests.post(f"{BASE_URL}/api/packages/import-from-drive",
+            headers={"Authorization": f"Bearer {admin_token}"},
+            json={"drive_url": "https://invalid-url.com/not-gdrive"}
+        )
+        assert response.status_code == 400
+        assert "No se pudo extraer el ID" in response.json()["detail"]
+    
+    def test_import_nonexistent_file_returns_400(self, admin_token):
+        """Valid GDrive URL format but non-existent file should return 400"""
+        response = requests.post(f"{BASE_URL}/api/packages/import-from-drive",
+            headers={"Authorization": f"Bearer {admin_token}"},
+            json={"drive_url": "https://drive.google.com/file/d/1234567890abcdef/view"}
+        )
+        assert response.status_code == 400
+        assert "Error al descargar archivo" in response.json()["detail"]
+    
+    def test_import_various_gdrive_url_formats(self, admin_token):
+        """Test that various Google Drive URL formats are recognized"""
+        # These should all fail with download error (not URL parsing error)
+        valid_formats = [
+            "https://drive.google.com/file/d/abc123/view",
+            "https://drive.google.com/file/d/abc123/view?usp=sharing",
+            "https://drive.google.com/open?id=abc123",
+            "https://drive.google.com/uc?id=abc123",
+        ]
+        for url in valid_formats:
+            response = requests.post(f"{BASE_URL}/api/packages/import-from-drive",
+                headers={"Authorization": f"Bearer {admin_token}"},
+                json={"drive_url": url}
+            )
+            # Should fail with download error, not URL parsing error
+            assert response.status_code == 400
+            assert "Error al descargar" in response.json()["detail"], f"URL format not recognized: {url}"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
