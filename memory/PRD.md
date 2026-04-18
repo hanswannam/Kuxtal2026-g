@@ -1,43 +1,51 @@
 # Kuxtal Travel - Club Vacacional PRD
 
 ## Problem Statement
-Sistema integral CRM para club vacacional con membresias, pagina web publica estilo Expedia, portal de socios, CRM administrativo, portal de comercios, sistema de referidos, chat en tiempo real, analytics avanzado, importacion inteligente de paquetes con AI.
+Sistema integral CRM para club vacacional con web publica estilo Expedia, portal de socios, CRM admin, portal de comercios, referidos, chat, analytics, importacion AI de paquetes.
 
 ## Architecture
-- **Backend:** FastAPI + MongoDB + pywebpush + emergentintegrations (Gemini)
+- **Backend:** FastAPI + MongoDB + pywebpush + emergentintegrations (Gemini 2.5 Flash)
 - **Frontend:** React 18 + Tailwind + Shadcn UI + Recharts
 - **Auth:** JWT (httpOnly cookies + localStorage Bearer token fallback)
-- **AI:** Gemini 2.5 Flash (document analysis, package extraction)
-- **Storage:** Emergent Object Storage
-- **Push:** Web Push API with VAPID (batch, retry)
+- **AI:** Gemini 2.5 Flash (document/image analysis, package extraction)
 - **PWA:** manifest.json + service worker v3
 
 ## All Implemented Features
 
-### Phase 1-4 - Core Platform (DONE)
-- [x] Public website, Member portal, Admin CRM, Commerce portal
+### Core Platform (Phase 1-4)
+- [x] Public website estilo Expedia (Home, Search, Trip Detail)
+- [x] Member portal (7 lazy tabs), Admin CRM (13 lazy tabs), Commerce portal
 - [x] JWT auth (5 roles), WhatsApp, Commerce Wizard, Scratch Card
-- [x] VAPID Push, PWA, Chat (polling), Referral system, Analytics
+- [x] VAPID Push (batch/retry), PWA, Chat (polling), Referral system, Analytics
 
-### Phase 5-6 - Security, Refactoring, Lazy Loading (DONE)
+### Security & Quality (Phase 5-6)
 - [x] XSS fix, DELETE_SECRET, backend anti-patterns, React keys
-- [x] Admin: 12 lazy sub-components, Member: 7 lazy sub-components
-- [x] Page-level lazy loading, ErrorBoundary, SEO OG tags
+- [x] Component refactoring: Admin 12 components, Member 7 components
+- [x] Lazy loading (route + tab level), ErrorBoundary, SEO OG tags
 
-### Phase 7 - AI Import Module (DONE)
-- [x] Google Drive link import + Gemini 2.5 Flash extraction
+### AI Import (Phase 7)
+- [x] Google Drive link → Gemini 2.5 Flash → Pre-filled review form
 - [x] Multi-format: PDF, Images, Word, Excel
-- [x] Pre-filled review form before creating package
+- [x] Enriched extraction: itinerary, accommodation, difficulty, group size
 
-### Phase 8 - Homepage Redesign (IN PROGRESS)
-- [x] Expedia-style hero with search tabs (Paquetes, Alojamientos, Experiencias)
-- [x] Destination input with country suggestions datalist
-- [x] Date picker + travelers selector (1-8)
-- [x] Popular destinations bar with country pills
-- [x] Improved package cards with price overlay on image
-- [x] Backend accent-insensitive search (normalize_search)
-- [ ] Search page redesign with filters (country, price range, duration)
-- [ ] Trip detail page redesign with gallery, itinerary
+### Public Website Redesign (Phase 8) - DONE
+- [x] **Homepage**: Expedia-style hero + search tabs (Paquetes/Alojamientos/Experiencias) + destination/date/guests + popular destinations bar + improved cards
+- [x] **Search Page**: Category tabs, country filter, price range, duration filter, 6 sort options (price asc/desc, duration, rating), professional card grid with price overlay
+- [x] **Trip Detail**: Gallery with nav arrows, itinerary day-by-day timeline, includes grid, sticky price sidebar, quote modal, share button, trust signals
+- [x] **Enriched Package Model**: itinerary[], accommodation_type, difficulty, min_group, max_group
+- [x] **Backend**: Accent-insensitive search (normalize_search), price/duration/sort filters, enriched PackageCreate model
+
+## Package Schema
+```
+{
+  title, description, short_description, country, price, member_price,
+  duration_days, category (paquete|alojamiento|experiencia),
+  includes[], itinerary[{day, title, description}],
+  accommodation_type (hotel|resort|villa|hostel|camping|airbnb),
+  difficulty (facil|moderado|dificil), min_group, max_group,
+  rating, image_url, gallery[], featured, status
+}
+```
 
 ## Test Credentials
 - Admin: admin@kuxtaltravels.com / KuxtalAdmin2024!
@@ -45,3 +53,9 @@ Sistema integral CRM para club vacacional con membresias, pagina web publica est
 - Family: KT-001 / 9876543210101
 - Commerce: 69dd90c4b0e08b1f0a2eb0a8 / GAUCHA01
 - Delete Secret: BORRAR YA
+
+## Pending / Backlog
+- [ ] Configurar dominio kuxtaltravelgt.com (Deploy > Custom Domain)
+- [ ] Notificaciones por email (SendGrid/Resend)
+- [ ] Importacion en lote (multiples archivos Google Drive)
+- [ ] Image extraction from PDFs for package gallery
