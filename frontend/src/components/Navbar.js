@@ -135,10 +135,11 @@ export default function Navbar() {
         <div className="lg:hidden bg-white border-t border-border animate-fade-in">
           <div className="px-4 py-4 space-y-2">
             {navLinks.map(link => (
-              <Link key={link.label} to={link.to} onClick={() => setMobileOpen(false)}
-                className="block px-4 py-3 text-sm font-medium rounded-xl hover:bg-secondary transition-colors">
+              <button key={link.label} onClick={() => { setMobileOpen(false); navigate(link.to); }}
+                className="block w-full text-left px-4 py-3 text-sm font-medium rounded-xl hover:bg-secondary transition-colors"
+                data-testid={`nav-mobile-${link.label.toLowerCase().replace(/\s/g, '-')}`}>
                 {link.label}
-              </Link>
+              </button>
             ))}
             <div className="pt-3 border-t border-border">
               {user && user.role ? (
