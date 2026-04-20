@@ -4,7 +4,7 @@ import { Badge } from '../components/ui/badge';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import {
   LayoutDashboard, Users, Package, FileText, Bell, MessageSquare, Settings,
-  Send, Store, TrendingUp, Gift, Loader2, Sparkles
+  Send, Store, TrendingUp, Gift, Loader2, Sparkles, Award, Building2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../lib/api';
@@ -22,6 +22,8 @@ const AdminPush = lazy(() => import('./admin/AdminPush').then(m => ({ default: m
 const AdminUsers = lazy(() => import('./admin/AdminUsers').then(m => ({ default: m.AdminUsers })));
 const AdminSettings = lazy(() => import('./admin/AdminSettings').then(m => ({ default: m.AdminSettings })));
 const AdminImport = lazy(() => import('./admin/AdminImport').then(m => ({ default: m.AdminImport })));
+const AdminRegalias = lazy(() => import('./admin/AdminRegalias').then(m => ({ default: m.AdminRegalias })));
+const AdminClubs = lazy(() => import('./admin/AdminClubs').then(m => ({ default: m.AdminClubs })));
 
 function TabLoader() {
   return (
@@ -61,7 +63,7 @@ export default function AdminDashboard() {
   const [editingPackage, setEditingPackage] = useState(null);
   const [quotationResponse, setQuotationResponse] = useState({ id: '', response: '' });
 
-  const [memberForm, setMemberForm] = useState({ contract_number: '', dpi: '', name: '', email: '', phone: '', service_years: 1, membership_start: '', membership_end: '', family_members_allowed: 1, investment_amount: 0, investment_plan: '', status: 'active' });
+  const [memberForm, setMemberForm] = useState({ contract_number: '', dpi: '', name: '', email: '', phone: '', service_years: 1, membership_start: '', membership_end: '', family_members_allowed: 1, investment_amount: 0, investment_plan: '', status: 'active', contract_date: '', age: 0, marital_status: '', nationality: '', profession: '', address: '', coowner_name: '', coowner_nationality: '', coowner_profession: '', coowner_phone: '', coowner_email: '', vigencia: '', cuotas: '', bank: '', termination_date: '', tc: '', nit: '', billing_name: '', observations: '' });
   const [packageForm, setPackageForm] = useState({ title: '', description: '', short_description: '', country: '', price: 0, member_price: 0, duration_days: 1, category: 'paquete', includes: [], rating: 4.8, image_url: '', gallery: [], featured: false, status: 'active' });
   const [includesInput, setIncludesInput] = useState('');
   const [announcementForm, setAnnouncementForm] = useState({ title: '', content: '', link: '', target: 'all', status: 'active' });
@@ -100,7 +102,7 @@ export default function AdminDashboard() {
       if (editingMember) { await api.put(`/members/${editingMember._id}`, memberForm); toast.success('Socio actualizado'); }
       else { await api.post('/members', memberForm); toast.success('Socio creado'); }
       setShowMemberForm(false); setEditingMember(null);
-      setMemberForm({ contract_number: '', dpi: '', name: '', email: '', phone: '', service_years: 1, membership_start: '', membership_end: '', family_members_allowed: 1, status: 'active' });
+      setMemberForm({ contract_number: '', dpi: '', name: '', email: '', phone: '', service_years: 1, membership_start: '', membership_end: '', family_members_allowed: 1, investment_amount: 0, investment_plan: '', status: 'active', contract_date: '', age: 0, marital_status: '', nationality: '', profession: '', address: '', coowner_name: '', coowner_nationality: '', coowner_profession: '', coowner_phone: '', coowner_email: '', vigencia: '', cuotas: '', bank: '', termination_date: '', tc: '', nit: '', billing_name: '', observations: '' });
       loadData();
     } catch (e) { toast.error(e.response?.data?.detail || 'Error'); }
   };
@@ -194,6 +196,8 @@ export default function AdminDashboard() {
     { id: 'members', label: 'Socios', icon: Users },
     { id: 'packages', label: 'Paquetes', icon: Package },
     { id: 'commerce', label: 'Comercios', icon: Store },
+    { id: 'clubs', label: 'Clubs', icon: Building2 },
+    { id: 'regalias', label: 'Regalías', icon: Award },
     { id: 'quotations', label: 'Cotizaciones', icon: FileText },
     { id: 'referrals', label: 'Referidos', icon: Gift },
     { id: 'announcements', label: 'Anuncios', icon: Bell },
@@ -239,6 +243,8 @@ export default function AdminDashboard() {
           {tab === 'announcements' && <AdminAnnouncements announcements={announcements} announcementForm={announcementForm} setAnnouncementForm={setAnnouncementForm} showAnnouncementForm={showAnnouncementForm} setShowAnnouncementForm={setShowAnnouncementForm} saveAnnouncement={saveAnnouncement} deleteAnn={deleteAnn} />}
           {tab === 'requests' && <AdminRequests vacationReqs={vacationReqs} updateReqStatus={updateReqStatus} />}
           {tab === 'commerce' && <AdminCommerces commerces={commerces} commerceForm={commerceForm} setCommerceForm={setCommerceForm} showCommerceForm={showCommerceForm} setShowCommerceForm={setShowCommerceForm} commerceCategories={commerceCategories} saveCommerce={saveCommerce} deleteCommerce={deleteCommerce} handleImageUpload={handleImageUpload} uploading={uploading} />}
+          {tab === 'clubs' && <AdminClubs handleImageUpload={handleImageUpload} uploading={uploading} />}
+          {tab === 'regalias' && <AdminRegalias members={members} handleImageUpload={handleImageUpload} uploading={uploading} />}
           {tab === 'push' && <AdminPush pushForm={pushForm} setPushForm={setPushForm} sendPush={sendPush} pushHistory={pushHistory} />}
           {tab === 'users' && <AdminUsers adminUsers={adminUsers} allUsers={allUsers} showUserForm={showUserForm} setShowUserForm={setShowUserForm} userForm={userForm} setUserForm={setUserForm} userView={userView} setUserView={setUserView} loadUsers={loadUsers} />}
           {tab === 'settings' && <AdminSettings whatsappPhone={whatsappPhone} setWhatsappPhone={setWhatsappPhone} saveWhatsApp={saveWhatsApp} stats={stats} />}

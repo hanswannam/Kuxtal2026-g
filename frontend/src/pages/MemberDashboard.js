@@ -3,17 +3,17 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../lib/api';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
-import { FileText, Bell, MessageSquare, Package, Store, Users, Share2, Loader2, QrCode } from 'lucide-react';
+import { FileText, Bell, MessageSquare, Package, Store, Share2, Loader2, QrCode, Gift } from 'lucide-react';
 import { toast } from 'sonner';
 
 const MemberOverview = lazy(() => import('./member/MemberOverview').then(m => ({ default: m.MemberOverview })));
 const MemberQuotations = lazy(() => import('./member/MemberQuotations').then(m => ({ default: m.MemberQuotations })));
 const MemberAnnouncements = lazy(() => import('./member/MemberAnnouncements').then(m => ({ default: m.MemberAnnouncements })));
 const MemberRequests = lazy(() => import('./member/MemberRequests').then(m => ({ default: m.MemberRequests })));
-const MemberFamily = lazy(() => import('./member/MemberFamily').then(m => ({ default: m.MemberFamily })));
 const MemberReferrals = lazy(() => import('./member/MemberReferrals').then(m => ({ default: m.MemberReferrals })));
 const MemberBenefits = lazy(() => import('./member/MemberBenefits').then(m => ({ default: m.MemberBenefits })));
 const MemberCoupons = lazy(() => import('./member/MemberCoupons').then(m => ({ default: m.MemberCoupons })));
+const MemberRegalias = lazy(() => import('./member/MemberRegalias').then(m => ({ default: m.MemberRegalias })));
 
 function TabLoader() {
   return (
@@ -33,11 +33,8 @@ export default function MemberDashboard() {
   const [vacationRequests, setVacationRequests] = useState([]);
   const [packages, setPackages] = useState([]);
   const [commerces, setCommerces] = useState([]);
-  const [familyMembers, setFamilyMembers] = useState([]);
   const [referralData, setReferralData] = useState(null);
   const [showRequestForm, setShowRequestForm] = useState(false);
-  const [showFamilyForm, setShowFamilyForm] = useState(false);
-  const [familyForm, setFamilyForm] = useState({ name: '', dpi: '', relationship: 'familiar' });
   const [reqForm, setReqForm] = useState({ destination: '', travel_date: '', guests: 1, message: '' });
 
   const loadMemberData = useCallback(() => {
@@ -50,10 +47,6 @@ export default function MemberDashboard() {
     api.get('/vacation-requests').then(r => setVacationRequests(r.data)).catch(e => console.error('Failed to load requests:', e));
     api.get('/packages?featured=true').then(r => setPackages(r.data.slice(0, 3))).catch(e => console.error('Failed to load packages:', e));
     api.get('/commerce').then(r => setCommerces(r.data.slice(0, 4))).catch(e => console.error('Failed to load commerce:', e));
-    const memberId = user?.member?._id || user?.member_id;
-    if (memberId) {
-      api.get(`/members/${memberId}/family`).then(r => setFamilyMembers(r.data)).catch(e => console.error('Failed to load family:', e));
-    }
     api.get('/referral/my-code').then(r => setReferralData(r.data)).catch(e => console.error('Failed to load referral:', e));
   }, [user]);
 
@@ -71,36 +64,13 @@ export default function MemberDashboard() {
     } catch { toast.error('Error al enviar solicitud'); }
   };
 
-  const addFamilyMember = async (e) => {
-    e.preventDefault();
-    const memberId = member?._id || user?.member_id;
-    try {
-      await api.post(`/members/${memberId}/family`, familyForm);
-      toast.success('Familiar agregado');
-      setShowFamilyForm(false);
-      setFamilyForm({ name: '', dpi: '', relationship: 'familiar' });
-      const r = await api.get(`/members/${memberId}/family`);
-      setFamilyMembers(r.data);
-    } catch (err) {
-      toast.error(err.response?.data?.detail || 'Error al agregar familiar');
-    }
-  };
-
-  const removeFamilyMember = async (familyId) => {
-    const memberId = member?._id || user?.member_id;
-    await api.delete(`/members/${memberId}/family/${familyId}`);
-    toast.success('Familiar eliminado');
-    const r = await api.get(`/members/${memberId}/family`);
-    setFamilyMembers(r.data);
-  };
-
   const tabs = [
     { id: 'dashboard', label: 'Inicio', icon: Package },
     { id: 'coupons', label: 'Cupones', icon: QrCode },
+    { id: 'regalias', label: 'Regalías', icon: Gift },
     { id: 'quotations', label: 'Cotizaciones', icon: FileText },
     { id: 'announcements', label: 'Anuncios', icon: Bell },
     { id: 'requests', label: 'Solicitudes', icon: MessageSquare },
-    { id: 'family', label: 'Familia', icon: Users },
     { id: 'referral', label: 'Referidos', icon: Share2 },
     { id: 'benefits', label: 'Beneficios', icon: Store },
   ];
@@ -139,7 +109,7 @@ export default function MemberDashboard() {
           {tab === 'quotations' && <MemberQuotations quotations={quotations} />}
           {tab === 'announcements' && <MemberAnnouncements announcements={announcements} />}
           {tab === 'requests' && <MemberRequests vacationRequests={vacationRequests} showRequestForm={showRequestForm} setShowRequestForm={setShowRequestForm} reqForm={reqForm} setReqForm={setReqForm} submitRequest={submitRequest} />}
-          {tab === 'family' && <MemberFamily member={member} user={user} familyMembers={familyMembers} showFamilyForm={showFamilyForm} setShowFamilyForm={setShowFamilyForm} familyForm={familyForm} setFamilyForm={setFamilyForm} addFamilyMember={addFamilyMember} removeFamilyMember={removeFamilyMember} />}
+          {tab === 'regalias' && <MemberRegalias />}
           {tab === 'referral' && <MemberReferrals referralData={referralData} />}
           {tab === 'benefits' && <MemberBenefits commerces={commerces} />}
         </Suspense>

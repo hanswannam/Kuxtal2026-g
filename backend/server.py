@@ -171,6 +171,28 @@ class MemberCreate(BaseModel):
     investment_amount: Optional[float] = 0
     investment_plan: Optional[str] = ""
     status: str = "active"
+    # Datos del propietario
+    contract_date: Optional[str] = ""
+    age: Optional[int] = 0
+    marital_status: Optional[str] = ""
+    nationality: Optional[str] = ""
+    profession: Optional[str] = ""
+    address: Optional[str] = ""
+    # Datos del copropietario
+    coowner_name: Optional[str] = ""
+    coowner_nationality: Optional[str] = ""
+    coowner_profession: Optional[str] = ""
+    coowner_phone: Optional[str] = ""
+    coowner_email: Optional[str] = ""
+    # Datos de contrato / facturación
+    vigencia: Optional[str] = ""
+    cuotas: Optional[str] = ""
+    bank: Optional[str] = ""
+    termination_date: Optional[str] = ""
+    tc: Optional[str] = ""
+    nit: Optional[str] = ""
+    billing_name: Optional[str] = ""
+    observations: Optional[str] = ""
 
 class PackageCreate(BaseModel):
     title: str
@@ -1439,7 +1461,7 @@ async def list_regalias(request: Request, member_id: Optional[str] = None):
     user = await get_current_user(request)
     query = {"status": "active"}
     if user["role"] in ["member", "family"]:
-        query["member_id"] = str(user["_id"])
+        query["member_id"] = user.get("member_id", "")
     elif member_id:
         query["member_id"] = member_id
     regalias = []
@@ -1508,34 +1530,6 @@ async def delete_club(club_id: str, request: Request):
     return {"message": "Club eliminado"}
 
 # ── Member Observations ──
-
-@api_router.post("/members/{member_id}/observations")
-async def add_observation(member_id: str, request: Request):
-    user = await require_role("super_admin", "admin")(request)
-    body = await request.json()
-    observation = {
-        "member_id": member_id,
-        "content": body.get("content", ""),
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "created_by": user.get("name", "Admin"),
-    }
-    result = await db.member_observations.insert_one(observation)
-    observation["_id"] = str(result.inserted_id)
-    return observation
-
-@api_router.get("/members/{member_id}/observations")
-async def get_observations(member_id: str, request: Request):
-    user = await get_current_user(request)
-    observations = []
-    async for o in db.member_observations.find({"member_id": member_id}).sort("created_at", -1):
-        observations.append(serialize_doc(o))
-    return observations
-
-@api_router.delete("/observations/{obs_id}")
-async def delete_observation(obs_id: str, request: Request):
-    user = await require_role("super_admin", "admin")(request)
-    await db.member_observations.delete_one({"_id": ObjectId(obs_id)})
-    return {"message": "Observacion eliminada"}
 
 @api_router.post("/auth/commerce-login")
 async def commerce_login(request: Request, response: Response):
