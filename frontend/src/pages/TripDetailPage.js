@@ -197,6 +197,9 @@ export default function TripDetailPage() {
                       <p className="text-xs font-semibold text-accent-foreground">Precio Socio: Q.{fmtPrice(memberPrice)}</p>
                     </div>
                   )}
+                  <p className="text-[11px] text-muted-foreground italic leading-relaxed mt-3" data-testid="price-disclaimer">
+                    Los precios pueden variar según fechas, temporada y disponibilidad. Contáctanos para recibir una cotización actualizada.
+                  </p>
                 </div>
 
                 <div className="space-y-3 mb-5 text-sm">
