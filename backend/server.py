@@ -1457,17 +1457,44 @@ async def create_regalia(request: Request):
     return regalia
 
 @api_router.get("/regalias")
-async def list_regalias(request: Request, member_id: Optional[str] = None):
+async def list_regalias(request: Request, member_id: Optional[str] = None, all: Optional[bool] = False):
     user = await get_current_user(request)
     query = {"status": "active"}
     if user["role"] in ["member", "family"]:
         query["member_id"] = user.get("member_id", "")
     elif member_id:
         query["member_id"] = member_id
+    # When `all=true` is passed by admin, return every active regalia (for socio-form picker)
+    if all and user["role"] in ["super_admin", "admin"]:
+        query.pop("member_id", None)
     regalias = []
     async for r in db.regalias.find(query).sort("created_at", -1):
         regalias.append(serialize_doc(r))
     return regalias
+
+@api_router.put("/members/{member_id}/regalias")
+async def assign_regalias_to_member(member_id: str, request: Request):
+    """Bulk update which regalias belong to this socio. Body: { regalia_ids: [...] }."""
+    user = await require_role("super_admin", "admin")(request)
+    body = await request.json()
+    ids = body.get("regalia_ids", []) or []
+    member = await db.members.find_one({"_id": ObjectId(member_id)})
+    if not member:
+        raise HTTPException(status_code=404, detail="Socio no encontrado")
+    member_name = member.get("name", "")
+    # Detach regalias currently assigned to this member but not in the new list
+    await db.regalias.update_many(
+        {"member_id": member_id, "_id": {"$nin": [ObjectId(x) for x in ids if ObjectId.is_valid(x)]}},
+        {"$set": {"member_id": "", "member_name": ""}}
+    )
+    # Attach selected regalias to this member
+    valid_oids = [ObjectId(x) for x in ids if ObjectId.is_valid(x)]
+    if valid_oids:
+        await db.regalias.update_many(
+            {"_id": {"$in": valid_oids}},
+            {"$set": {"member_id": member_id, "member_name": member_name}}
+        )
+    return {"message": "Regalías actualizadas", "count": len(valid_oids)}
 
 @api_router.put("/regalias/{regalia_id}/toggle-used")
 async def toggle_regalia_used(regalia_id: str, request: Request):

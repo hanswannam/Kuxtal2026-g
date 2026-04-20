@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Textarea } from '../../components/ui/textarea';
 import { Label } from '../../components/ui/label';
 import { Badge } from '../../components/ui/badge';
-import { Plus, Edit } from 'lucide-react';
+import { Plus, Edit, Gift } from 'lucide-react';
+import { toast } from 'sonner';
 import { DeleteWithCode } from '../../components/DeleteWithCode';
+import api from '../../lib/api';
 
 const EMPTY_FORM = {
   contract_number: '', dpi: '', name: '', email: '', phone: '',
@@ -18,6 +20,50 @@ const EMPTY_FORM = {
 
 export function AdminMembers({ members, memberForm, setMemberForm, showMemberForm, setShowMemberForm, editingMember, setEditingMember, saveMember, editMember, deleteMember }) {
   const set = (k, v) => setMemberForm({ ...memberForm, [k]: v });
+
+  // Regalías picker
+  const [allRegalias, setAllRegalias] = useState([]);
+  const [selectedRegaliaIds, setSelectedRegaliaIds] = useState([]);
+  const [savingRegalias, setSavingRegalias] = useState(false);
+
+  useEffect(() => {
+    if (!showMemberForm) return;
+    api.get('/regalias?all=true')
+      .then(r => setAllRegalias(r.data))
+      .catch(e => console.error('Failed to load regalias:', e));
+    if (editingMember?._id) {
+      api.get(`/regalias?member_id=${editingMember._id}`)
+        .then(r => setSelectedRegaliaIds(r.data.map(x => x._id)))
+        .catch(e => { console.error('Failed to load member regalias:', e); setSelectedRegaliaIds([]); });
+    } else {
+      setSelectedRegaliaIds([]);
+    }
+  }, [showMemberForm, editingMember]);
+
+  const toggleRegalia = (id) => {
+    setSelectedRegaliaIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const persistRegalias = async () => {
+    if (!editingMember?._id) return;
+    setSavingRegalias(true);
+    try {
+      await api.put(`/members/${editingMember._id}/regalias`, { regalia_ids: selectedRegaliaIds });
+      toast.success('Regalías asignadas');
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Error al asignar regalías');
+    }
+    setSavingRegalias(false);
+  };
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    await saveMember(e);
+    // After saving the member, also persist regalia assignments (only when editing existing)
+    if (editingMember?._id) {
+      await persistRegalias();
+    }
+  };
 
   return (
     <div className="animate-fade-in">
@@ -74,7 +120,7 @@ export function AdminMembers({ members, memberForm, setMemberForm, showMemberFor
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in" data-testid="member-form-modal">
           <div className="bg-white rounded-2xl w-full max-w-3xl p-6 max-h-[90vh] overflow-y-auto">
             <h3 className="font-heading text-xl font-semibold mb-4">{editingMember ? 'Editar Socio' : 'Nuevo Socio'}</h3>
-            <form onSubmit={saveMember} className="space-y-5">
+            <form onSubmit={handleSave} className="space-y-5">
 
               {/* Sección Propietario */}
               <div>
@@ -170,6 +216,53 @@ export function AdminMembers({ members, memberForm, setMemberForm, showMemberFor
                   data-testid="mf-observations"
                 />
               </div>
+
+              {/* Regalías asignadas (solo en edición) */}
+              {editingMember?._id && (
+                <div className="pt-4 border-t border-border" data-testid="mf-regalias-section">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Gift className="w-4 h-4 text-primary" />
+                    <h4 className="text-sm font-semibold text-primary uppercase tracking-wider">Regalías Activas</h4>
+                    {savingRegalias && <span className="text-xs text-muted-foreground">Guardando...</span>}
+                  </div>
+                  {allRegalias.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">No hay regalías creadas. Créalas desde el módulo "Regalías".</p>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto border border-border rounded-xl p-3 bg-secondary/20">
+                      {allRegalias.map(r => {
+                        const isTaken = r.member_id && r.member_id !== editingMember._id;
+                        const isSelected = selectedRegaliaIds.includes(r._id);
+                        return (
+                          <label
+                            key={r._id}
+                            className={`flex items-center gap-2 p-2 rounded-lg border text-sm cursor-pointer transition-colors ${
+                              isSelected ? 'border-primary bg-primary/5' : 'border-border bg-white'
+                            } ${isTaken && !isSelected ? 'opacity-50' : ''}`}
+                            data-testid={`mf-regalia-${r._id}`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleRegalia(r._id)}
+                              disabled={isTaken && !isSelected}
+                              className="rounded"
+                            />
+                            <span className="flex-1 truncate">
+                              {r.name}
+                              {isTaken && !isSelected && (
+                                <span className="ml-1 text-[10px] text-muted-foreground">(asignada a otro)</span>
+                              )}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <p className="text-[11px] text-muted-foreground mt-2">
+                    Marca las regalías que quieres activar para este socio. Se guardarán al presionar "Guardar".
+                  </p>
+                </div>
+              )}
 
               <div className="flex gap-3 pt-2">
                 <Button type="button" variant="outline" onClick={() => { setShowMemberForm(false); setEditingMember(null); }} className="flex-1 rounded-xl">Cancelar</Button>

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../lib/api';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
-import { FileText, Bell, MessageSquare, Package, Store, Share2, Loader2, QrCode, Gift } from 'lucide-react';
+import { FileText, Bell, MessageSquare, Package, Store, Share2, Loader2, QrCode, Gift, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const MemberOverview = lazy(() => import('./member/MemberOverview').then(m => ({ default: m.MemberOverview })));
@@ -14,6 +14,7 @@ const MemberReferrals = lazy(() => import('./member/MemberReferrals').then(m => 
 const MemberBenefits = lazy(() => import('./member/MemberBenefits').then(m => ({ default: m.MemberBenefits })));
 const MemberCoupons = lazy(() => import('./member/MemberCoupons').then(m => ({ default: m.MemberCoupons })));
 const MemberRegalias = lazy(() => import('./member/MemberRegalias').then(m => ({ default: m.MemberRegalias })));
+const MemberClubs = lazy(() => import('./member/MemberClubs').then(m => ({ default: m.MemberClubs })));
 
 function TabLoader() {
   return (
@@ -68,6 +69,7 @@ export default function MemberDashboard() {
     { id: 'dashboard', label: 'Inicio', icon: Package },
     { id: 'coupons', label: 'Cupones', icon: QrCode },
     { id: 'regalias', label: 'Regalías', icon: Gift },
+    { id: 'clubs', label: 'Clubs', icon: Building2 },
     { id: 'quotations', label: 'Cotizaciones', icon: FileText },
     { id: 'announcements', label: 'Anuncios', icon: Bell },
     { id: 'requests', label: 'Solicitudes', icon: MessageSquare },
@@ -85,7 +87,7 @@ export default function MemberDashboard() {
           <p className="text-muted-foreground text-sm">Bienvenido a tu portal de socio</p>
         </div>
 
-        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-2 sm:gap-3 mb-8" data-testid="member-tabs">
+        <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2 sm:gap-3 mb-8" data-testid="member-tabs">
           {tabs.map(t => (
             <button
               key={t.id}
@@ -110,6 +112,7 @@ export default function MemberDashboard() {
           {tab === 'announcements' && <MemberAnnouncements announcements={announcements} />}
           {tab === 'requests' && <MemberRequests vacationRequests={vacationRequests} showRequestForm={showRequestForm} setShowRequestForm={setShowRequestForm} reqForm={reqForm} setReqForm={setReqForm} submitRequest={submitRequest} />}
           {tab === 'regalias' && <MemberRegalias />}
+          {tab === 'clubs' && <MemberClubs />}
           {tab === 'referral' && <MemberReferrals referralData={referralData} />}
           {tab === 'benefits' && <MemberBenefits commerces={commerces} />}
         </Suspense>

@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import axios from 'axios';
+import api from '../lib/api';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { MapPin, Star, Calendar, Users, Check, Clock, Hotel, Mountain, ArrowLeft, Share2, Heart, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { toast } from 'sonner';
-
-const API = process.env.REACT_APP_BACKEND_URL;
 
 export default function TripDetailPage() {
   const { id } = useParams();
@@ -19,20 +17,29 @@ export default function TripDetailPage() {
   useDocumentTitle(pkg?.title || 'Detalle del Paquete');
 
   useEffect(() => {
-    axios.get(`${API}/api/packages/${id}`).then(r => { setPkg(r.data); setLoading(false); }).catch(() => setLoading(false));
+    let cancelled = false;
+    api.get(`/packages/${id}`)
+      .then(r => { if (!cancelled) { setPkg(r.data); setLoading(false); } })
+      .catch(e => {
+        console.error('Failed to load package', id, e);
+        if (!cancelled) { setPkg(null); setLoading(false); }
+      });
+    return () => { cancelled = true; };
   }, [id]);
 
   const submitQuote = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(`${API}/api/quotations`, { ...quoteForm, package_id: id });
+      await api.post(`/quotations`, { ...quoteForm, package_id: id });
       toast.success('Cotizacion enviada correctamente');
       setShowQuoteForm(false);
       setQuoteForm({ name: '', email: '', phone: '', contract_number: '', message: '', guests: 2 });
     } catch { toast.error('Error al enviar cotizacion'); }
   };
 
-  const allImages = pkg ? [pkg.image_url, ...(pkg.gallery || [])].filter(Boolean) : [];
+  const allImages = pkg ? [pkg.image_url, ...(Array.isArray(pkg.gallery) ? pkg.gallery : [])].filter(Boolean) : [];
+  const memberPrice = Number(pkg?.member_price) || 0;
+  const fmtPrice = (v) => (Number(v) || 0).toLocaleString();
 
   if (loading) return (
     <div className="min-h-screen pt-20 bg-secondary/20">
@@ -134,12 +141,12 @@ export default function TripDetailPage() {
             </div>
 
             {/* Includes */}
-            {pkg.includes && pkg.includes.length > 0 && (
+            {Array.isArray(pkg.includes) && pkg.includes.length > 0 && (
               <div className="bg-white rounded-2xl p-6 border border-border" data-testid="trip-includes">
                 <h2 className="font-heading text-lg font-semibold mb-4 text-primary">Que Incluye</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {pkg.includes.map((item) => (
-                    <div key={item} className="flex items-center gap-3 p-3 bg-emerald-50/50 rounded-xl border border-emerald-100">
+                  {pkg.includes.map((item, idx) => (
+                    <div key={`inc-${idx}`} className="flex items-center gap-3 p-3 bg-emerald-50/50 rounded-xl border border-emerald-100">
                       <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
                         <Check className="w-3.5 h-3.5 text-emerald-600" />
                       </div>
@@ -151,21 +158,21 @@ export default function TripDetailPage() {
             )}
 
             {/* Itinerary */}
-            {pkg.itinerary && pkg.itinerary.length > 0 && (
+            {Array.isArray(pkg.itinerary) && pkg.itinerary.length > 0 && (
               <div className="bg-white rounded-2xl p-6 border border-border" data-testid="trip-itinerary">
                 <h2 className="font-heading text-lg font-semibold mb-4 text-primary">Itinerario Dia por Dia</h2>
                 <div className="space-y-4">
                   {pkg.itinerary.map((day, i) => (
-                    <div key={`day-${day.day || i}`} className="flex gap-4">
+                    <div key={`day-${i}`} className="flex gap-4">
                       <div className="flex flex-col items-center">
                         <div className="w-10 h-10 rounded-full font-bold text-sm flex items-center justify-center shrink-0 text-white bg-primary">
-                          {day.day || i + 1}
+                          {day?.day || i + 1}
                         </div>
                         {i < pkg.itinerary.length - 1 && <div className="w-0.5 flex-1 bg-border mt-2" />}
                       </div>
                       <div className="pb-6">
-                        <h3 className="font-semibold text-sm mb-1">{day.title || `Dia ${day.day || i + 1}`}</h3>
-                        <p className="text-sm text-muted-foreground leading-relaxed">{day.description}</p>
+                        <h3 className="font-semibold text-sm mb-1">{day?.title || `Dia ${day?.day || i + 1}`}</h3>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{day?.description || ''}</p>
                       </div>
                     </div>
                   ))}
@@ -182,12 +189,12 @@ export default function TripDetailPage() {
                 <div className="mb-4">
                   <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Desde</p>
                   <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-bold text-primary">Q.{pkg.price?.toLocaleString()}</span>
+                    <span className="text-3xl font-bold text-primary">Q.{fmtPrice(pkg.price)}</span>
                     <span className="text-sm text-muted-foreground">por persona</span>
                   </div>
-                  {pkg.member_price > 0 && (
+                  {memberPrice > 0 && (
                     <div className="mt-2 p-2 rounded-lg border bg-accent/10 border-accent/20">
-                      <p className="text-xs font-semibold text-accent-foreground">Precio Socio: Q.{pkg.member_price.toLocaleString()}</p>
+                      <p className="text-xs font-semibold text-accent-foreground">Precio Socio: Q.{fmtPrice(memberPrice)}</p>
                     </div>
                   )}
                 </div>
