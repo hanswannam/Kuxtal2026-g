@@ -10,11 +10,15 @@ Sistema CRM para club vacacional con web publica estilo Expedia, programa Kuxtal
 - Theme: Navy #1B325F (--primary), Verde Lima #99D63B (--accent)
 
 ## All Implemented Features
-- Core: Website, Member (8 tabs), Admin (13 tabs), Commerce (5 tabs), Auth (5 roles), Push, PWA, Chat, Referrals, Analytics
+- Core: Website, Member (8 tabs), Admin (15 tabs: Dashboard, Importar, Analytics, Socios, Paquetes, Comercios, Clubs, Regalías, Cotizaciones, Referidos, Anuncios, Push, Solicitudes, Usuarios, Config), Commerce (5 tabs), Auth (5 roles), Push, PWA, Chat, Referrals, Analytics
 - Security: XSS (DOMPurify strict whitelist), DELETE_SECRET env, secrets module for crypto-random, error logging in catch blocks
 - AI Import: Individual + Batch Google Drive, PDF image extraction, Gemini 2.5 Flash
 - Website: Expedia-style homepage, search with filters/sort, trip detail with gallery/itinerary
 - Kuxtal Club: Premium branding, benefits page, digital coupon QR system (generation + scanner)
+- Member extended profile (2026-02): 18 new fields (propietario, copropietario, contrato/facturación, observaciones) mapped from DATOS HANSEN.xlsx. DPI EN LETRAS intentionally omitted per user request.
+- Regalías admin module (2026-02): CRUD for certificates/gifts assigned to members; member portal shows "Mis Regalías" (filtered by member_id).
+- Clubs Vacacionales admin module (2026-02): CRUD with logo, description, address, benefits list; public GET.
+- Member Dashboard cleanup (2026-02): "Familia" tab removed; "Regalías" tab added.
 - Code Quality: Component refactoring, lazy loading, ErrorBoundary, SEO OG tags, 30+ MongoDB indexes
 
 ## Code Review Status (Applied)
@@ -33,8 +37,12 @@ Sistema CRM para club vacacional con web publica estilo Expedia, programa Kuxtal
 - Delete Secret: BORRAR YA
 
 ## Pending / Backlog
+- [ ] Backend refactoring: server.py has grown to 2167 lines — split into routers (members, regalias, clubs, commerce, packages, auth) for maintainability
 - [ ] Backend refactoring: import_package_from_drive() complexity (break into smaller functions)
 - [ ] Frontend refactoring: CommercePortal.js (491 lines), CommerceDetailPage.js, ChatPage.js, HomePage.js
+- [ ] Fix pre-existing test files test_kuxtal_api.py / test_coupons.py (missing BASE_URL)
 - [ ] Configurar dominio kuxtaltravelgt.com
-- [ ] Notificaciones por email (SendGrid/Resend)
-- [ ] Sistema de reviews/testimonios
+- [ ] Notificaciones por email (SendGrid/Resend) (P1)
+- [ ] Sistema de reviews/testimonios (P1)
+- [ ] Mapa interactivo de destinos (P2)
+- [ ] Reportes exportables de cupones canjeados (P2)
