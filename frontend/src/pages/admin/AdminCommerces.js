@@ -42,7 +42,7 @@ export function AdminCommerces({ commerces, commerceForm, setCommerceForm, showC
       {showCommerceForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in" data-testid="commerce-form-modal">
           <div className="bg-white rounded-2xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
-            <h3 className="font-heading text-xl font-semibold mb-4">Nuevo Comercio</h3>
+            <h3 className="font-heading text-xl font-semibold mb-4">{commerceForm._id ? 'Editar Comercio' : 'Nuevo Comercio'}</h3>
             <form onSubmit={saveCommerce} className="space-y-3">
               <div><Label className="text-xs">Nombre</Label><Input value={commerceForm.name} onChange={e => setCommerceForm({...commerceForm, name: e.target.value})} required className="rounded-xl mt-1" data-testid="cf-name" /></div>
               <div><Label className="text-xs">Descripcion</Label><Textarea value={commerceForm.description} onChange={e => setCommerceForm({...commerceForm, description: e.target.value})} className="rounded-xl mt-1" data-testid="cf-desc" /></div>
@@ -75,7 +75,7 @@ export function AdminCommerces({ commerces, commerceForm, setCommerceForm, showC
               <div><Label className="text-xs">Codigo de Validacion</Label><Input value={commerceForm.validation_code} onChange={e => setCommerceForm({...commerceForm, validation_code: e.target.value.toUpperCase()})} placeholder="Ej: MICOMERCIO01" className="rounded-xl mt-1 font-mono" data-testid="cf-code" /></div>
               <div className="flex gap-3 pt-2">
                 <Button type="button" variant="outline" onClick={() => setShowCommerceForm(false)} className="flex-1 rounded-xl">Cancelar</Button>
-                <Button type="submit" className="flex-1 rounded-xl bg-primary hover:bg-primary/90" data-testid="cf-submit">Crear</Button>
+                <Button type="submit" className="flex-1 rounded-xl bg-primary hover:bg-primary/90" data-testid="cf-submit">{commerceForm._id ? 'Guardar' : 'Crear'}</Button>
               </div>
             </form>
           </div>

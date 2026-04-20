@@ -1412,6 +1412,131 @@ async def push_history(request: Request):
 
 # ── Commerce Auth (login with commerce email) ──
 
+# ── Regalías (Gifts/Certificates for Members) ──
+
+@api_router.post("/regalias")
+async def create_regalia(request: Request):
+    user = await require_role("super_admin", "admin")(request)
+    body = await request.json()
+    regalia = {
+        "name": body.get("name", ""),
+        "image_url": body.get("image_url", ""),
+        "member_id": body.get("member_id", ""),
+        "member_name": body.get("member_name", ""),
+        "start_date": body.get("start_date", ""),
+        "end_date": body.get("end_date", ""),
+        "used": False,
+        "status": "active",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by": str(user["_id"]),
+    }
+    result = await db.regalias.insert_one(regalia)
+    regalia["_id"] = str(result.inserted_id)
+    return regalia
+
+@api_router.get("/regalias")
+async def list_regalias(request: Request, member_id: Optional[str] = None):
+    user = await get_current_user(request)
+    query = {"status": "active"}
+    if user["role"] in ["member", "family"]:
+        query["member_id"] = str(user["_id"])
+    elif member_id:
+        query["member_id"] = member_id
+    regalias = []
+    async for r in db.regalias.find(query).sort("created_at", -1):
+        regalias.append(serialize_doc(r))
+    return regalias
+
+@api_router.put("/regalias/{regalia_id}/toggle-used")
+async def toggle_regalia_used(regalia_id: str, request: Request):
+    user = await require_role("super_admin", "admin")(request)
+    reg = await db.regalias.find_one({"_id": ObjectId(regalia_id)})
+    if not reg:
+        raise HTTPException(status_code=404, detail="Regalia no encontrada")
+    new_used = not reg.get("used", False)
+    await db.regalias.update_one({"_id": ObjectId(regalia_id)}, {"$set": {"used": new_used}})
+    return {"used": new_used}
+
+@api_router.delete("/regalias/{regalia_id}")
+async def delete_regalia(regalia_id: str, request: Request):
+    user = await require_role("super_admin", "admin")(request)
+    await verify_delete_code(request)
+    await db.regalias.update_one({"_id": ObjectId(regalia_id)}, {"$set": {"status": "inactive"}})
+    return {"message": "Regalia eliminada"}
+
+# ── Clubs Vacacionales ──
+
+@api_router.post("/clubs")
+async def create_club(request: Request):
+    user = await require_role("super_admin", "admin")(request)
+    body = await request.json()
+    club = {
+        "name": body.get("name", ""),
+        "logo_url": body.get("logo_url", ""),
+        "description": body.get("description", ""),
+        "address": body.get("address", ""),
+        "benefits": body.get("benefits", []),
+        "status": "active",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    result = await db.vacation_clubs.insert_one(club)
+    club["_id"] = str(result.inserted_id)
+    return club
+
+@api_router.get("/clubs")
+async def list_clubs():
+    clubs = []
+    async for c in db.vacation_clubs.find({"status": "active"}).sort("created_at", -1):
+        clubs.append(serialize_doc(c))
+    return clubs
+
+@api_router.put("/clubs/{club_id}")
+async def update_club(club_id: str, request: Request):
+    user = await require_role("super_admin", "admin")(request)
+    body = await request.json()
+    update_data = {k: v for k, v in body.items() if k != "_id"}
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db.vacation_clubs.update_one({"_id": ObjectId(club_id)}, {"$set": update_data})
+    updated = await db.vacation_clubs.find_one({"_id": ObjectId(club_id)})
+    return serialize_doc(updated)
+
+@api_router.delete("/clubs/{club_id}")
+async def delete_club(club_id: str, request: Request):
+    user = await require_role("super_admin", "admin")(request)
+    await verify_delete_code(request)
+    await db.vacation_clubs.update_one({"_id": ObjectId(club_id)}, {"$set": {"status": "inactive"}})
+    return {"message": "Club eliminado"}
+
+# ── Member Observations ──
+
+@api_router.post("/members/{member_id}/observations")
+async def add_observation(member_id: str, request: Request):
+    user = await require_role("super_admin", "admin")(request)
+    body = await request.json()
+    observation = {
+        "member_id": member_id,
+        "content": body.get("content", ""),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by": user.get("name", "Admin"),
+    }
+    result = await db.member_observations.insert_one(observation)
+    observation["_id"] = str(result.inserted_id)
+    return observation
+
+@api_router.get("/members/{member_id}/observations")
+async def get_observations(member_id: str, request: Request):
+    user = await get_current_user(request)
+    observations = []
+    async for o in db.member_observations.find({"member_id": member_id}).sort("created_at", -1):
+        observations.append(serialize_doc(o))
+    return observations
+
+@api_router.delete("/observations/{obs_id}")
+async def delete_observation(obs_id: str, request: Request):
+    user = await require_role("super_admin", "admin")(request)
+    await db.member_observations.delete_one({"_id": ObjectId(obs_id)})
+    return {"message": "Observacion eliminada"}
+
 @api_router.post("/auth/commerce-login")
 async def commerce_login(request: Request, response: Response):
     body = await request.json()

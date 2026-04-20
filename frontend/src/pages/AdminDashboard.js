@@ -144,11 +144,18 @@ export default function AdminDashboard() {
 
   const saveCommerce = async (e) => {
     e.preventDefault();
-    await api.post('/commerce', commerceForm);
-    toast.success('Comercio creado');
-    setShowCommerceForm(false);
-    setCommerceForm({ name: '', description: '', category: 'Servicios', location: '', phone: '', email: '', website: '', logo_url: '', benefit_description: '', validation_code: '', status: 'active' });
-    loadData();
+    try {
+      if (commerceForm._id) {
+        await api.put(`/commerce/${commerceForm._id}`, commerceForm);
+        toast.success('Comercio actualizado');
+      } else {
+        await api.post('/commerce', commerceForm);
+        toast.success('Comercio creado');
+      }
+      setShowCommerceForm(false);
+      setCommerceForm({ name: '', description: '', category: 'Servicios', location: '', phone: '', email: '', website: '', logo_url: '', benefit_description: '', validation_code: '', status: 'active' });
+      loadData();
+    } catch (e) { toast.error(e.response?.data?.detail || 'Error al guardar comercio'); }
   };
   const deleteCommerce = async (id, code) => { await api.delete(`/commerce/${id}?delete_code=${encodeURIComponent(code)}`); loadData(); toast.success('Eliminado'); };
 
