@@ -1461,7 +1461,10 @@ async def list_regalias(request: Request, member_id: Optional[str] = None, all: 
     user = await get_current_user(request)
     query = {"status": "active"}
     if user["role"] in ["member", "family"]:
-        query["member_id"] = user.get("member_id", "")
+        uid = user.get("member_id", "")
+        if not uid:
+            return []
+        query["member_id"] = uid
     elif member_id:
         query["member_id"] = member_id
     # When `all=true` is passed by admin, return every active regalia (for socio-form picker)
@@ -1487,11 +1490,11 @@ async def assign_regalias_to_member(member_id: str, request: Request):
         {"member_id": member_id, "_id": {"$nin": [ObjectId(x) for x in ids if ObjectId.is_valid(x)]}},
         {"$set": {"member_id": "", "member_name": ""}}
     )
-    # Attach selected regalias to this member
+    # Attach selected regalias to this member — but only those currently free or already owned by this member
     valid_oids = [ObjectId(x) for x in ids if ObjectId.is_valid(x)]
     if valid_oids:
         await db.regalias.update_many(
-            {"_id": {"$in": valid_oids}},
+            {"_id": {"$in": valid_oids}, "$or": [{"member_id": ""}, {"member_id": {"$exists": False}}, {"member_id": member_id}]},
             {"$set": {"member_id": member_id, "member_name": member_name}}
         )
     return {"message": "Regalías actualizadas", "count": len(valid_oids)}

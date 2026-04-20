@@ -16,9 +16,10 @@ Sistema CRM para club vacacional con web publica estilo Expedia, programa Kuxtal
 - Website: Expedia-style homepage, search with filters/sort, trip detail with gallery/itinerary
 - Kuxtal Club: Premium branding, benefits page, digital coupon QR system (generation + scanner)
 - Member extended profile (2026-02): 18 new fields (propietario, copropietario, contrato/facturación, observaciones) mapped from DATOS HANSEN.xlsx. DPI EN LETRAS intentionally omitted per user request.
-- Regalías admin module (2026-02): CRUD for certificates/gifts assigned to members; member portal shows "Mis Regalías" (filtered by member_id).
-- Clubs Vacacionales admin module (2026-02): CRUD with logo, description, address, benefits list; public GET.
-- Member Dashboard cleanup (2026-02): "Familia" tab removed; "Regalías" tab added.
+- Regalías admin module (2026-02): CRUD for certificates/gifts assigned to members; member portal shows "Mis Regalías" (filtered by member_id). Multi-picker checkbox added to socio EDIT form to activate regalias for a socio; PUT /api/members/{id}/regalias with hijack protection.
+- Clubs Vacacionales admin module (2026-02): CRUD with logo, description, address, benefits list; public GET. Member portal "Clubs" tab lists all clubs.
+- Member Dashboard cleanup (2026-02): "Familia" tab removed; "Regalías" + "Clubs" tabs added (9 tabs total).
+- TripDetailPage hardening (2026-02): switched to api wrapper; Array.isArray guards on itinerary/includes/gallery; numeric coercion for memberPrice; fmtPrice helper.
 - Code Quality: Component refactoring, lazy loading, ErrorBoundary, SEO OG tags, 30+ MongoDB indexes
 
 ## Code Review Status (Applied)
