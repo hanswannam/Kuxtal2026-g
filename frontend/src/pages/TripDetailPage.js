@@ -6,6 +6,7 @@ import { Badge } from '../components/ui/badge';
 import { MapPin, Star, Calendar, Users, Check, Clock, Hotel, Mountain, ArrowLeft, Share2, Heart, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { toast } from 'sonner';
+import { CountdownTimer } from '../components/CountdownTimer';
 
 export default function TripDetailPage() {
   const { id } = useParams();
@@ -201,6 +202,10 @@ export default function TripDetailPage() {
                     Los precios pueden variar según fechas, temporada y disponibilidad. Contáctanos para recibir una cotización actualizada.
                   </p>
                 </div>
+
+                {pkg.promo_end && (
+                  <CountdownTimer endDate={pkg.promo_end} label="Promoción termina en" className="mb-4" />
+                )}
 
                 <div className="space-y-3 mb-5 text-sm">
                   <div className="flex items-center justify-between py-2 border-b border-border">

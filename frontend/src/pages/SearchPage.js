@@ -5,6 +5,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Search, MapPin, Star, Calendar, Filter, X, SlidersHorizontal, Package, Hotel, Compass, Users, ArrowUpDown } from 'lucide-react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
+import { CountdownTimer } from '../components/CountdownTimer';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -251,6 +252,11 @@ export default function SearchPage() {
                       </div>
                     )}
                   </div>
+                  {pkg.promo_end && (
+                    <div className="mt-3 pt-3 border-t border-border">
+                      <CountdownTimer endDate={pkg.promo_end} compact />
+                    </div>
+                  )}
                 </div>
               </Link>
             ))}

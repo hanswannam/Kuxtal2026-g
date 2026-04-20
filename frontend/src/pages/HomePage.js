@@ -5,6 +5,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Search, MapPin, Star, Calendar, Users, ArrowRight, Shield, Heart, Globe, Store, Gift, Plane, Hotel, Compass, Package, ChevronDown } from 'lucide-react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
+import { CountdownTimer } from '../components/CountdownTimer';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 const LOGO_URL = "https://customer-assets.emergentagent.com/job_vacation-club-portal/artifacts/ikgtmopq_logo%20kuxtal.avif";
@@ -311,6 +312,11 @@ export default function HomePage() {
                     <MapPin className="w-3.5 h-3.5 text-accent-foreground" />
                     <span>{pkg.country}</span>
                   </div>
+                  {pkg.promo_end && (
+                    <div className="mt-3 pt-3 border-t border-border">
+                      <CountdownTimer endDate={pkg.promo_end} compact />
+                    </div>
+                  )}
                 </div>
               </Link>
             ))}

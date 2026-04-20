@@ -95,6 +95,20 @@ export function AdminPackages({ packages, packageForm, setPackageForm, showPacka
                 <input type="checkbox" checked={packageForm.featured} onChange={e => setPackageForm({...packageForm, featured: e.target.checked})} id="featured" data-testid="pf-featured" />
                 <Label htmlFor="featured" className="text-xs">Destacado</Label>
               </div>
+              <div className="pt-3 border-t border-border">
+                <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-2">Promoción (opcional)</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Inicio Promoción</Label>
+                    <Input type="date" value={packageForm.promo_start || ''} onChange={e => setPackageForm({...packageForm, promo_start: e.target.value})} className="rounded-xl mt-1" data-testid="pf-promo-start" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Fin Promoción</Label>
+                    <Input type="date" value={packageForm.promo_end || ''} onChange={e => setPackageForm({...packageForm, promo_end: e.target.value})} className="rounded-xl mt-1" data-testid="pf-promo-end" />
+                  </div>
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-2">Si se define una fecha de fin, se mostrará un contador regresivo al público.</p>
+              </div>
               <div className="flex gap-3 pt-2">
                 <Button type="button" variant="outline" onClick={() => { setShowPackageForm(false); setEditingPackage(null); }} className="flex-1 rounded-xl">Cancelar</Button>
                 <Button type="submit" className="flex-1 rounded-xl bg-primary hover:bg-primary/90" data-testid="pf-submit">Guardar</Button>

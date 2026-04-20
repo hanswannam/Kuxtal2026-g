@@ -214,6 +214,9 @@ class PackageCreate(BaseModel):
     gallery: List[str] = []
     featured: bool = False
     status: str = "active"
+    # Promoción (opcional): fechas de inicio/fin para mostrar contador regresivo
+    promo_start: Optional[str] = ""
+    promo_end: Optional[str] = ""
 
 class QuotationRequest(BaseModel):
     package_id: Optional[str] = ""

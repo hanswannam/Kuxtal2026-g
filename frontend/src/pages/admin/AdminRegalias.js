@@ -7,6 +7,7 @@ import { Plus, Gift, Calendar, Check, X, Upload, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../lib/api';
 import { DeleteWithCode } from '../../components/DeleteWithCode';
+import { CountdownTimer } from '../../components/CountdownTimer';
 
 export function AdminRegalias({ members, handleImageUpload, uploading }) {
   const [regalias, setRegalias] = useState([]);
@@ -91,6 +92,11 @@ export function AdminRegalias({ members, handleImageUpload, uploading }) {
                   {r.start_date && <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{new Date(r.start_date).toLocaleDateString('es')}</span>}
                   {r.end_date && <span>- {new Date(r.end_date).toLocaleDateString('es')}</span>}
                 </div>
+                {r.end_date && !r.used && (
+                  <div className="mb-3">
+                    <CountdownTimer endDate={r.end_date} compact />
+                  </div>
+                )}
                 <div className="flex gap-2">
                   <Button size="sm" variant={r.used ? 'secondary' : 'default'} onClick={() => toggleUsed(r._id)} className="flex-1 rounded-lg text-xs" data-testid={`toggle-regalia-${i}`}>
                     {r.used ? <X className="w-3 h-3 mr-1" /> : <Check className="w-3 h-3 mr-1" />}

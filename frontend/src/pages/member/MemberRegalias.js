@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Badge } from '../../components/ui/badge';
 import { Gift, Calendar, Loader2 } from 'lucide-react';
 import api from '../../lib/api';
+import { CountdownTimer } from '../../components/CountdownTimer';
 
 export function MemberRegalias() {
   const [regalias, setRegalias] = useState([]);
@@ -70,6 +71,11 @@ export function MemberRegalias() {
                   )}
                   {r.end_date && <span>→ {new Date(r.end_date).toLocaleDateString('es')}</span>}
                 </div>
+                {r.end_date && !r.used && (
+                  <div className="mt-3">
+                    <CountdownTimer endDate={r.end_date} label="Válido por" />
+                  </div>
+                )}
               </div>
             </div>
           ))}
