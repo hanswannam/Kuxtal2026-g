@@ -3,7 +3,7 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Badge } from '../../components/ui/badge';
-import { Phone, MessageSquare, CreditCard, Clock, TrendingUp } from 'lucide-react';
+import { Phone, MessageSquare, CreditCard, Clock, TrendingUp, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../lib/api';
 
@@ -17,11 +17,25 @@ export function AdminSettings({
   const [recalcCount, setRecalcCount] = useState({ total: 0, with_agency_price: 0, without_agency_price: 0 });
   const [recalcing, setRecalcing] = useState(false);
   const [showRecalcConfirm, setShowRecalcConfirm] = useState(false);
+  const [socials, setSocials] = useState({ facebook: '', instagram: '', tiktok: '', twitter: '', youtube: '', linkedin: '', whatsapp: '' });
+  const [savingSocials, setSavingSocials] = useState(false);
 
   useEffect(() => {
     api.get('/config/pricing-settings').then(r => setPricing(r.data)).catch(() => {});
     api.get('/admin/packages/recalculatable-count').then(r => setRecalcCount(r.data)).catch(() => {});
+    api.get('/config/social-links').then(r => setSocials(r.data)).catch(() => {});
   }, []);
+
+  const saveSocials = async () => {
+    setSavingSocials(true);
+    try {
+      await api.put('/config/social-links', socials);
+      toast.success('Redes sociales guardadas');
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'No se pudo guardar');
+    }
+    setSavingSocials(false);
+  };
 
   const runRecalculate = async () => {
     setRecalcing(true);
@@ -176,6 +190,36 @@ export function AdminSettings({
           </div>
         </div>
       )}
+
+      <div className="bg-white rounded-2xl p-6 border border-border" data-testid="social-links-card">
+        <h2 className="font-heading text-lg font-semibold mb-4 flex items-center gap-2"><Share2 className="w-5 h-5 text-primary" /> Redes sociales (footer)</h2>
+        <p className="text-sm text-muted-foreground mb-4">Los links aparecen como íconos en el pie de la página pública. Deja en blanco los que no uses.</p>
+        <div className="space-y-2">
+          {[
+            { key: 'facebook', label: 'Facebook', placeholder: 'https://facebook.com/kuxtal' },
+            { key: 'instagram', label: 'Instagram', placeholder: 'https://instagram.com/kuxtal' },
+            { key: 'tiktok', label: 'TikTok', placeholder: 'https://tiktok.com/@kuxtal' },
+            { key: 'twitter', label: 'X (Twitter)', placeholder: 'https://x.com/kuxtal' },
+            { key: 'youtube', label: 'YouTube', placeholder: 'https://youtube.com/@kuxtal' },
+            { key: 'linkedin', label: 'LinkedIn', placeholder: 'https://linkedin.com/company/kuxtal' },
+            { key: 'whatsapp', label: 'WhatsApp', placeholder: 'https://wa.me/50255551234 o el número' },
+          ].map(f => (
+            <div key={f.key}>
+              <Label className="text-xs">{f.label}</Label>
+              <Input
+                value={socials[f.key] || ''}
+                onChange={e => setSocials({ ...socials, [f.key]: e.target.value })}
+                placeholder={f.placeholder}
+                className="rounded-xl mt-1"
+                data-testid={`social-${f.key}-input`}
+              />
+            </div>
+          ))}
+          <Button onClick={saveSocials} disabled={savingSocials} className="w-full rounded-xl bg-primary hover:bg-primary/90 mt-2" data-testid="save-socials-btn">
+            {savingSocials ? 'Guardando...' : 'Guardar redes sociales'}
+          </Button>
+        </div>
+      </div>
 
       <a href="/chat" className="block">
         <div className="bg-white rounded-2xl p-6 border border-border hover:border-primary/30 transition-colors">

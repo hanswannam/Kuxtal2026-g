@@ -1643,8 +1643,19 @@ async def delete_commerce_category(name: str, request: Request):
     return {"message": "Categoría eliminada"}
 
 @api_router.get("/commerce")
-async def list_commerce(category: Optional[str] = None, search: Optional[str] = None):
-    query = {"status": "active"}
+async def list_commerce(category: Optional[str] = None, search: Optional[str] = None, status: Optional[str] = None, request: Request = None):
+    # Public consumers get only active/approved commerces. Admins may pass ?status=pending to see pending submissions.
+    is_admin = False
+    if request is not None:
+        try:
+            u = await get_current_user(request)
+            is_admin = u.get("role") in ("super_admin", "admin")
+        except Exception:
+            is_admin = False
+    if is_admin and status:
+        query = {"status": status}
+    else:
+        query = {"status": "active"}
     if category:
         query["category"] = category
     if search:
@@ -1666,21 +1677,25 @@ async def get_commerce(commerce_id: str):
 
 @api_router.post("/commerce")
 async def create_commerce(req: CommerceCreate, request: Request):
-    # Allow public registration
+    # Allow public registration, but public submissions need admin approval before appearing in the public catalog.
+    is_admin = False
     created_by = ""
     try:
         user = await get_current_user(request)
         created_by = user.get("_id", "")
+        is_admin = user.get("role") in ("super_admin", "admin")
     except Exception:
         pass
     doc = req.model_dump()
     doc["created_at"] = datetime.now(timezone.utc).isoformat()
     doc["created_by"] = created_by
+    # Only super_admin/admin can create an already-active commerce. Everyone else goes to pending.
+    doc["status"] = doc.get("status") if is_admin and doc.get("status") else ("active" if is_admin else "pending")
     if not doc["validation_code"]:
         doc["validation_code"] = str(uuid.uuid4())[:8].upper()
     result = await db.commerce.insert_one(doc)
     doc["_id"] = str(result.inserted_id)
-    # Create commerce user account
+    # Create commerce user account (so they can log in to manage their profile regardless of approval state)
     commerce_email = f"commerce_{result.inserted_id}@kuxtal.commerce"
     existing_user = await db.users.find_one({"email": commerce_email})
     if not existing_user:
@@ -1696,15 +1711,87 @@ async def create_commerce(req: CommerceCreate, request: Request):
             })
         except Exception:
             pass
-    # Broadcast to members: new commerce benefit
+    # Only broadcast "new commerce" to members once the commerce is active (direct admin creation).
+    if doc["status"] == "active":
+        await _broadcast_news(
+            title="Nuevo comercio afiliado",
+            message=f"{doc.get('name','')} - {doc.get('benefit_description') or doc.get('category','')}. ¡Disfruta tus beneficios!",
+            link=f"/commerce/{doc['_id']}",
+            image_url=doc.get("logo_url", ""),
+            target="all",
+        )
+    return doc
+
+@api_router.post("/admin/commerce/{commerce_id}/approve")
+async def approve_commerce(commerce_id: str, request: Request):
+    await require_role("super_admin", "admin")(request)
+    pkg = await db.commerce.find_one({"_id": ObjectId(commerce_id)})
+    if not pkg:
+        raise HTTPException(status_code=404, detail="Comercio no encontrado")
+    if pkg.get("status") == "active":
+        return {"message": "El comercio ya estaba activo", "status": "active"}
+    await db.commerce.update_one(
+        {"_id": ObjectId(commerce_id)},
+        {"$set": {"status": "active", "approved_at": datetime.now(timezone.utc).isoformat()}},
+    )
     await _broadcast_news(
         title="Nuevo comercio afiliado",
-        message=f"{doc.get('name','')} - {doc.get('benefit_description') or doc.get('category','')}. ¡Disfruta tus beneficios!",
-        link=f"/commerce/{doc['_id']}",
-        image_url=doc.get("logo_url", ""),
+        message=f"{pkg.get('name','')} - {pkg.get('benefit_description') or pkg.get('category','')}. ¡Disfruta tus beneficios!",
+        link=f"/commerce/{commerce_id}",
+        image_url=pkg.get("logo_url", ""),
         target="all",
     )
-    return doc
+    return {"message": "Comercio autorizado", "status": "active"}
+
+@api_router.post("/admin/commerce/{commerce_id}/reject")
+async def reject_commerce(commerce_id: str, request: Request):
+    await require_role("super_admin", "admin")(request)
+    body = {}
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    reason = (body.get("reason") or "").strip()
+    result = await db.commerce.update_one(
+        {"_id": ObjectId(commerce_id)},
+        {"$set": {"status": "rejected", "rejected_at": datetime.now(timezone.utc).isoformat(), "rejection_reason": reason}},
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Comercio no encontrado")
+    return {"message": "Comercio rechazado", "status": "rejected"}
+
+# ── Social links (footer) ──
+
+class SocialLinks(BaseModel):
+    facebook: str = ""
+    instagram: str = ""
+    tiktok: str = ""
+    twitter: str = ""
+    youtube: str = ""
+    linkedin: str = ""
+    whatsapp: str = ""
+
+@api_router.get("/config/social-links")
+async def get_social_links():
+    cfg = await db.config.find_one({"key": "social_links"})
+    if not cfg:
+        return SocialLinks().model_dump()
+    return {
+        "facebook": cfg.get("facebook", ""),
+        "instagram": cfg.get("instagram", ""),
+        "tiktok": cfg.get("tiktok", ""),
+        "twitter": cfg.get("twitter", ""),
+        "youtube": cfg.get("youtube", ""),
+        "linkedin": cfg.get("linkedin", ""),
+        "whatsapp": cfg.get("whatsapp", ""),
+    }
+
+@api_router.put("/config/social-links")
+async def set_social_links(req: SocialLinks, request: Request):
+    await require_role("super_admin", "admin")(request)
+    doc = {"key": "social_links", **req.model_dump()}
+    await db.config.update_one({"key": "social_links"}, {"$set": doc}, upsert=True)
+    return {"message": "Redes sociales actualizadas", **req.model_dump()}
 
 @api_router.put("/commerce/{commerce_id}")
 async def update_commerce(commerce_id: str, req: CommerceCreate, request: Request):

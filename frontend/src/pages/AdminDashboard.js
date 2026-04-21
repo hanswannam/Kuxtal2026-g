@@ -288,7 +288,7 @@ export default function AdminDashboard() {
           {tab === 'referrals' && <AdminReferrals referrals={referrals} loadData={loadData} />}
           {tab === 'announcements' && <AdminAnnouncements announcements={announcements} announcementForm={announcementForm} setAnnouncementForm={setAnnouncementForm} showAnnouncementForm={showAnnouncementForm} setShowAnnouncementForm={setShowAnnouncementForm} saveAnnouncement={saveAnnouncement} deleteAnn={deleteAnn} />}
           {tab === 'requests' && <AdminRequests vacationReqs={vacationReqs} updateReqStatus={updateReqStatus} />}
-          {tab === 'commerce' && <AdminCommerces commerces={commerces} commerceForm={commerceForm} setCommerceForm={setCommerceForm} showCommerceForm={showCommerceForm} setShowCommerceForm={setShowCommerceForm} commerceCategories={commerceCategories} saveCommerce={saveCommerce} deleteCommerce={deleteCommerce} handleImageUpload={handleImageUpload} uploading={uploading} />}
+          {tab === 'commerce' && <AdminCommerces commerces={commerces} commerceForm={commerceForm} setCommerceForm={setCommerceForm} showCommerceForm={showCommerceForm} setShowCommerceForm={setShowCommerceForm} commerceCategories={commerceCategories} saveCommerce={saveCommerce} deleteCommerce={deleteCommerce} handleImageUpload={handleImageUpload} uploading={uploading} reloadCommerces={loadData} />}
           {tab === 'categories' && <AdminCommerceCategories />}
           {tab === 'clubs' && <AdminClubs handleImageUpload={handleImageUpload} uploading={uploading} />}
           {tab === 'regalias' && <AdminRegalias members={members} handleImageUpload={handleImageUpload} uploading={uploading} />}

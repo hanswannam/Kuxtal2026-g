@@ -1,10 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Textarea } from '../../components/ui/textarea';
 import { Label } from '../../components/ui/label';
 import { Badge } from '../../components/ui/badge';
-import { Plus, Edit, Upload, Search, X, Store, MapPin, Facebook, Instagram, Twitter, Youtube, Trash2, AlertCircle } from 'lucide-react';
+import { Plus, Edit, Upload, Search, X, Store, MapPin, Facebook, Instagram, Twitter, Youtube, Trash2, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { DeleteWithCode } from '../../components/DeleteWithCode';
 import api from '../../lib/api';
@@ -47,11 +47,68 @@ function profileTone(pct) {
   return { bar: 'bg-red-500', bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' };
 }
 
-export function AdminCommerces({ commerces, commerceForm, setCommerceForm, showCommerceForm, setShowCommerceForm, commerceCategories, saveCommerce, deleteCommerce, handleImageUpload, uploading }) {
+function PendingCommerces({ pending, onApprove, onReject }) {
+  if (pending.length === 0) {
+    return (
+      <div className="bg-white rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground" data-testid="pending-empty">
+        <CheckCircle2 className="w-10 h-10 mx-auto mb-2 text-emerald-500" />
+        No hay comercios pendientes de autorización.
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-3" data-testid="pending-list">
+      {pending.map((c, i) => (
+        <div key={c._id} className="bg-amber-50/40 rounded-2xl border border-amber-200 p-4 flex flex-col sm:flex-row gap-4" data-testid={`pending-commerce-${i}`}>
+          <div className="w-20 h-20 rounded-xl bg-secondary overflow-hidden shrink-0 flex items-center justify-center">
+            {c.logo_url ? <img src={c.logo_url} alt={c.name} className="w-full h-full object-cover" /> : <Store className="w-7 h-7 text-muted-foreground" />}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start gap-2 flex-wrap">
+              <h3 className="font-semibold text-base">{c.name}</h3>
+              <Badge className="rounded-full bg-amber-500 text-white text-[10px] h-5">Pendiente</Badge>
+            </div>
+            <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{c.description}</p>
+            <div className="flex gap-3 text-[11px] text-muted-foreground mt-2 flex-wrap">
+              <span>📁 {c.category}</span>
+              {c.location && <span>📍 {c.location}</span>}
+              {c.phone && <span>📞 {c.phone}</span>}
+              {c.email && <span>✉ {c.email}</span>}
+            </div>
+            {c.benefit_description && <p className="text-xs mt-2"><strong>Beneficio:</strong> {c.benefit_description}</p>}
+          </div>
+          <div className="flex sm:flex-col gap-2 shrink-0">
+            <Button onClick={() => onApprove(c)} className="rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs" data-testid={`approve-commerce-${i}`}>
+              <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Autorizar
+            </Button>
+            <Button onClick={() => onReject(c)} variant="outline" className="rounded-full border-red-300 text-red-700 hover:bg-red-50 text-xs" data-testid={`reject-commerce-${i}`}>
+              <X className="w-3.5 h-3.5 mr-1" /> Rechazar
+            </Button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function AdminCommerces({ commerces, commerceForm, setCommerceForm, showCommerceForm, setShowCommerceForm, commerceCategories, saveCommerce, deleteCommerce, handleImageUpload, uploading, reloadCommerces }) {
   const [q, setQ] = useState('');
   const [catFilter, setCatFilter] = useState('');
   const [newCategory, setNewCategory] = useState('');
   const [localCategories, setLocalCategories] = useState(commerceCategories);
+  const [pending, setPending] = useState([]);
+  const [subview, setSubview] = useState('active');  // 'active' | 'pending'
+
+  const loadPending = useCallback(async () => {
+    try {
+      const r = await api.get('/commerce?status=pending');
+      setPending(r.data || []);
+    } catch {
+      setPending([]);
+    }
+  }, []);
+
+  useEffect(() => { loadPending(); }, [loadPending]);
 
   React.useEffect(() => { setLocalCategories(commerceCategories); }, [commerceCategories]);
 
@@ -126,6 +183,39 @@ export function AdminCommerces({ commerces, commerceForm, setCommerceForm, showC
         </Button>
       </div>
 
+      <div className="flex gap-2 mb-4" data-testid="commerce-subview-tabs">
+        <Button size="sm" variant={subview === 'active' ? 'default' : 'outline'} className="rounded-full text-xs" onClick={() => setSubview('active')} data-testid="tab-active-commerces">
+          <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Activos ({commerces.length})
+        </Button>
+        <Button size="sm" variant={subview === 'pending' ? 'default' : 'outline'} className={`rounded-full text-xs ${pending.length > 0 ? 'border-amber-400 text-amber-700' : ''}`} onClick={() => setSubview('pending')} data-testid="tab-pending-commerces">
+          <Clock className="w-3.5 h-3.5 mr-1" /> Pendientes {pending.length > 0 && <span className="ml-1 bg-amber-500 text-white rounded-full w-5 h-5 text-[10px] flex items-center justify-center">{pending.length}</span>}
+        </Button>
+      </div>
+
+      {subview === 'pending' && (
+        <PendingCommerces
+          pending={pending}
+          onApprove={async (c) => {
+            try {
+              await api.post(`/admin/commerce/${c._id}/approve`);
+              toast.success(`${c.name} autorizado`);
+              await loadPending();
+              if (reloadCommerces) reloadCommerces();
+            } catch (e) { toast.error(e.response?.data?.detail || 'Error al autorizar'); }
+          }}
+          onReject={async (c) => {
+            const reason = prompt(`¿Por qué rechazas a ${c.name}? (opcional)`) || '';
+            try {
+              await api.post(`/admin/commerce/${c._id}/reject`, { reason });
+              toast.success(`${c.name} rechazado`);
+              await loadPending();
+            } catch (e) { toast.error(e.response?.data?.detail || 'Error al rechazar'); }
+          }}
+        />
+      )}
+
+      {subview === 'active' && (<>
+
       <div className="bg-white rounded-2xl border border-border p-3 mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2" data-testid="commerce-filters">
         <div className="relative">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -199,6 +289,7 @@ export function AdminCommerces({ commerces, commerceForm, setCommerceForm, showC
           })}
         </div>
       )}
+      </>)}
 
       {showCommerceForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in" data-testid="commerce-form-modal">

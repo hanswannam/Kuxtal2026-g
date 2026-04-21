@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { Search, MapPin, Star, Calendar, Users, ArrowRight, Shield, Heart, Globe, Store, Gift, Plane, Hotel, Compass, Package, ChevronDown } from 'lucide-react';
+import { Search, MapPin, Star, Calendar, Users, ArrowRight, Shield, Heart, Globe, Store, Gift, Plane, Hotel, Compass, Package, ChevronDown, Facebook, Instagram, Twitter, Youtube, Linkedin, MessageCircle } from 'lucide-react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { CountdownTimer } from '../components/CountdownTimer';
 import ImageWithFallback from '../components/ImageWithFallback';
@@ -24,8 +24,13 @@ export default function HomePage() {
   const [dates, setDates] = useState('');
   const [guests, setGuests] = useState('2');
   const [countries, setCountries] = useState([]);
+  const [socialLinks, setSocialLinks] = useState({});
   const navigate = useNavigate();
   useDocumentTitle(null);
+
+  useEffect(() => {
+    axios.get(`${API}/api/config/social-links`).then(r => setSocialLinks(r.data || {})).catch(() => {});
+  }, []);
 
   useEffect(() => {
     axios.get(`${API}/api/packages?featured=true`).then(r => setPackages(r.data.slice(0, 6))).catch(() => {});
@@ -469,6 +474,17 @@ export default function HomePage() {
               <p className="text-sm text-white/60 leading-relaxed">
                 "Kuxtal" significa "vida" en maya. Transformamos suenos en aventuras inolvidables.
               </p>
+              {(socialLinks.facebook || socialLinks.instagram || socialLinks.tiktok || socialLinks.twitter || socialLinks.youtube || socialLinks.linkedin || socialLinks.whatsapp) && (
+                <div className="flex gap-2 mt-4" data-testid="footer-socials">
+                  {socialLinks.facebook && <a href={socialLinks.facebook} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors" aria-label="Facebook" data-testid="social-facebook"><Facebook className="w-4 h-4" /></a>}
+                  {socialLinks.instagram && <a href={socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors" aria-label="Instagram" data-testid="social-instagram"><Instagram className="w-4 h-4" /></a>}
+                  {socialLinks.tiktok && <a href={socialLinks.tiktok} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-xs font-bold transition-colors" aria-label="TikTok" data-testid="social-tiktok">TT</a>}
+                  {socialLinks.twitter && <a href={socialLinks.twitter} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors" aria-label="X" data-testid="social-twitter"><Twitter className="w-4 h-4" /></a>}
+                  {socialLinks.youtube && <a href={socialLinks.youtube} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors" aria-label="YouTube" data-testid="social-youtube"><Youtube className="w-4 h-4" /></a>}
+                  {socialLinks.linkedin && <a href={socialLinks.linkedin} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors" aria-label="LinkedIn" data-testid="social-linkedin"><Linkedin className="w-4 h-4" /></a>}
+                  {socialLinks.whatsapp && <a href={socialLinks.whatsapp.startsWith('http') ? socialLinks.whatsapp : `https://wa.me/${socialLinks.whatsapp.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors" aria-label="WhatsApp" data-testid="social-whatsapp"><MessageCircle className="w-4 h-4" /></a>}
+                </div>
+              )}
             </div>
             <div>
               <h4 className="font-semibold mb-3 text-sm uppercase tracking-wider">Enlaces</h4>

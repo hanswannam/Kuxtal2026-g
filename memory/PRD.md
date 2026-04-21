@@ -82,6 +82,18 @@ Sistema CRM para club vacacional con web publica estilo Expedia, programa Kuxtal
   - Endpoints `GET /api/admin/packages/recalculatable-count` (devuelve cuántos paquetes tienen/no tienen agency_price) y `POST /api/admin/packages/recalculate-prices` (aplica los markups globales a todos los paquetes con agency_price>0).
   - UI AdminSettings: botón "Recalcular todos los paquetes con los markups actuales" (`open-recalc-btn`) abre modal de confirmación (`recalc-confirm-modal`) que muestra la fórmula y cuántos se actualizarán.
   - Protección: paquetes sin agency_price NO se tocan. Los precios custom de paquetes con agency_price se sobreescriben según el markup global.
+- Autorización de comercios públicos (2026-02, iter 34):
+  - POST /api/commerce público → `status: pending` (no aparece en catálogo público hasta autorización).
+  - POST /api/commerce como admin → `status: active` directo.
+  - GET /api/commerce filtra por status=active por defecto. Admin puede pasar `?status=pending`.
+  - Nuevos endpoints `POST /api/admin/commerce/{id}/approve` y `POST /api/admin/commerce/{id}/reject`.
+  - Push notification a socios solo se dispara al autorizar (no al enviar).
+  - UI AdminCommerces: sub-tabs "Activos / Pendientes" con badge amber + contador. Cada card pendiente tiene botones Autorizar (verde) / Rechazar (rojo con motivo prompt).
+- Redes sociales en footer (2026-02, iter 34):
+  - Nuevo config key `social_links` con Facebook, Instagram, TikTok, X/Twitter, YouTube, LinkedIn, WhatsApp.
+  - Endpoints `GET/PUT /api/config/social-links`.
+  - AdminSettings card "Redes sociales (footer)" con 7 inputs + botón guardar.
+  - HomePage footer renderiza solo los íconos de las redes que tienen URL.
 - Package Visibility (2026-02, iter 21): campo `visibility` = public|internal. Endpoints públicos filtran visibility=internal. Admin management usa ?include_internal=true. AdminPackages con filtro Todos/Público/Interno + radio en form.
 - Quotations tracking & filters (2026-02, iter 21): created_at, created_by_id, created_by_name ('Sistema (web pública)' para web pública, nombre del admin para POST /quotations/admin). GET /api/quotations soporta created_by, date_from, date_to. UI con quot-date-from/to, quot-filter-creator, quot-clear-filters, meta muestra '· por <creador>'.
 - Code Quality: Component refactoring, lazy loading, ErrorBoundary, SEO OG tags, 30+ MongoDB indexes
