@@ -8,6 +8,7 @@ import { Badge } from '../components/ui/badge';
 import { MapPin, Phone, Mail, Globe, Gift, ArrowLeft, Calendar, Star, CheckCircle2, ExternalLink, Play, Image, Facebook, Instagram } from 'lucide-react';
 import { toast } from 'sonner';
 import ScratchCanvas from '../components/ScratchCanvas';
+import ImageWithFallback from '../components/ImageWithFallback';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -82,7 +83,7 @@ export default function CommerceDetailPage() {
         <div className="bg-white rounded-2xl p-6 sm:p-8 border border-border mb-6" data-testid="commerce-header">
           <div className="flex items-start gap-5">
             <div className="w-20 h-20 rounded-2xl bg-accent flex items-center justify-center text-3xl shrink-0 overflow-hidden">
-              {commerce.logo_url ? <img src={commerce.logo_url} alt={commerce.name} className="w-full h-full object-cover" /> : '🏪'}
+              {commerce.logo_url ? <img src={commerce.logo_url} alt={commerce.name} className="w-full h-full object-cover" /> : <ImageWithFallback src="" alt={commerce.name} className="w-full h-full" />}
             </div>
             <div>
               <Badge variant="secondary" className="rounded-full text-xs mb-2">{commerce.category}</Badge>

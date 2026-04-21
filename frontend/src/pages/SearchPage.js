@@ -6,6 +6,7 @@ import { Input } from '../components/ui/input';
 import { Search, MapPin, Star, Calendar, Filter, X, SlidersHorizontal, Package, Hotel, Compass, Users, ArrowUpDown } from 'lucide-react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { CountdownTimer } from '../components/CountdownTimer';
+import ImageWithFallback from '../components/ImageWithFallback';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
@@ -199,11 +200,10 @@ export default function SearchPage() {
                 data-testid={`search-result-${i}`}
               >
                 <div className="relative aspect-[4/3] overflow-hidden">
-                  <img
-                    src={pkg.image_url || 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600'}
+                  <ImageWithFallback
+                    src={pkg.image_url}
                     alt={pkg.title}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    loading="lazy"
                   />
                   <div className="absolute top-3 left-3">
                     <span className="px-3 py-1 bg-white/90 backdrop-blur-sm rounded-full text-xs font-semibold">

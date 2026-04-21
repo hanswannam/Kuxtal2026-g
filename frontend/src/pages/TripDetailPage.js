@@ -7,6 +7,7 @@ import { MapPin, Star, Calendar, Users, Check, Clock, Hotel, Mountain, ArrowLeft
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { toast } from 'sonner';
 import { CountdownTimer } from '../components/CountdownTimer';
+import ImageWithFallback from '../components/ImageWithFallback';
 
 export default function TripDetailPage() {
   const { id } = useParams();
@@ -74,8 +75,8 @@ export default function TripDetailPage() {
       {/* Hero / Gallery */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
         <div className="relative rounded-2xl overflow-hidden aspect-[21/9] sm:aspect-[2.5/1]" data-testid="trip-gallery">
-          <img
-            src={allImages[galleryIndex] || 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200'}
+          <ImageWithFallback
+            src={allImages[galleryIndex]}
             alt={pkg.title}
             className="w-full h-full object-cover"
           />

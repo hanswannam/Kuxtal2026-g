@@ -8,6 +8,7 @@ import { Plus, Edit, X, Upload, Package, Search, AlertCircle, FileSpreadsheet } 
 import { toast } from 'sonner';
 import { DeleteWithCode } from '../../components/DeleteWithCode';
 import BulkImportModal from '../../components/BulkImportModal';
+import ImageWithFallback from '../../components/ImageWithFallback';
 import api from '../../lib/api';
 
 const DEACTIVATION_PRESETS = [
@@ -147,7 +148,7 @@ export function AdminPackages({ packages, packageForm, setPackageForm, showPacka
           return (
           <div key={p._id} className={`bg-white rounded-2xl border overflow-hidden transition-all ${isActive ? 'border-border' : 'border-red-200 opacity-70'}`} data-testid={`pkg-card-${i}`}>
             <div className="aspect-video bg-muted overflow-hidden relative">
-              {p.image_url ? <img src={p.image_url} alt={p.title} className={`w-full h-full object-cover ${!isActive ? 'grayscale' : ''}`} /> : <div className="w-full h-full flex items-center justify-center text-muted-foreground"><Package className="w-8 h-8" /></div>}
+              {p.image_url ? <ImageWithFallback src={p.image_url} alt={p.title} className={`w-full h-full object-cover ${!isActive ? 'grayscale' : ''}`} /> : <ImageWithFallback src="" alt={p.title} className={`w-full h-full ${!isActive ? 'grayscale' : ''}`} />}
               {!isActive && <div className="absolute inset-0 bg-black/20 flex items-center justify-center"><Badge className="rounded-full bg-red-600 text-white">Inactivo</Badge></div>}
             </div>
             <div className="p-4">
