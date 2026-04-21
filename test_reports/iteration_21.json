@@ -1,0 +1,76 @@
+{
+  "summary": "Iteration 21 testing complete. Validated Permissions Matrix, Package Visibility (public/internal), and Quotations filters (date range + creator) end-to-end. 20/20 backend tests pass. Frontend UI verified: super_admin sees all 17 tabs, Cotizaciones CTA prominent, permissions modal with 17 feature toggles works, AdminPackages visibility filter (Todos/Public/Internal) + form visibility field work, AdminQuotations date/creator filters live-filter the list and rows display creator name ('por Super Admin' / 'por Sistema (web pública)').",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "PUT /api/admin/users/{user_id}", "issue": "Review spec referenced PUT /api/admin/users/{user_id} for updating permissions, but the actual implemented route is PUT /api/admin/users/{user_id}/permissions. The frontend AdminUsers page uses the /permissions subpath correctly, so no functional break. Consider aligning docs."},
+      {"endpoint": "GET /api/packages (admin)", "issue": "Admin without ?include_internal=true still gets the public-only filter (visibility=public OR missing). Management panels must pass include_internal=true explicitly. Verified AdminPackages.js does so. Note for future: may be clearer to default admin requests to include internal."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "passed_tests": {
+    "backend": [
+      "POST /api/auth/login admin legacy credentials still works (super_admin role)",
+      "POST /api/auth/member-login KT-001/1234567890101 still works",
+      "GET /api/admin/users returns users list without password_hash leakage and includes super_admin",
+      "GET /api/admin/feature-keys returns FEATURE_KEYS including dashboard/quotations/packages",
+      "POST /api/admin/users creates admin with permissions; PUT /admin/users/{id}/permissions updates and persists (re-GET confirms)",
+      "Super admin bypasses permission gates: /api/members, /api/quotations, /api/packages all 200",
+      "POST /api/packages with visibility=internal returns the visibility field correctly",
+      "GET /api/packages (public, no auth) does NOT return visibility=internal packages",
+      "GET /api/packages?search=TEST_INTERNAL does not leak internal packages",
+      "GET /api/packages?include_internal=true (admin) returns internal packages for management",
+      "POST /api/quotations (public) sets created_by_name='Sistema (web pública)' and created_by_id=None",
+      "POST /api/quotations/admin sets created_by_name/id from authenticated admin user",
+      "GET /api/quotations returns created_at + created_by_name fields",
+      "GET /api/quotations?created_by=system filters to system-created quotations",
+      "GET /api/quotations?date_from=&date_to= filters by date range correctly (past date range returns [])",
+      "Public regressions: /api/commerce/categories, /api/packages, /api/clubs still 200"
+    ],
+    "frontend": [
+      "Admin login flow (click Admin tab -> email/password -> /admin redirect) works",
+      "Super admin sees 17 admin tabs (quotations first + dashboard/import/analytics/members/clients/packages/commerce/categories/clubs/regalias/referrals/announcements/push/requests/users/settings)",
+      "Cotizaciones CTA card (data-testid=cta-quotations) visible and prominent at top",
+      "AdminUsers: permissions button opens perms-modal with 17 feature toggles (Dashboard, Cotizaciones, Clientes, Socios, Paquetes, Comercios, Categorías, Clubs, Regalías, Analytics, Anuncios, Notificaciones push, Importar, Referidos, Solicitudes, Usuarios, Configuración) and Save button",
+      "AdminPackages: pkg-filter-visibility dropdown has 3 options (Todos/Solo visibles en web/Solo internos)",
+      "AdminPackages create form contains 'Visibilidad' and Público options",
+      "AdminQuotations: date-from, date-to inputs + creator dropdown present; creator options populated with users from backend (Sistema + Super Admin)",
+      "AdminQuotations: row meta shows '21/4/26, 4:29 · por Super Admin' and '· por Sistema (web pública)' for system-created",
+      "AdminQuotations: date filter 2020-01-01 → 2020-01-02 shows quot-empty state; Clear Filters restores 26 rows"
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration21_permissions_visibility.py",
+    "/app/test_reports/pytest/pytest_results_iter21.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py now ~2729 lines; still over the 700-line threshold. Router split (auth/admin_users/packages/quotations) remains recommended.",
+    "FEATURE_KEYS is a hardcoded Python list on backend and mirrored in AdminUsers.js. If a new feature/tab is added, both must be updated. Consider exposing a single source via GET /api/admin/feature-keys (already exists) and letting AdminUsers.js render from that response instead of duplicating the list.",
+    "AdminDashboard permission gating: `hasPerm = role==='super_admin' || !permissions || Object.keys(perms).length===0 || !!perms[key]`. The Object.keys().length===0 fallback means any admin with empty perms sees ALL tabs — this masks the feature. Decide whether empty-perms should mean 'no access' or 'legacy-all-access' and document. Currently documented as legacy fallback which is fine.",
+    "POST /api/admin/users defaults new 'admin' role to {dashboard, quotations, clients} if perms omitted. UI creation form does not pass permissions on create, so newly created admins can only see 3 tabs until super_admin edits them. Verify that UX is intended.",
+    "GET /api/quotations date filter uses string comparison with ISO timestamps. date_to appends 'T23:59:59' but date_from doesn't, so an item at exactly 'YYYY-MM-DD' with T00:00:00 is included — correct. However, comparing strings is tz-naive; if created_at stores +00:00 explicitly it would still lexically sort, but worth a unit test if timezones vary.",
+    "GET /api/packages admin path: even super_admin must pass include_internal=true to see internal items. If AdminPackages page is ever loaded without this flag, internal packages would be hidden from management — fragile. Consider defaulting include_internal=true when the caller is admin."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration21_permissions_visibility.py (new, 20 tests, all passing)"
+  ],
+  "success_rate": {
+    "backend": "100% (20/20)",
+    "frontend": "100% (all UI flows verified)"
+  },
+  "test_credentials": {
+    "admin": "admin@kuxtaltravels.com / KuxtalAdmin2024!",
+    "member": "KT-001 / 1234567890101",
+    "delete_code": "BORRAR YA"
+  },
+  "seed_data_creation": "Test suite created and self-cleaned: 1 TEST admin user (deleted with BORRAR YA), 2 TEST packages (internal+public, deleted), 2 TEST quotations (left in DB as quotations have no test-cleanup hook; visible in admin list as TEST_ prefix).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 21 adds: (1) AdminUsers permissions matrix: GET /admin/feature-keys + PUT /admin/users/{id}/permissions with 17 feature keys; modal with Marcar todo/Desmarcar todo + Save. (2) Package visibility=public|internal — public endpoints filter visibility=internal out; admin list uses ?include_internal=true to see both. Frontend AdminPackages has pkg-filter-visibility (Todos/public/internal) and form radio for visibility. (3) Quotations: created_by_id + created_by_name recorded on creation (public sets 'Sistema (web pública)', POST /quotations/admin sets the admin user). GET /quotations supports created_by=<user_id|system>, date_from, date_to. AdminQuotations UI has quot-date-from, quot-date-to, quot-filter-creator, quot-clear-filters and displays '· por <name>' on each row's meta. (4) AdminDashboard: super_admin fallback via hasPerm; Cotizaciones CTA card (cta-quotations) prominent above tabs; tabs filtered by permissions. Super admin verified to see all 17 tabs. Left 2 TEST_ quotations in DB (TEST_PublicQuote_*, TEST_AdminQuote_*) — main agent can delete manually or they can be left as sample data.",
+  "rca of the issue": "No issue — all features work as specified. Minor doc mismatch noted: review spec referenced PUT /admin/users/{user_id} but the real endpoint is PUT /admin/users/{user_id}/permissions. Frontend correctly uses the /permissions subpath so nothing breaks."
+}
