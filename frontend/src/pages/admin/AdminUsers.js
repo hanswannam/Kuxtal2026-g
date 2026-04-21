@@ -3,7 +3,7 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Badge } from '../../components/ui/badge';
-import { Plus, Shield, X, Check, Search } from 'lucide-react';
+import { Plus, Shield, X, Check, Search, Pencil, KeyRound, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { DeleteWithCode } from '../../components/DeleteWithCode';
 import api from '../../lib/api';
@@ -30,6 +30,8 @@ const FEATURE_LABELS = {
 
 export function AdminUsers({ adminUsers, allUsers, showUserForm, setShowUserForm, userForm, setUserForm, userView, setUserView, loadUsers }) {
   const [permsUser, setPermsUser] = useState(null);
+  const [editUser, setEditUser] = useState(null);
+  const [resetUser, setResetUser] = useState(null);
   const [q, setQ] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -120,6 +122,12 @@ export function AdminUsers({ adminUsers, allUsers, showUserForm, setShowUserForm
                   </td>
                   <td className="p-3 text-right">
                     <div className="flex gap-1 justify-end">
+                      <Button size="sm" variant="ghost" onClick={() => setEditUser(u)} className="text-foreground/70 hover:text-primary" title="Editar nombre y email" data-testid={`edit-user-${i}`}>
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setResetUser(u)} className="text-amber-600 hover:text-amber-700" title="Resetear contraseña" data-testid={`reset-password-${i}`}>
+                        <KeyRound className="w-3.5 h-3.5" />
+                      </Button>
                       {(u.role === 'admin' || u.role === 'super_admin') && (
                         <Button size="sm" variant="ghost" onClick={() => setPermsUser(u)} className="text-primary" title="Permisos" data-testid={`perms-user-${i}`}>
                           <Shield className="w-3.5 h-3.5" />
@@ -162,6 +170,127 @@ export function AdminUsers({ adminUsers, allUsers, showUserForm, setShowUserForm
         </div>
       )}
       {permsUser && <PermissionsModal user={permsUser} onClose={() => setPermsUser(null)} onSaved={() => { loadUsers(); setPermsUser(null); }} />}
+      {editUser && <EditUserModal user={editUser} onClose={() => setEditUser(null)} onSaved={() => { loadUsers(); setEditUser(null); }} />}
+      {resetUser && <ResetPasswordModal user={resetUser} onClose={() => setResetUser(null)} onSaved={() => setResetUser(null)} />}
+    </div>
+  );
+}
+
+function EditUserModal({ user, onClose, onSaved }) {
+  const [name, setName] = useState(user.name || '');
+  const [email, setEmail] = useState(user.email || '');
+  const [saving, setSaving] = useState(false);
+
+  const save = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await api.put(`/admin/users/${user._id}`, { name: name.trim(), email: email.trim().toLowerCase() });
+      toast.success('Usuario actualizado');
+      onSaved();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Error al actualizar');
+    }
+    setSaving(false);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" data-testid="edit-user-modal">
+      <div className="bg-white rounded-2xl w-full max-w-md p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="font-heading text-xl font-semibold">Editar usuario</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">Rol: {user.role}</p>
+          </div>
+          <Button variant="ghost" onClick={onClose}><X className="w-4 h-4" /></Button>
+        </div>
+        <form onSubmit={save} className="space-y-3">
+          <div>
+            <Label className="text-xs">Nombre</Label>
+            <Input value={name} onChange={e => setName(e.target.value)} required className="rounded-xl mt-1" data-testid="edit-user-name" />
+          </div>
+          <div>
+            <Label className="text-xs">Email</Label>
+            <Input type="email" value={email} onChange={e => setEmail(e.target.value)} required className="rounded-xl mt-1" data-testid="edit-user-email" />
+            <p className="text-[11px] text-muted-foreground mt-1">Este email se usará para iniciar sesión.</p>
+          </div>
+          <div className="flex gap-3 pt-2">
+            <Button type="button" variant="outline" onClick={onClose} className="flex-1 rounded-xl">Cancelar</Button>
+            <Button type="submit" disabled={saving} className="flex-1 rounded-xl bg-primary hover:bg-primary/90" data-testid="edit-user-submit">{saving ? 'Guardando...' : 'Guardar'}</Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function ResetPasswordModal({ user, onClose, onSaved }) {
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [show, setShow] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const randomPass = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+    let p = '';
+    for (let i = 0; i < 10; i++) p += chars[Math.floor(Math.random() * chars.length)];
+    setPassword(p);
+    setConfirm(p);
+    setShow(true);
+  };
+
+  const save = async (e) => {
+    e.preventDefault();
+    if (password.length < 6) { toast.error('Mínimo 6 caracteres'); return; }
+    if (password !== confirm) { toast.error('Las contraseñas no coinciden'); return; }
+    setSaving(true);
+    try {
+      await api.post(`/admin/users/${user._id}/reset-password`, { password });
+      try { await navigator.clipboard.writeText(password); } catch (_) {}
+      toast.success('Contraseña actualizada (copiada al portapapeles)');
+      onSaved();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Error al actualizar');
+    }
+    setSaving(false);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" data-testid="reset-password-modal">
+      <div className="bg-white rounded-2xl w-full max-w-md p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="font-heading text-xl font-semibold">Resetear contraseña</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">{user.name} · {user.email}</p>
+          </div>
+          <Button variant="ghost" onClick={onClose}><X className="w-4 h-4" /></Button>
+        </div>
+        <form onSubmit={save} className="space-y-3">
+          <div>
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Nueva contraseña</Label>
+              <button type="button" onClick={randomPass} className="text-[11px] text-primary hover:underline" data-testid="generate-password">Generar aleatoria</button>
+            </div>
+            <div className="relative mt-1">
+              <Input type={show ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} required minLength={6} className="rounded-xl pr-10" data-testid="reset-password-input" />
+              <button type="button" onClick={() => setShow(s => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs">Confirmar contraseña</Label>
+            <Input type={show ? 'text' : 'password'} value={confirm} onChange={e => setConfirm(e.target.value)} required minLength={6} className="rounded-xl mt-1" data-testid="reset-password-confirm" />
+          </div>
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800">
+            <strong>Importante:</strong> Comparte la nueva contraseña con el usuario de forma segura. Se copiará al portapapeles al guardar.
+          </div>
+          <div className="flex gap-3 pt-2">
+            <Button type="button" variant="outline" onClick={onClose} className="flex-1 rounded-xl">Cancelar</Button>
+            <Button type="submit" disabled={saving} className="flex-1 rounded-xl bg-primary hover:bg-primary/90" data-testid="reset-password-submit">{saving ? 'Guardando...' : 'Resetear'}</Button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

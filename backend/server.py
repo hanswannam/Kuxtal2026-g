@@ -2751,6 +2751,49 @@ async def toggle_user_active(user_id: str, request: Request):
     await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"is_active": new_status}})
     return {"message": f"Usuario {'activado' if new_status else 'desactivado'}", "is_active": new_status}
 
+@api_router.put("/admin/users/{user_id}")
+async def update_admin_user(user_id: str, request: Request):
+    await require_role("super_admin")(request)
+    body = await request.json()
+    target = await db.users.find_one({"_id": ObjectId(user_id)})
+    if not target:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    updates = {}
+    if "name" in body:
+        updates["name"] = (body.get("name") or "").strip()
+    if "email" in body:
+        new_email = (body.get("email") or "").lower().strip()
+        if not new_email:
+            raise HTTPException(status_code=400, detail="Email requerido")
+        if new_email != target.get("email"):
+            clash = await db.users.find_one({"email": new_email, "_id": {"$ne": ObjectId(user_id)}})
+            if clash:
+                raise HTTPException(status_code=400, detail="Ese email ya está en uso")
+            main_admin_email = os.environ.get("ADMIN_EMAIL", "admin@kuxtaltravels.com").lower()
+            if target.get("email") == main_admin_email:
+                raise HTTPException(status_code=400, detail="No se puede cambiar el email del admin principal")
+            updates["email"] = new_email
+    if not updates:
+        return {"message": "Sin cambios"}
+    await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": updates})
+    updated = await db.users.find_one({"_id": ObjectId(user_id)})
+    u_doc = serialize_doc(updated)
+    u_doc.pop("password_hash", None)
+    return u_doc
+
+@api_router.post("/admin/users/{user_id}/reset-password")
+async def reset_user_password(user_id: str, request: Request):
+    await require_role("super_admin")(request)
+    body = await request.json()
+    new_password = (body.get("password") or "").strip()
+    if len(new_password) < 6:
+        raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 6 caracteres")
+    target = await db.users.find_one({"_id": ObjectId(user_id)})
+    if not target:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"password_hash": hash_password(new_password)}})
+    return {"message": "Contraseña actualizada"}
+
 @api_router.delete("/admin/users/{user_id}")
 async def delete_admin_user(user_id: str, request: Request):
     user = await require_role("super_admin")(request)
