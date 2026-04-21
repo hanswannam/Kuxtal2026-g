@@ -31,14 +31,12 @@ function getCatConfig(cat) {
 
 // Renders a category icon: emoji (text) or uploaded image (URL). Falls back to Lucide icon.
 function CatIconRender({ icon, fallback: Fallback = Store, className = 'w-3.5 h-3.5' }) {
-  if (icon && (icon.startsWith('http') || icon.startsWith('/'))) {
+  if (!icon) return <Fallback className={className} />;
+  if (icon.startsWith('http') || icon.startsWith('/')) {
     return <img src={icon} alt="" className={`${className} object-contain inline-block`} />;
   }
-  if (icon && icon.length <= 4) {
-    // Emoji — render as text so it renders at the same visual size as the surrounding text
-    return <span className="inline-block leading-none">{icon}</span>;
-  }
-  return <Fallback className={className} />;
+  // Anything else that is not a URL — treat as emoji/text glyph (supports ZWJ compounds).
+  return <span className="inline-block leading-none">{icon}</span>;
 }
 
 export default function BenefitsPage() {
