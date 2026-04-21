@@ -44,17 +44,15 @@ export default function CommerceWizard() {
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
+  const [categories, setCategories] = useState(DEFAULT_CATEGORIES.map(n => ({ name: n, icon: CATEGORY_ICONS[n] || '🏷️', system: true })));
   const [showNewCatInput, setShowNewCatInput] = useState(false);
   const [newCatName, setNewCatName] = useState('');
   const [creatingCat, setCreatingCat] = useState(false);
 
   useEffect(() => {
-    api.get('/commerce/categories').then(r => {
+    api.get('/commerce/categories?full=true').then(r => {
       if (Array.isArray(r.data) && r.data.length) {
-        // Merge defaults with backend categories, keep unique order
-        const merged = Array.from(new Set([...DEFAULT_CATEGORIES, ...r.data]));
-        setCategories(merged);
+        setCategories(r.data);
       }
     }).catch(() => {});
   }, []);
@@ -64,8 +62,9 @@ export default function CommerceWizard() {
     if (!name) return;
     setCreatingCat(true);
     try {
-      await api.post('/commerce/categories', { name });
-      setCategories(prev => prev.includes(name) ? prev : [...prev, name]);
+      const res = await api.post('/commerce/categories', { name, icon: '🏷️' });
+      const newCat = { name: res.data.name, icon: res.data.icon, system: false };
+      setCategories(prev => prev.some(c => c.name === name) ? prev : [...prev, newCat]);
       setForm(f => ({ ...f, category: name }));
       setNewCatName('');
       setShowNewCatInput(false);
@@ -155,12 +154,12 @@ export default function CommerceWizard() {
                 <Label className="text-sm font-medium mb-3 block">Categoría</Label>
                 <div className="grid grid-cols-3 gap-2">
                   {categories.map(cat => (
-                    <button type="button" key={cat} onClick={() => setForm({...form, category: cat})}
+                    <button type="button" key={cat.name} onClick={() => setForm({...form, category: cat.name})}
                       className={`flex flex-col items-center gap-1 p-3 rounded-xl border transition-all text-xs font-medium ${
-                        form.category === cat ? 'border-primary bg-accent text-primary scale-[1.02] shadow-sm' : 'border-border hover:border-primary/30'
-                      }`} data-testid={`wiz-cat-${cat}`}>
-                      <span className="text-xl">{CATEGORY_ICONS[cat] || '🏷️'}</span>
-                      <span className="leading-tight text-center">{cat}</span>
+                        form.category === cat.name ? 'border-primary bg-accent text-primary scale-[1.02] shadow-sm' : 'border-border hover:border-primary/30'
+                      }`} data-testid={`wiz-cat-${cat.name}`}>
+                      <span className="text-xl">{cat.icon || CATEGORY_ICONS[cat.name] || '🏷️'}</span>
+                      <span className="leading-tight text-center">{cat.name}</span>
                     </button>
                   ))}
                   <button
@@ -346,7 +345,7 @@ export default function CommerceWizard() {
           {step === 8 && (
             <div className="space-y-4">
               <div className="flex items-center gap-4 p-4 bg-accent/50 rounded-xl">
-                {form.logo_url ? <img src={form.logo_url} alt="" className="w-16 h-16 rounded-xl object-cover" /> : <div className="w-16 h-16 rounded-xl bg-secondary flex items-center justify-center text-2xl">{CATEGORY_ICONS[form.category] || '🏷️'}</div>}
+                {form.logo_url ? <img src={form.logo_url} alt="" className="w-16 h-16 rounded-xl object-cover" /> : <div className="w-16 h-16 rounded-xl bg-secondary flex items-center justify-center text-2xl">{(categories.find(c => c.name === form.category)?.icon) || CATEGORY_ICONS[form.category] || '🏷️'}</div>}
                 <div>
                   <h3 className="font-heading text-lg font-bold">{form.name}</h3>
                   <span className="text-xs text-muted-foreground">{form.category}</span>

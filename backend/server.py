@@ -253,6 +253,12 @@ COMMERCE_CATEGORIES = [
     "Moda Mujer", "Moda Hombre", "Hogar", "Entretenimiento"
 ]
 
+DEFAULT_CATEGORY_ICONS = {
+    "Restaurantes": "🍽️", "Mascotas": "🐾", "Hospitales": "🏥", "Servicios": "🔧",
+    "Belleza": "💆", "Deportes": "🏋️", "Tecnología": "💻", "Educación": "📚",
+    "Moda Mujer": "👗", "Moda Hombre": "👔", "Hogar": "🏠", "Entretenimiento": "🎭"
+}
+
 class CommerceCreate(BaseModel):
     name: str
     description: Optional[str] = ""
@@ -982,29 +988,86 @@ async def serve_file(path: str):
 # ── Commerce CRUD ──
 
 @api_router.get("/commerce/categories")
-async def get_commerce_categories():
-    # Return user-created categories from DB, falling back to defaults if none
-    cats = []
-    async for c in db.commerce_categories.find({}).sort("name", 1):
-        cats.append(c.get("name", ""))
-    if not cats:
-        return COMMERCE_CATEGORIES
-    # Merge with defaults so defaults always appear (unique)
-    merged = list(dict.fromkeys(COMMERCE_CATEGORIES + cats))
-    return merged
+async def get_commerce_categories(full: Optional[bool] = False):
+    # Return merged list of system defaults + user-created categories.
+    user_cats = {}
+    async for c in db.commerce_categories.find({}):
+        user_cats[c.get("name", "")] = c.get("icon", "🏷️")
+    merged = []
+    seen = set()
+    for name in COMMERCE_CATEGORIES:
+        if name in seen: continue
+        seen.add(name)
+        merged.append({
+            "name": name,
+            "icon": user_cats.get(name, DEFAULT_CATEGORY_ICONS.get(name, "🏷️")),
+            "system": True,
+        })
+    for name, icon in user_cats.items():
+        if name in seen: continue
+        seen.add(name)
+        merged.append({"name": name, "icon": icon, "system": False})
+    if full:
+        return merged
+    # Legacy: return plain list of names
+    return [c["name"] for c in merged]
 
 @api_router.post("/commerce/categories")
 async def create_commerce_category(request: Request):
     await require_role("super_admin", "admin")(request)
     body = await request.json()
     name = (body.get("name") or "").strip()
+    icon = (body.get("icon") or "🏷️").strip() or "🏷️"
     if not name:
         raise HTTPException(status_code=400, detail="Nombre requerido")
     existing = await db.commerce_categories.find_one({"name": name})
     if existing or name in COMMERCE_CATEGORIES:
         raise HTTPException(status_code=400, detail="Categoría ya existe")
-    await db.commerce_categories.insert_one({"name": name, "created_at": datetime.now(timezone.utc).isoformat()})
-    return {"name": name}
+    await db.commerce_categories.insert_one({
+        "name": name, "icon": icon,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    return {"name": name, "icon": icon}
+
+@api_router.put("/commerce/categories/{name}")
+async def update_commerce_category(name: str, request: Request):
+    await require_role("super_admin", "admin")(request)
+    body = await request.json()
+    new_name = (body.get("name") or name).strip()
+    icon = (body.get("icon") or "").strip()
+    if not new_name:
+        raise HTTPException(status_code=400, detail="Nombre requerido")
+    # If renaming, ensure no collision
+    if new_name != name:
+        if new_name in COMMERCE_CATEGORIES:
+            raise HTTPException(status_code=400, detail="Nombre ya existe como categoría del sistema")
+        existing = await db.commerce_categories.find_one({"name": new_name})
+        if existing:
+            raise HTTPException(status_code=400, detail="Nombre ya existe")
+    if name in COMMERCE_CATEGORIES:
+        if new_name != name:
+            raise HTTPException(status_code=400, detail="No se puede renombrar una categoría del sistema, solo cambiar el icono")
+        # For system categories, upsert an override record (keeps legacy name list intact)
+        await db.commerce_categories.update_one(
+            {"name": name},
+            {"$set": {"name": name, "icon": icon or DEFAULT_CATEGORY_ICONS.get(name, "🏷️")}},
+            upsert=True,
+        )
+        return {"name": name, "icon": icon or DEFAULT_CATEGORY_ICONS.get(name, "🏷️")}
+    # Custom category
+    update_fields = {}
+    if icon:
+        update_fields["icon"] = icon
+    if new_name != name:
+        update_fields["name"] = new_name
+        # Propagate rename to all commerces using this category
+        await db.commerce.update_many({"category": name}, {"$set": {"category": new_name}})
+    if not update_fields:
+        return {"name": name, "icon": icon}
+    result = await db.commerce_categories.update_one({"name": name}, {"$set": update_fields})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Categoría no encontrada")
+    return {"name": new_name, "icon": icon}
 
 @api_router.delete("/commerce/categories/{name}")
 async def delete_commerce_category(name: str, request: Request):

@@ -4,7 +4,7 @@ import { Badge } from '../components/ui/badge';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import {
   LayoutDashboard, Users, Package, FileText, Bell, MessageSquare, Settings,
-  Send, Store, TrendingUp, Gift, Loader2, Sparkles, Award, Building2
+  Send, Store, TrendingUp, Gift, Loader2, Sparkles, Award, Building2, Tag
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../lib/api';
@@ -24,6 +24,7 @@ const AdminSettings = lazy(() => import('./admin/AdminSettings').then(m => ({ de
 const AdminImport = lazy(() => import('./admin/AdminImport').then(m => ({ default: m.AdminImport })));
 const AdminRegalias = lazy(() => import('./admin/AdminRegalias').then(m => ({ default: m.AdminRegalias })));
 const AdminClubs = lazy(() => import('./admin/AdminClubs').then(m => ({ default: m.AdminClubs })));
+const AdminCommerceCategories = lazy(() => import('./admin/AdminCommerceCategories').then(m => ({ default: m.AdminCommerceCategories })));
 
 function TabLoader() {
   return (
@@ -196,6 +197,7 @@ export default function AdminDashboard() {
     { id: 'members', label: 'Socios', icon: Users },
     { id: 'packages', label: 'Paquetes', icon: Package },
     { id: 'commerce', label: 'Comercios', icon: Store },
+    { id: 'categories', label: 'Categorías', icon: Tag },
     { id: 'clubs', label: 'Clubs', icon: Building2 },
     { id: 'regalias', label: 'Regalías', icon: Award },
     { id: 'quotations', label: 'Cotizaciones', icon: FileText },
@@ -243,6 +245,7 @@ export default function AdminDashboard() {
           {tab === 'announcements' && <AdminAnnouncements announcements={announcements} announcementForm={announcementForm} setAnnouncementForm={setAnnouncementForm} showAnnouncementForm={showAnnouncementForm} setShowAnnouncementForm={setShowAnnouncementForm} saveAnnouncement={saveAnnouncement} deleteAnn={deleteAnn} />}
           {tab === 'requests' && <AdminRequests vacationReqs={vacationReqs} updateReqStatus={updateReqStatus} />}
           {tab === 'commerce' && <AdminCommerces commerces={commerces} commerceForm={commerceForm} setCommerceForm={setCommerceForm} showCommerceForm={showCommerceForm} setShowCommerceForm={setShowCommerceForm} commerceCategories={commerceCategories} saveCommerce={saveCommerce} deleteCommerce={deleteCommerce} handleImageUpload={handleImageUpload} uploading={uploading} />}
+          {tab === 'categories' && <AdminCommerceCategories />}
           {tab === 'clubs' && <AdminClubs handleImageUpload={handleImageUpload} uploading={uploading} />}
           {tab === 'regalias' && <AdminRegalias members={members} handleImageUpload={handleImageUpload} uploading={uploading} />}
           {tab === 'push' && <AdminPush pushForm={pushForm} setPushForm={setPushForm} sendPush={sendPush} pushHistory={pushHistory} />}
