@@ -51,7 +51,7 @@ export default function AdminDashboard() {
   const [quotSettings, setQuotSettings] = useState({ payment_whatsapp: '', default_valid_days: 10 });
   const [commerces, setCommerces] = useState([]);
   const [showCommerceForm, setShowCommerceForm] = useState(false);
-  const [commerceForm, setCommerceForm] = useState({ name: '', description: '', category: 'Servicios', location: '', phone: '', email: '', website: '', logo_url: '', benefit_description: '', validation_code: '', status: 'active' });
+  const [commerceForm, setCommerceForm] = useState({ name: '', description: '', category: 'Servicios', location: '', address: '', google_maps_url: '', waze_url: '', phone: '', email: '', website: '', logo_url: '', benefit_description: '', validation_code: '', status: 'active', photos: [], youtube_video: '', social_facebook: '', social_instagram: '', social_tiktok: '', social_twitter: '' });
   const [commerceCategories, setCommerceCategories] = useState([]);
   const [pushForm, setPushForm] = useState({ title: '', message: '', link: '/' });
   const [pushHistory, setPushHistory] = useState([]);
@@ -172,7 +172,7 @@ export default function AdminDashboard() {
         toast.success('Comercio creado');
       }
       setShowCommerceForm(false);
-      setCommerceForm({ name: '', description: '', category: 'Servicios', location: '', phone: '', email: '', website: '', logo_url: '', benefit_description: '', validation_code: '', status: 'active' });
+      setCommerceForm({ name: '', description: '', category: 'Servicios', location: '', address: '', google_maps_url: '', waze_url: '', phone: '', email: '', website: '', logo_url: '', benefit_description: '', validation_code: '', status: 'active', photos: [], youtube_video: '', social_facebook: '', social_instagram: '', social_tiktok: '', social_twitter: '' });
       loadData();
     } catch (e) { toast.error(e.response?.data?.detail || 'Error al guardar comercio'); }
   };

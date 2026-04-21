@@ -47,6 +47,10 @@ Sistema CRM para club vacacional con web publica estilo Expedia, programa Kuxtal
   - `sw.js` v5: notificationclick ahora enfoca ventana existente antes de abrir nueva; icono/badge locales; tag+renotify para agrupar.
   - `AuthContext.js`: `subscribePush` dividido en `syncPushSubscription` (silencioso, no pide permiso — se llama en cada checkAuth) y `enablePushNotifications` (exportado, requiere user gesture, funciona en iOS 16.4+).
   - Nuevo componente `InstallPrompt.js`: banner flotante que (1) muestra botón "Instalar ahora" cuando dispara `beforeinstallprompt` (Android/PC); (2) muestra tutorial paso-a-paso para iOS/Safari con botón Compartir → Agregar a pantalla de inicio; (3) una vez instalado, ofrece banner secundario para activar push. Persistencia de dismissal en localStorage.
+- Editor completo de Comercios (2026-02, iter 27):
+  - El form de edición de AdminCommerces ahora incluye TODOS los campos que se capturan en el wizard de creación: dirección, Google Maps URL, Waze URL, video YouTube, galería de fotos (con remove), redes sociales (Facebook, Instagram, TikTok, Twitter), estado activo/inactivo.
+  - AdminDashboard inicializa `commerceForm` con todos los campos por defecto (evita undefined al crear).
+  - Test ids: cf-address, cf-maps, cf-waze, cf-facebook, cf-instagram, cf-tiktok, cf-twitter, cf-youtube, cf-photos-grid, cf-photo-remove-{i}, cf-status.
 - Package Visibility (2026-02, iter 21): campo `visibility` = public|internal. Endpoints públicos filtran visibility=internal. Admin management usa ?include_internal=true. AdminPackages con filtro Todos/Público/Interno + radio en form.
 - Quotations tracking & filters (2026-02, iter 21): created_at, created_by_id, created_by_name ('Sistema (web pública)' para web pública, nombre del admin para POST /quotations/admin). GET /api/quotations soporta created_by, date_from, date_to. UI con quot-date-from/to, quot-filter-creator, quot-clear-filters, meta muestra '· por <creador>'.
 - Code Quality: Component refactoring, lazy loading, ErrorBoundary, SEO OG tags, 30+ MongoDB indexes
