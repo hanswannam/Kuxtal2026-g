@@ -144,7 +144,7 @@ export default function PublicQuotationPage() {
   const decided = quot.status === 'approved' || quot.status === 'rejected';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-secondary to-background py-10 px-4" data-testid="public-quot-page">
+    <div className="min-h-screen bg-gradient-to-br from-secondary to-background pt-24 pb-12 px-4" data-testid="public-quot-page">
       <div className="max-w-2xl mx-auto">
         {quot.valid_until && (
           <div className="mb-4">
