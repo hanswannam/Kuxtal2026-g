@@ -3142,6 +3142,183 @@ async def packages_bulk_import(request: Request, file: UploadFile = File(...), d
                 errors.append({"row": idx, "title": title, "error": str(e)})
     return {"total_rows": len(rows), "valid": len(preview), "errors": errors, "created": created if not dry_run else [], "preview": preview if dry_run else []}
 
+# ─────────────────────── Export individual member to Excel ───────────────────────
+
+_MEMBER_FIELD_GROUPS = [
+    ("Datos de contrato", [
+        ("contract_number", "Número de contrato"),
+        ("contract_date", "Fecha de contrato"),
+        ("membership_start", "Inicio de membresía"),
+        ("membership_end", "Fin de membresía"),
+        ("service_years", "Años de servicio"),
+        ("family_members_allowed", "Familiares permitidos"),
+        ("status", "Estado"),
+        ("vigencia", "Vigencia"),
+        ("cuotas", "Cuotas"),
+        ("bank", "Banco"),
+        ("termination_date", "Fecha de terminación"),
+        ("tc", "TC"),
+    ]),
+    ("Datos personales", [
+        ("name", "Nombre completo"),
+        ("dpi", "DPI"),
+        ("email", "Email"),
+        ("phone", "Teléfono"),
+        ("age", "Edad"),
+        ("marital_status", "Estado civil"),
+        ("nationality", "Nacionalidad"),
+        ("profession", "Profesión"),
+        ("address", "Dirección"),
+    ]),
+    ("Copropietario", [
+        ("coowner_name", "Nombre"),
+        ("coowner_nationality", "Nacionalidad"),
+        ("coowner_profession", "Profesión"),
+        ("coowner_phone", "Teléfono"),
+        ("coowner_email", "Email"),
+    ]),
+    ("Inversión y facturación", [
+        ("investment_amount", "Monto de inversión (Q)"),
+        ("investment_plan", "Plan de inversión"),
+        ("nit", "NIT"),
+        ("billing_name", "Nombre de facturación"),
+    ]),
+    ("Otros", [
+        ("observations", "Observaciones"),
+    ]),
+]
+
+async def _build_member_export_xlsx(member: dict) -> bytes:
+    wb = _Workbook()
+    # Sheet 1: Datos Personales
+    ws = wb.active
+    ws.title = "Datos"
+    title_fill = _PatternFill(start_color="1B325F", end_color="1B325F", fill_type="solid")
+    title_font = _Font(color="FFFFFF", bold=True, size=14)
+    group_fill = _PatternFill(start_color="EAE4E4", end_color="EAE4E4", fill_type="solid")
+    group_font = _Font(bold=True, color="1B325F", size=11)
+    key_font = _Font(bold=True, size=10)
+    # Title
+    ws.merge_cells("A1:B1")
+    ws.cell(row=1, column=1, value="Información personal — Kuxtal Travel").font = title_font
+    ws.cell(row=1, column=1).fill = title_fill
+    ws.cell(row=1, column=1).alignment = _Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[1].height = 28
+    ws.column_dimensions["A"].width = 32
+    ws.column_dimensions["B"].width = 48
+    row = 3
+    for group_label, fields in _MEMBER_FIELD_GROUPS:
+        ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=2)
+        gc = ws.cell(row=row, column=1, value=group_label)
+        gc.font = group_font
+        gc.fill = group_fill
+        gc.alignment = _Alignment(horizontal="left", vertical="center")
+        row += 1
+        for key, label in fields:
+            ws.cell(row=row, column=1, value=label).font = key_font
+            val = member.get(key, "")
+            if val in (None, ""):
+                val = "—"
+            ws.cell(row=row, column=2, value=str(val) if not isinstance(val, (int, float)) else val)
+            row += 1
+        row += 1
+
+    # Sheet 2: Cotizaciones
+    quots = await db.quotations.find({"member_id": str(member["_id"])}).to_list(length=500)
+    ws2 = wb.create_sheet("Cotizaciones")
+    headers2 = ["# Cotización", "Paquete", "Estado", "Pax", "Total (Q)", "Creada", "Válida hasta"]
+    for i, h in enumerate(headers2, start=1):
+        c = ws2.cell(row=1, column=i, value=h)
+        c.fill = title_fill
+        c.font = _Font(color="FFFFFF", bold=True, size=11)
+        ws2.column_dimensions[c.column_letter].width = 22
+    for r, q in enumerate(quots, start=2):
+        ws2.cell(row=r, column=1, value=q.get("quotation_number") or str(q.get("_id", ""))[:8])
+        ws2.cell(row=r, column=2, value=q.get("package_title") or q.get("package_country") or "")
+        ws2.cell(row=r, column=3, value=q.get("status") or "")
+        ws2.cell(row=r, column=4, value=q.get("guests") or "")
+        ws2.cell(row=r, column=5, value=q.get("total") or 0)
+        ws2.cell(row=r, column=6, value=(q.get("created_at") or "")[:10])
+        ws2.cell(row=r, column=7, value=(q.get("valid_until") or "")[:10])
+    ws2.freeze_panes = "A2"
+    if not quots:
+        ws2.cell(row=2, column=1, value="No hay cotizaciones aún.")
+
+    # Sheet 3: Cupones canjeados
+    coupons = await db.coupons.find({"member_id": str(member["_id"])}).to_list(length=500)
+    ws3 = wb.create_sheet("Cupones")
+    headers3 = ["Código", "Comercio", "Descripción", "Canjeado", "Fecha"]
+    for i, h in enumerate(headers3, start=1):
+        c = ws3.cell(row=1, column=i, value=h)
+        c.fill = title_fill
+        c.font = _Font(color="FFFFFF", bold=True, size=11)
+        ws3.column_dimensions[c.column_letter].width = 22
+    for r, cp in enumerate(coupons, start=2):
+        ws3.cell(row=r, column=1, value=cp.get("code") or "")
+        ws3.cell(row=r, column=2, value=cp.get("commerce_name") or "")
+        ws3.cell(row=r, column=3, value=cp.get("description") or cp.get("benefit") or "")
+        ws3.cell(row=r, column=4, value="Sí" if cp.get("redeemed") else "No")
+        ws3.cell(row=r, column=5, value=(cp.get("redeemed_at") or cp.get("created_at") or "")[:10])
+    ws3.freeze_panes = "A2"
+    if not coupons:
+        ws3.cell(row=2, column=1, value="No hay cupones canjeados.")
+
+    # Sheet 4: Familiares
+    fams = await db.family_members.find({"member_id": str(member["_id"])}).to_list(length=50)
+    ws4 = wb.create_sheet("Familiares")
+    headers4 = ["Nombre", "DPI", "Parentesco", "Teléfono"]
+    for i, h in enumerate(headers4, start=1):
+        c = ws4.cell(row=1, column=i, value=h)
+        c.fill = title_fill
+        c.font = _Font(color="FFFFFF", bold=True, size=11)
+        ws4.column_dimensions[c.column_letter].width = 24
+    for r, fm in enumerate(fams, start=2):
+        ws4.cell(row=r, column=1, value=fm.get("name") or "")
+        ws4.cell(row=r, column=2, value=fm.get("dpi") or "")
+        ws4.cell(row=r, column=3, value=fm.get("relationship") or "")
+        ws4.cell(row=r, column=4, value=fm.get("phone") or "")
+    ws4.freeze_panes = "A2"
+    if not fams:
+        ws4.cell(row=2, column=1, value="No hay familiares registrados.")
+
+    buf = _io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return buf.getvalue()
+
+@app.get("/api/members/me/export")
+async def export_my_member_data(request: Request):
+    user = await get_current_user(request)
+    if user.get("role") != "member" or not user.get("member_id"):
+        raise HTTPException(status_code=403, detail="Solo los socios pueden descargar sus datos")
+    member = await db.members.find_one({"_id": ObjectId(user["member_id"])})
+    if not member:
+        raise HTTPException(status_code=404, detail="Socio no encontrado")
+    data = await _build_member_export_xlsx(member)
+    safe_name = (member.get("contract_number") or str(member["_id"]))
+    return Response(
+        content=data,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="kuxtal_{safe_name}.xlsx"'},
+    )
+
+@app.get("/api/admin/members/{member_id}/export")
+async def admin_export_member_data(member_id: str, request: Request):
+    await require_role("super_admin", "admin")(request)
+    try:
+        member = await db.members.find_one({"_id": ObjectId(member_id)})
+    except Exception:
+        raise HTTPException(status_code=400, detail="ID inválido")
+    if not member:
+        raise HTTPException(status_code=404, detail="Socio no encontrado")
+    data = await _build_member_export_xlsx(member)
+    safe_name = (member.get("contract_number") or str(member["_id"]))
+    return Response(
+        content=data,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="kuxtal_{safe_name}.xlsx"'},
+    )
+
 # Build allowed origins from env
 _cors_origins = []
 _frontend_url = os.environ.get("FRONTEND_URL", "")

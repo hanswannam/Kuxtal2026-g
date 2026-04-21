@@ -1,10 +1,35 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Badge } from '../../components/ui/badge';
-import { FileText, Bell, MessageSquare, Package, Store, Gift } from 'lucide-react';
+import { Button } from '../../components/ui/button';
+import { FileText, Bell, MessageSquare, Package, Store, Gift, FileSpreadsheet, Loader2 } from 'lucide-react';
 import { MembershipCard } from '../../components/MembershipCard';
+import { toast } from 'sonner';
+import api from '../../lib/api';
 
 export function MemberOverview({ member, quotations, announcements, vacationRequests, packages, commerces }) {
+  const [exporting, setExporting] = useState(false);
+
+  const downloadMyData = async () => {
+    setExporting(true);
+    try {
+      const r = await api.get('/members/me/export', { responseType: 'blob' });
+      const blob = new Blob([r.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `kuxtal_${member?.contract_number || 'mis_datos'}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success('Tus datos se descargaron');
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'No se pudo descargar');
+    }
+    setExporting(false);
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       {member && (
@@ -19,7 +44,20 @@ export function MemberOverview({ member, quotations, announcements, vacationRequ
       )}
       {member && (
         <div className="bg-white rounded-2xl p-5 sm:p-6 border border-border" data-testid="member-info-card">
-          <h2 className="font-heading text-lg font-semibold mb-4">Mi Membresía</h2>
+          <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+            <h2 className="font-heading text-lg font-semibold">Mi Membresía</h2>
+            <Button
+              onClick={downloadMyData}
+              disabled={exporting}
+              size="sm"
+              variant="outline"
+              className="rounded-full"
+              data-testid="download-my-data-btn"
+            >
+              {exporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileSpreadsheet className="w-4 h-4 mr-2" />}
+              Descargar mis datos (Excel)
+            </Button>
+          </div>
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             <div className="p-3 sm:p-4 bg-accent/50 rounded-xl">
               <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider mb-1">Contrato</p>

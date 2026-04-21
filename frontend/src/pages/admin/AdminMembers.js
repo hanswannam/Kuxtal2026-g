@@ -4,7 +4,7 @@ import { Input } from '../../components/ui/input';
 import { Textarea } from '../../components/ui/textarea';
 import { Label } from '../../components/ui/label';
 import { Badge } from '../../components/ui/badge';
-import { Plus, Edit, Gift, Search, X, Upload } from 'lucide-react';
+import { Plus, Edit, Gift, Search, X, Upload, FileSpreadsheet } from 'lucide-react';
 import { toast } from 'sonner';
 import { DeleteWithCode } from '../../components/DeleteWithCode';
 import BulkImportModal from '../../components/BulkImportModal';
@@ -45,6 +45,24 @@ export function AdminMembers({ members, memberForm, setMemberForm, showMemberFor
   const [selectedRegaliaIds, setSelectedRegaliaIds] = useState([]);
   const [savingRegalias, setSavingRegalias] = useState(false);
   const [showBulkImport, setShowBulkImport] = useState(false);
+
+  const downloadMemberXlsx = async (m) => {
+    try {
+      const r = await api.get(`/admin/members/${m._id}/export`, { responseType: 'blob' });
+      const blob = new Blob([r.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `kuxtal_${m.contract_number || m._id}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success('Datos descargados');
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'No se pudo descargar');
+    }
+  };
 
   useEffect(() => {
     if (!showMemberForm) return;
@@ -173,6 +191,9 @@ export function AdminMembers({ members, memberForm, setMemberForm, showMemberFor
                   </td>
                   <td className="p-3 text-right">
                     <div className="flex gap-1 justify-end">
+                      <Button size="sm" variant="ghost" onClick={() => downloadMemberXlsx(m)} title="Descargar datos en Excel" data-testid={`download-member-${i}`}>
+                        <FileSpreadsheet className="w-3.5 h-3.5" />
+                      </Button>
                       <Button size="sm" variant="ghost" onClick={() => editMember(m)} data-testid={`edit-member-${i}`}>
                         <Edit className="w-3.5 h-3.5" />
                       </Button>
