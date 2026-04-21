@@ -1,0 +1,94 @@
+{
+  "summary": "Iteration 22 backend testing complete. Validated admin user CRUD (create/edit/reset-password/toggle-active/delete), 17-key permissions update, audit log endpoint with filters, login response now includes 'permissions' key, and RBAC: super_admin allowed everywhere; limited admin (testadmin@kuxtaltravels.com) correctly receives 403 on create/update/reset-password/permissions/delete/audit but is allowed for toggle-active. Smoke regression on 9 list endpoints all 200. 35/35 pytest tests pass.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "PUT /api/admin/users/{user_id}",
+        "issue": "When `name` and `email` are both passed but identical to current values, endpoint returns {\"message\":\"Sin cambios\"} instead of full user document. Frontend that expects updated user doc on every PUT may need to handle this branch."
+      },
+      {
+        "endpoint": "POST /api/admin/users (default permissions)",
+        "issue": "Code defaults perms for new admin to {dashboard, quotations, clients} but FEATURE_KEYS spec lists 17 keys. `members` is not in defaults. Newly created admins won't see members tab until super_admin updates perms. Confirm intent."
+      },
+      {
+        "endpoint": "PUT /api/admin/users/{user_id}/toggle-active",
+        "issue": "Per current code, role='admin' (e.g. testadmin) can toggle ANY user's is_active flag, including the super_admin's. Recommend restricting to super_admin only OR forbidding toggle on the main admin account."
+      },
+      {
+        "endpoint": "POST /api/admin/users/{user_id}/reset-password",
+        "issue": "No restriction prevents super_admin from resetting their own password via this endpoint (works as designed, just noting). Also no upper bound on password length and no complexity rule beyond min 6."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "passed_tests": {
+    "backend": [
+      "POST /api/auth/login returns 'permissions' key for super_admin and limited admin (testadmin perms dict matches dashboard+members true, all others false)",
+      "GET /api/auth/me regression OK for super_admin",
+      "POST /api/admin/users creates user (super_admin only), default perms include dashboard",
+      "POST /api/admin/users rejects duplicate email with 400",
+      "POST /api/admin/users returns 403 for limited admin (testadmin)",
+      "PUT /api/admin/users/{id} updates name+email, normalizes email to lowercase, persists in GET /admin/users",
+      "PUT /api/admin/users/{id} rejects duplicate email with 400",
+      "PUT /api/admin/users/{id} blocks changing main admin (admin@kuxtaltravels.com) email with 400",
+      "PUT /api/admin/users/{id} returns 403 for limited admin",
+      "POST /api/admin/users/{id}/reset-password rejects passwords <6 chars with 400",
+      "POST /api/admin/users/{id}/reset-password updates hash; subsequent /auth/login with new password returns 200",
+      "POST /api/admin/users/{id}/reset-password returns 403 for limited admin",
+      "PUT /api/admin/users/{id}/permissions accepts all 17 FEATURE_KEYS as booleans and persists",
+      "PUT /api/admin/users/{id}/permissions filters out invalid keys (hacked_key dropped, dashboard kept)",
+      "PUT /api/admin/users/{id}/permissions returns 403 for limited admin",
+      "PUT /api/admin/users/{id}/toggle-active flips is_active for super_admin caller; round-trips correctly",
+      "PUT /api/admin/users/{id}/toggle-active accepts limited admin (testadmin) — confirms admin role allowed",
+      "GET /api/admin/audit/user-changes returns 403 for limited admin",
+      "GET /api/admin/audit/user-changes?target_user_id={id} returns ordered list with create_user, update_profile, reset_password, update_permissions, toggle_active actions",
+      "Audit entries for reset_password do NOT contain 'password' or 'password_hash' (only 'password_length')",
+      "GET /api/admin/audit/user-changes?action=reset_password filters correctly",
+      "GET /api/admin/audit/user-changes?admin_id={super_id} filters correctly",
+      "DELETE /api/admin/users/{id} without delete_code → 403 'Clave de eliminación incorrecta'",
+      "DELETE /api/admin/users/{id} on main admin (admin@kuxtaltravels.com) blocked with 400",
+      "DELETE /api/admin/users/{id} returns 403 for limited admin",
+      "DELETE /api/admin/users/{id}?delete_code=BORRAR%20YA succeeds; user removed from /admin/users; audit logged delete_user",
+      "Smoke regression GET 200 for: /admin/users, /admin/all-users, /packages, /quotations, /commerce, /members, /config/social-links, /config/pricing-settings, /config/quotation-settings"
+    ],
+    "frontend": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration22_admin_users_audit.py",
+    "/app/test_reports/pytest/pytest_results_iter22.xml"
+  ],
+  "action_items": [
+    "Decide if /admin/users default permissions for new admin role should include `members` (currently dashboard+quotations+clients only, leaving newly-created admins without members visibility).",
+    "Consider restricting PUT /admin/users/{id}/toggle-active to super_admin only, or block toggling the main admin account; today any admin role can toggle anyone's is_active.",
+    "Optional: when PUT /admin/users/{id} receives no diffs, return the full user doc instead of {\"message\":\"Sin cambios\"} for consistent client handling."
+  ],
+  "critical_code_review_comments": [
+    "server.py is 3538 lines — split into routers/auth.py, routers/admin_users.py, routers/audit.py to improve maintainability.",
+    "log_user_audit catches every Exception silently and only prints; consider logging via structured logger and failing loudly in tests / dev. Currently a broken audit insert would silently lose history.",
+    "FEATURE_KEYS list is duplicated between backend (server.py:2699) and frontend AdminUsers.js. Frontend already calls GET /admin/feature-keys — remove the JS-side duplication and render purely from API response.",
+    "verify_delete_code reads request body via request.json(); for DELETE requests this consumes the stream. Works because the value is also accepted via query param, but documenting the dual-path would help.",
+    "PUT /admin/users/{id}/toggle-active has role='super_admin','admin' but does not protect the super_admin / main admin from being toggled inactive by a regular admin — potential lockout risk."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration22_admin_users_audit.py (new, 35 tests, all passing)"
+  ],
+  "success_rate": {
+    "backend": "100% (35/35)",
+    "frontend": "not tested (backend-only request)"
+  },
+  "test_credentials": {
+    "super_admin": "admin@kuxtaltravels.com / KuxtalAdmin2024!",
+    "limited_admin": "testadmin@kuxtaltravels.com / TestAdmin123!",
+    "delete_code": "BORRAR YA"
+  },
+  "seed_data_creation": "Test suite creates 1 TEST_audit_user_<ts>@example.com admin user, exercises edit/reset/permissions/toggle, and self-cleans by DELETE with delete_code=BORRAR YA. testadmin password is reset by the suite at the end of TestResetPassword (limited admin reset attempt is rejected with 403, so its password is unchanged).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 22 verified the admin-users management surface end-to-end on the backend: POST/PUT/DELETE /api/admin/users, POST /api/admin/users/{id}/reset-password, PUT /api/admin/users/{id}/permissions (17 FEATURE_KEYS), PUT /api/admin/users/{id}/toggle-active (admin+super_admin), GET /api/admin/audit/user-changes (super_admin only, with target_user_id/admin_id/action/limit filters). POST /api/auth/login response now includes the 'permissions' key (None for super_admin, dict of 17 booleans for admin role). Test file: /app/backend/tests/test_iteration22_admin_users_audit.py. Frontend not tested per request. Open follow-ups: (a) toggle-active permits regular admins to toggle super_admin (no protection on main admin); (b) default perms for newly-created admin omit `members`; both are intentional/by-spec but worth confirming with product. testadmin user found seeded with role=admin and permissions={dashboard:true, members:true, all others false}.",
+  "rca of the issue": "No bugs to RCA — all 35 backend tests pass on first run. The only behavioural notes are policy choices (toggle-active scope, default perms for new admins) and a 'no-op update' response shape on PUT /admin/users/{id}."
+}
