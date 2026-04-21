@@ -1,14 +1,36 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Badge } from '../../components/ui/badge';
-import { Plus } from 'lucide-react';
+import { Plus, Shield, X, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { DeleteWithCode } from '../../components/DeleteWithCode';
 import api from '../../lib/api';
 
+const FEATURE_LABELS = {
+  dashboard: 'Dashboard',
+  quotations: 'Cotizaciones',
+  clients: 'Clientes',
+  members: 'Socios',
+  packages: 'Paquetes',
+  commerce: 'Comercios',
+  categories: 'Categorías',
+  clubs: 'Clubs',
+  regalias: 'Regalías',
+  analytics: 'Analytics',
+  announcements: 'Anuncios',
+  push: 'Notificaciones push',
+  import: 'Importar',
+  referrals: 'Referidos',
+  requests: 'Solicitudes',
+  users: 'Usuarios',
+  settings: 'Configuración',
+};
+
 export function AdminUsers({ adminUsers, allUsers, showUserForm, setShowUserForm, userForm, setUserForm, userView, setUserView, loadUsers }) {
+  const [permsUser, setPermsUser] = useState(null);
+
   return (
     <div className="animate-fade-in" data-testid="admin-users">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
@@ -19,7 +41,7 @@ export function AdminUsers({ adminUsers, allUsers, showUserForm, setShowUserForm
             <Button size="sm" variant={userView === 'all' ? 'default' : 'outline'} className="rounded-full text-xs" onClick={() => setUserView('all')}>Todos ({allUsers.length})</Button>
           </div>
         </div>
-        <Button onClick={() => setShowUserForm(true)} className="rounded-full bg-primary hover:bg-primary/90 shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5" data-testid="add-user-btn">
+        <Button onClick={() => setShowUserForm(true)} className="rounded-full bg-primary hover:bg-primary/90" data-testid="add-user-btn">
           <Plus className="w-4 h-4 mr-2" /> Nuevo Admin
         </Button>
       </div>
@@ -51,10 +73,17 @@ export function AdminUsers({ adminUsers, allUsers, showUserForm, setShowUserForm
                     </button>
                   </td>
                   <td className="p-3 text-right">
-                    <DeleteWithCode onConfirm={async (code) => {
-                      try { await api.delete(`/admin/users/${u._id}?delete_code=${encodeURIComponent(code)}`); loadUsers(); toast.success('Eliminado'); }
-                      catch (e) { toast.error(e.response?.data?.detail || 'Error'); }
-                    }} />
+                    <div className="flex gap-1 justify-end">
+                      {(u.role === 'admin' || u.role === 'super_admin') && (
+                        <Button size="sm" variant="ghost" onClick={() => setPermsUser(u)} className="text-primary" title="Permisos" data-testid={`perms-user-${i}`}>
+                          <Shield className="w-3.5 h-3.5" />
+                        </Button>
+                      )}
+                      <DeleteWithCode onConfirm={async (code) => {
+                        try { await api.delete(`/admin/users/${u._id}?delete_code=${encodeURIComponent(code)}`); loadUsers(); toast.success('Eliminado'); }
+                        catch (e) { toast.error(e.response?.data?.detail || 'Error'); }
+                      }} />
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -63,13 +92,13 @@ export function AdminUsers({ adminUsers, allUsers, showUserForm, setShowUserForm
         </div>
       </div>
       {showUserForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in" data-testid="user-form-modal">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" data-testid="user-form-modal">
           <div className="bg-white rounded-2xl w-full max-w-md p-6">
             <h3 className="font-heading text-xl font-semibold mb-4">Nuevo Administrador</h3>
             <form onSubmit={async (e) => { e.preventDefault(); try { await api.post('/admin/users', userForm); toast.success('Usuario creado'); setShowUserForm(false); setUserForm({ name: '', email: '', password: '', role: 'admin' }); loadUsers(); } catch (err) { toast.error(err.response?.data?.detail || 'Error'); } }} className="space-y-3">
               <div><Label className="text-xs">Nombre</Label><Input value={userForm.name} onChange={e => setUserForm({...userForm, name: e.target.value})} required className="rounded-xl mt-1" data-testid="uf-name" /></div>
               <div><Label className="text-xs">Email</Label><Input type="email" value={userForm.email} onChange={e => setUserForm({...userForm, email: e.target.value})} required className="rounded-xl mt-1" data-testid="uf-email" /></div>
-              <div><Label className="text-xs">Contrasenia</Label><Input type="password" value={userForm.password} onChange={e => setUserForm({...userForm, password: e.target.value})} required className="rounded-xl mt-1" data-testid="uf-password" /></div>
+              <div><Label className="text-xs">Contraseña</Label><Input type="password" value={userForm.password} onChange={e => setUserForm({...userForm, password: e.target.value})} required className="rounded-xl mt-1" data-testid="uf-password" /></div>
               <div>
                 <Label className="text-xs">Rol</Label>
                 <select value={userForm.role} onChange={e => setUserForm({...userForm, role: e.target.value})} className="w-full mt-1 h-10 rounded-xl border border-input px-3 text-sm" data-testid="uf-role">
@@ -77,6 +106,7 @@ export function AdminUsers({ adminUsers, allUsers, showUserForm, setShowUserForm
                   <option value="super_admin">Super Admin</option>
                 </select>
               </div>
+              <p className="text-[11px] text-muted-foreground">Nuevos administradores comienzan con acceso a Cotizaciones, Clientes y Dashboard. Puedes configurar más permisos luego con el botón escudo.</p>
               <div className="flex gap-3 pt-2">
                 <Button type="button" variant="outline" onClick={() => setShowUserForm(false)} className="flex-1 rounded-xl">Cancelar</Button>
                 <Button type="submit" className="flex-1 rounded-xl bg-primary hover:bg-primary/90" data-testid="uf-submit">Crear</Button>
@@ -85,6 +115,75 @@ export function AdminUsers({ adminUsers, allUsers, showUserForm, setShowUserForm
           </div>
         </div>
       )}
+      {permsUser && <PermissionsModal user={permsUser} onClose={() => setPermsUser(null)} onSaved={() => { loadUsers(); setPermsUser(null); }} />}
+    </div>
+  );
+}
+
+function PermissionsModal({ user, onClose, onSaved }) {
+  const initial = user.permissions || {};
+  const [perms, setPerms] = useState(Object.fromEntries(Object.keys(FEATURE_LABELS).map(k => [k, !!initial[k]])));
+  const [saving, setSaving] = useState(false);
+
+  const toggle = (k) => setPerms(p => ({ ...p, [k]: !p[k] }));
+  const toggleAll = (on) => setPerms(Object.fromEntries(Object.keys(FEATURE_LABELS).map(k => [k, on])));
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await api.put(`/admin/users/${user._id}/permissions`, { permissions: perms });
+      toast.success('Permisos actualizados');
+      onSaved();
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Error al guardar');
+    }
+    setSaving(false);
+  };
+
+  const isSuperAdmin = user.role === 'super_admin';
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" data-testid="perms-modal">
+      <div className="bg-white rounded-2xl w-full max-w-md p-6 max-h-[92vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="font-heading text-xl font-semibold">Permisos</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">{user.name} · {user.email}</p>
+          </div>
+          <Button variant="ghost" onClick={onClose}><X className="w-4 h-4" /></Button>
+        </div>
+
+        {isSuperAdmin ? (
+          <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 text-sm text-center">
+            <Shield className="w-8 h-8 text-primary mx-auto mb-2" />
+            <p className="font-semibold">Super Admin</p>
+            <p className="text-xs text-muted-foreground mt-1">Los Super Admins tienen acceso total a toda la aplicación.</p>
+          </div>
+        ) : (
+          <>
+            <div className="flex gap-2 mb-3">
+              <Button size="sm" variant="outline" onClick={() => toggleAll(true)} className="rounded-full text-xs flex-1">Marcar todo</Button>
+              <Button size="sm" variant="outline" onClick={() => toggleAll(false)} className="rounded-full text-xs flex-1">Desmarcar todo</Button>
+            </div>
+            <div className="space-y-1.5 mb-5">
+              {Object.entries(FEATURE_LABELS).map(([k, label]) => (
+                <button key={k} type="button" onClick={() => toggle(k)}
+                  className={`w-full flex items-center justify-between p-3 rounded-xl border transition text-sm ${perms[k] ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/30'}`}
+                  data-testid={`perm-${k}`}>
+                  <span className="font-medium">{label}</span>
+                  <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${perms[k] ? 'bg-primary border-primary' : 'border-border'}`}>
+                    {perms[k] && <Check className="w-3.5 h-3.5 text-white" />}
+                  </div>
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={onClose} className="flex-1 rounded-xl">Cancelar</Button>
+              <Button onClick={save} disabled={saving} className="flex-1 rounded-xl bg-primary" data-testid="perms-save">{saving ? 'Guardando...' : 'Guardar permisos'}</Button>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

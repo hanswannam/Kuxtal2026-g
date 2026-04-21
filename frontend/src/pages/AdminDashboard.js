@@ -66,7 +66,7 @@ export default function AdminDashboard() {
   const [quotationResponse, setQuotationResponse] = useState({ id: '', response: '' });
 
   const [memberForm, setMemberForm] = useState({ contract_number: '', dpi: '', name: '', email: '', phone: '', service_years: 1, membership_start: '', membership_end: '', family_members_allowed: 1, investment_amount: 0, investment_plan: '', status: 'active', contract_date: '', age: 0, marital_status: '', nationality: '', profession: '', address: '', coowner_name: '', coowner_nationality: '', coowner_profession: '', coowner_phone: '', coowner_email: '', vigencia: '', cuotas: '', bank: '', termination_date: '', tc: '', nit: '', billing_name: '', observations: '' });
-  const [packageForm, setPackageForm] = useState({ title: '', description: '', short_description: '', country: '', price: 0, member_price: 0, duration_days: 1, category: 'paquete', includes: [], rating: 4.8, image_url: '', gallery: [], featured: false, status: 'active', promo_start: '', promo_end: '' });
+  const [packageForm, setPackageForm] = useState({ title: '', description: '', short_description: '', country: '', price: 0, member_price: 0, duration_days: 1, category: 'paquete', includes: [], rating: 4.8, image_url: '', gallery: [], featured: false, status: 'active', promo_start: '', promo_end: '', visibility: 'public' });
   const [includesInput, setIncludesInput] = useState('');
   const [announcementForm, setAnnouncementForm] = useState({ title: '', content: '', link: '', target: 'all', status: 'active' });
 
@@ -79,7 +79,7 @@ export default function AdminDashboard() {
   const loadData = useCallback(async () => {
     try {
       const [s, m, p, q, a, v, w] = await Promise.all([
-        api.get('/stats'), api.get('/members'), api.get('/packages'),
+        api.get('/stats'), api.get('/members'), api.get('/packages?include_internal=true'),
         api.get('/quotations'), api.get('/announcements'), api.get('/vacation-requests'),
         api.get('/config/whatsapp')
       ]);
@@ -118,7 +118,7 @@ export default function AdminDashboard() {
       if (editingPackage) { await api.put(`/packages/${editingPackage._id}`, data); toast.success('Paquete actualizado'); }
       else { await api.post('/packages', data); toast.success('Paquete creado'); }
       setShowPackageForm(false); setEditingPackage(null);
-      setPackageForm({ title: '', description: '', short_description: '', country: '', price: 0, member_price: 0, duration_days: 1, category: 'paquete', includes: [], rating: 4.8, image_url: '', gallery: [], featured: false, status: 'active', promo_start: '', promo_end: '' });
+      setPackageForm({ title: '', description: '', short_description: '', country: '', price: 0, member_price: 0, duration_days: 1, category: 'paquete', includes: [], rating: 4.8, image_url: '', gallery: [], featured: false, status: 'active', promo_start: '', promo_end: '', visibility: 'public' });
       loadData();
     } catch (e) { toast.error(e.response?.data?.detail || 'Error'); }
   };
@@ -191,7 +191,8 @@ export default function AdminDashboard() {
     loadData();
   };
 
-  const tabs = [
+  const allTabs = [
+    { id: 'quotations', label: 'Cotizaciones', icon: FileText },
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'import', label: 'Importar', icon: Sparkles },
     { id: 'analytics', label: 'Analytics', icon: TrendingUp },
@@ -202,7 +203,6 @@ export default function AdminDashboard() {
     { id: 'categories', label: 'Categorías', icon: Tag },
     { id: 'clubs', label: 'Clubs', icon: Building2 },
     { id: 'regalias', label: 'Regalías', icon: Award },
-    { id: 'quotations', label: 'Cotizaciones', icon: FileText },
     { id: 'referrals', label: 'Referidos', icon: Gift },
     { id: 'announcements', label: 'Anuncios', icon: Bell },
     { id: 'push', label: 'Push', icon: Send },
@@ -210,6 +210,10 @@ export default function AdminDashboard() {
     { id: 'users', label: 'Usuarios', icon: Users },
     { id: 'settings', label: 'Config', icon: Settings },
   ];
+  // Apply per-user permissions (super_admin gets everything)
+  const perms = user?.permissions || {};
+  const hasPerm = (key) => user?.role === 'super_admin' || !user?.permissions || Object.keys(perms).length === 0 || !!perms[key];
+  const tabs = allTabs.filter(t => hasPerm(t.id));
 
   return (
     <div className="min-h-screen pt-20 bg-secondary/20" data-testid="admin-dashboard">
@@ -221,6 +225,28 @@ export default function AdminDashboard() {
           </div>
           <Badge className="rounded-full bg-primary/10 text-primary border-0 px-3">{user?.role === 'super_admin' ? 'Super Admin' : 'Admin'}</Badge>
         </div>
+
+        {hasPerm('quotations') && tab !== 'quotations' && (
+          <button
+            onClick={() => setTab('quotations')}
+            className="w-full mb-4 rounded-2xl p-4 sm:p-5 bg-gradient-to-r from-primary to-primary/80 text-white shadow-lg hover:shadow-xl transition flex items-center justify-between gap-4 group"
+            data-testid="cta-quotations"
+          >
+            <div className="text-left flex items-center gap-3">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-white/15 backdrop-blur flex items-center justify-center shrink-0">
+                <FileText className="w-5 h-5 sm:w-6 sm:h-6" />
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-white/70 font-semibold">Módulo prioritario</p>
+                <p className="font-heading text-lg sm:text-xl font-bold">Gestión de Cotizaciones</p>
+                <p className="text-xs sm:text-sm text-white/80">Recibe, edita, aprueba y da seguimiento a cada solicitud</p>
+              </div>
+            </div>
+            <div className="hidden sm:flex items-center gap-1 text-xs font-semibold bg-white/15 rounded-full px-3 py-1.5 group-hover:bg-white/25 transition">
+              Ir al módulo →
+            </div>
+          </button>
+        )}
 
         <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2 mb-6" data-testid="admin-tabs">
           {tabs.map(t => (

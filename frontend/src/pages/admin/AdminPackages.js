@@ -12,6 +12,7 @@ export function AdminPackages({ packages, packageForm, setPackageForm, showPacka
   const [catFilter, setCatFilter] = useState('');
   const [countryFilter, setCountryFilter] = useState('');
   const [featuredFilter, setFeaturedFilter] = useState('');
+  const [visibilityFilter, setVisibilityFilter] = useState('');
 
   const countries = useMemo(() => Array.from(new Set(packages.map(p => p.country).filter(Boolean))).sort(), [packages]);
 
@@ -21,6 +22,9 @@ export function AdminPackages({ packages, packageForm, setPackageForm, showPacka
     if (countryFilter && p.country !== countryFilter) return false;
     if (featuredFilter === 'yes' && !p.featured) return false;
     if (featuredFilter === 'no' && p.featured) return false;
+    const vis = p.visibility || 'public';
+    if (visibilityFilter === 'public' && vis !== 'public') return false;
+    if (visibilityFilter === 'internal' && vis !== 'internal') return false;
     if (q.trim()) {
       const n = norm(q);
       if (!norm(p.title).includes(n) && !norm(p.short_description).includes(n) && !norm(p.description).includes(n) && !norm(p.country).includes(n)) return false;
@@ -32,12 +36,12 @@ export function AdminPackages({ packages, packageForm, setPackageForm, showPacka
     <div className="animate-fade-in">
       <div className="flex flex-col sm:flex-row gap-3 justify-between sm:items-center mb-4">
         <h2 className="font-heading text-lg font-semibold">Paquetes ({filtered.length}{filtered.length !== packages.length ? ` de ${packages.length}` : ''})</h2>
-        <Button onClick={() => { setShowPackageForm(true); setEditingPackage(null); setPackageForm({ title: '', description: '', short_description: '', country: '', price: 0, member_price: 0, duration_days: 1, category: 'paquete', includes: [], rating: 4.8, image_url: '', gallery: [], featured: false, status: 'active', promo_start: '', promo_end: '' }); }} className="rounded-full" data-testid="add-package-btn">
+        <Button onClick={() => { setShowPackageForm(true); setEditingPackage(null); setPackageForm({ title: '', description: '', short_description: '', country: '', price: 0, member_price: 0, duration_days: 1, category: 'paquete', includes: [], rating: 4.8, image_url: '', gallery: [], featured: false, status: 'active', promo_start: '', promo_end: '', visibility: 'public' }); }} className="rounded-full" data-testid="add-package-btn">
           <Plus className="w-4 h-4 mr-2" /> Nuevo Paquete
         </Button>
       </div>
 
-      <div className="bg-white rounded-2xl border border-border p-3 mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2" data-testid="pkg-filters">
+      <div className="bg-white rounded-2xl border border-border p-3 mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2" data-testid="pkg-filters">
         <div className="relative lg:col-span-2">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar por título, país, descripción..." className="pl-9 rounded-xl" data-testid="pkg-search" />
@@ -53,10 +57,15 @@ export function AdminPackages({ packages, packageForm, setPackageForm, showPacka
           <option value="">Todos los países</option>
           {countries.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
-        <select value={featuredFilter} onChange={e => setFeaturedFilter(e.target.value)} className="h-10 rounded-xl border border-input px-3 text-sm bg-white sm:col-span-2 lg:col-span-1" data-testid="pkg-filter-featured">
+        <select value={featuredFilter} onChange={e => setFeaturedFilter(e.target.value)} className="h-10 rounded-xl border border-input px-3 text-sm bg-white" data-testid="pkg-filter-featured">
           <option value="">Destacados y no destacados</option>
           <option value="yes">Solo destacados</option>
           <option value="no">No destacados</option>
+        </select>
+        <select value={visibilityFilter} onChange={e => setVisibilityFilter(e.target.value)} className="h-10 rounded-xl border border-input px-3 text-sm bg-white sm:col-span-2 lg:col-span-1" data-testid="pkg-filter-visibility">
+          <option value="">Todos (web + internos)</option>
+          <option value="public">Solo visibles en web</option>
+          <option value="internal">Solo internos (cotizaciones)</option>
         </select>
       </div>
 
@@ -76,6 +85,7 @@ export function AdminPackages({ packages, packageForm, setPackageForm, showPacka
               <div className="flex items-center gap-2 mb-2">
                 <Badge variant="secondary" className="rounded-full text-xs">{p.category}</Badge>
                 {p.featured && <Badge className="rounded-full text-xs bg-primary">Destacado</Badge>}
+                {p.visibility === 'internal' && <Badge className="rounded-full text-xs bg-amber-100 text-amber-700 border-amber-300">🔒 Solo cotiz.</Badge>}
               </div>
               <h3 className="font-semibold mb-1 line-clamp-1">{p.title}</h3>
               <p className="text-sm text-muted-foreground mb-2">{p.country} &middot; {p.duration_days} días</p>
@@ -145,6 +155,19 @@ export function AdminPackages({ packages, packageForm, setPackageForm, showPacka
               <div className="flex items-center gap-2">
                 <input type="checkbox" checked={packageForm.featured} onChange={e => setPackageForm({...packageForm, featured: e.target.checked})} id="featured" data-testid="pf-featured" />
                 <Label htmlFor="featured" className="text-xs">Destacado</Label>
+              </div>
+              <div className="pt-3 border-t border-border">
+                <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-2">Visibilidad</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button type="button" onClick={() => setPackageForm({...packageForm, visibility: 'public'})} className={`p-3 rounded-xl border text-left transition ${(packageForm.visibility || 'public') === 'public' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/30'}`} data-testid="pf-vis-public">
+                    <p className="text-xs font-semibold">🌐 Visible en la web</p>
+                    <p className="text-[10px] text-muted-foreground">Público y socios lo ven en el catálogo</p>
+                  </button>
+                  <button type="button" onClick={() => setPackageForm({...packageForm, visibility: 'internal'})} className={`p-3 rounded-xl border text-left transition ${packageForm.visibility === 'internal' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/30'}`} data-testid="pf-vis-internal">
+                    <p className="text-xs font-semibold">🔒 Solo cotizaciones</p>
+                    <p className="text-[10px] text-muted-foreground">No aparece en la web; solo para cotizar</p>
+                  </button>
+                </div>
               </div>
               <div className="pt-3 border-t border-border">
                 <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-2">Promoción (opcional)</p>

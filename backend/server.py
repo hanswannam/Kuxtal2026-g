@@ -214,6 +214,8 @@ class PackageCreate(BaseModel):
     gallery: List[str] = []
     featured: bool = False
     status: str = "active"
+    # Visibility: 'public' = shown on web, 'internal' = only for internal quotations
+    visibility: str = "public"
     # Promoción (opcional): fechas de inicio/fin para mostrar contador regresivo
     promo_start: Optional[str] = ""
     promo_end: Optional[str] = ""
@@ -477,8 +479,18 @@ def normalize_search(text: str) -> str:
     return ''.join(result)
 
 @api_router.get("/packages")
-async def list_packages(category: Optional[str] = None, country: Optional[str] = None, search: Optional[str] = None, featured: Optional[bool] = None, min_price: Optional[float] = None, max_price: Optional[float] = None, min_days: Optional[int] = None, max_days: Optional[int] = None, sort: Optional[str] = None):
+async def list_packages(request: Request, category: Optional[str] = None, country: Optional[str] = None, search: Optional[str] = None, featured: Optional[bool] = None, min_price: Optional[float] = None, max_price: Optional[float] = None, min_days: Optional[int] = None, max_days: Optional[int] = None, sort: Optional[str] = None, include_internal: Optional[bool] = False):
+    # If admin, allow fetching internal packages too. Public users only see visibility=public
+    is_admin = False
+    try:
+        u = await get_current_user(request)
+        is_admin = u.get("role") in ("super_admin", "admin")
+    except Exception:
+        is_admin = False
     query = {"status": "active"}
+    if not (is_admin and include_internal):
+        # Restrict to public-visible packages for web consumers
+        query["$and"] = [{"$or": [{"visibility": "public"}, {"visibility": {"$exists": False}}]}]
     if category:
         query["category"] = category
     if country:
@@ -486,11 +498,16 @@ async def list_packages(category: Optional[str] = None, country: Optional[str] =
         query["country"] = {"$regex": country_pattern, "$options": "i"}
     if search:
         search_pattern = normalize_search(search)
-        query["$or"] = [
+        search_or = [
             {"title": {"$regex": search_pattern, "$options": "i"}},
             {"description": {"$regex": search_pattern, "$options": "i"}},
             {"country": {"$regex": search_pattern, "$options": "i"}}
         ]
+        # Nest search into $and to not conflict with visibility filter
+        if "$and" in query:
+            query["$and"].append({"$or": search_or})
+        else:
+            query["$or"] = search_or
     if min_price is not None:
         query.setdefault("price", {})["$gte"] = min_price
     if max_price is not None:
@@ -852,6 +869,8 @@ async def create_quotation(req: QuotationRequest):
     doc["status"] = "pending"
     doc["id"] = str(uuid.uuid4())
     doc["public_token"] = secrets.token_urlsafe(16)
+    doc["created_by_name"] = "Sistema (web pública)"
+    doc["created_by_id"] = None
     doc["timeline"] = [{
         "event": "created",
         "label": "Cotización creada",
@@ -894,11 +913,32 @@ async def create_quotation(req: QuotationRequest):
     return serialize_doc(doc)
 
 @api_router.get("/quotations")
-async def list_quotations(request: Request):
+async def list_quotations(
+    request: Request,
+    sort: Optional[str] = "desc",
+    created_by: Optional[str] = None,
+    status: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+):
     user = await get_current_user(request)
     if user["role"] in ["super_admin", "admin"]:
+        query = {}
+        if created_by:
+            if created_by == "system":
+                query["created_by_id"] = None
+            else:
+                query["created_by_id"] = created_by
+        if status:
+            query["status"] = status
+        if date_from or date_to:
+            date_query = {}
+            if date_from: date_query["$gte"] = date_from
+            if date_to: date_query["$lte"] = date_to + "T23:59:59"
+            query["created_at"] = date_query
+        sort_dir = 1 if sort == "asc" else -1
         quotations = []
-        async for q in db.quotations.find().sort("created_at", -1).limit(200):
+        async for q in db.quotations.find(query).sort("created_at", sort_dir).limit(500):
             quotations.append(serialize_doc(q))
         return quotations
     elif user["role"] == "member":
@@ -931,6 +971,8 @@ async def create_quotation_as_admin(request: Request):
         "guests": guests, "travel_date": travel_date, "message": message,
         "package_id": package_id,
         "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by_name": user.get("name", "Admin"),
+        "created_by_id": user.get("_id"),
         "status": "in_review",
         "id": str(uuid.uuid4()),
         "public_token": secrets.token_urlsafe(16),
@@ -2372,6 +2414,12 @@ async def list_all_users(request: Request):
         users.append(u_doc)
     return users
 
+FEATURE_KEYS = [
+    "dashboard", "members", "clients", "packages", "commerce", "categories",
+    "clubs", "regalias", "quotations", "analytics", "announcements",
+    "push", "import", "referrals", "requests", "users", "settings",
+]
+
 @api_router.post("/admin/users")
 async def create_admin_user(request: Request):
     user = await require_role("super_admin")(request)
@@ -2379,16 +2427,37 @@ async def create_admin_user(request: Request):
     existing = await db.users.find_one({"email": body["email"].lower().strip()})
     if existing:
         raise HTTPException(status_code=400, detail="Email ya registrado")
+    perms = body.get("permissions") or {}
+    # Default: if no perms provided for a regular admin, grant only quotations+dashboard
+    role = body.get("role", "admin")
+    if not perms and role == "admin":
+        perms = {"dashboard": True, "quotations": True, "clients": True}
     doc = {
         "email": body["email"].lower().strip(),
         "password_hash": hash_password(body["password"]),
         "name": body.get("name", ""),
-        "role": body.get("role", "admin"),
+        "role": role,
+        "permissions": perms,
         "is_active": True,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     result = await db.users.insert_one(doc)
-    return {"id": str(result.inserted_id), "email": doc["email"], "name": doc["name"], "role": doc["role"]}
+    return {"id": str(result.inserted_id), "email": doc["email"], "name": doc["name"], "role": doc["role"], "permissions": perms}
+
+@api_router.put("/admin/users/{user_id}/permissions")
+async def update_user_permissions(user_id: str, request: Request):
+    await require_role("super_admin")(request)
+    body = await request.json()
+    perms = body.get("permissions") or {}
+    # Normalize: ensure only booleans and valid keys
+    clean = {k: bool(perms.get(k)) for k in FEATURE_KEYS if k in perms}
+    await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"permissions": clean}})
+    return {"permissions": clean}
+
+@api_router.get("/admin/feature-keys")
+async def list_feature_keys(request: Request):
+    await require_role("super_admin", "admin")(request)
+    return FEATURE_KEYS
 
 @api_router.put("/admin/users/{user_id}/toggle-active")
 async def toggle_user_active(user_id: str, request: Request):

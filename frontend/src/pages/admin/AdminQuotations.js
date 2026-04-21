@@ -24,6 +24,10 @@ export function AdminQuotations({ quotations: initialQuotations }) {
   const [q, setQ] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [memberFilter, setMemberFilter] = useState('');
+  const [creatorFilter, setCreatorFilter] = useState('');
+  const [sortOrder, setSortOrder] = useState('desc');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [editing, setEditing] = useState(null);
   const [previewing, setPreviewing] = useState(null);
   const [creating, setCreating] = useState(false);
@@ -31,9 +35,28 @@ export function AdminQuotations({ quotations: initialQuotations }) {
   useEffect(() => { setQuotations(initialQuotations); }, [initialQuotations]);
 
   const reload = async () => {
-    const r = await api.get('/quotations');
+    const params = new URLSearchParams();
+    params.set('sort', sortOrder);
+    if (creatorFilter) params.set('created_by', creatorFilter);
+    if (statusFilter) params.set('status', statusFilter);
+    if (dateFrom) params.set('date_from', dateFrom);
+    if (dateTo) params.set('date_to', dateTo);
+    const r = await api.get(`/quotations?${params.toString()}`);
     setQuotations(r.data);
   };
+
+  useEffect(() => { reload(); /* eslint-disable-next-line */ }, [sortOrder, creatorFilter, statusFilter, dateFrom, dateTo]);
+
+  // Extract unique creators for the filter dropdown (from currently loaded data)
+  const creators = useMemo(() => {
+    const map = new Map();
+    quotations.forEach(x => {
+      const key = x.created_by_id || 'system';
+      const label = x.created_by_name || (x.created_by_id ? 'Usuario' : 'Sistema (web pública)');
+      if (!map.has(key)) map.set(key, label);
+    });
+    return Array.from(map.entries());
+  }, [quotations]);
 
   const norm = (s) => (s || '').toString().toLowerCase();
   const filtered = useMemo(() => quotations.filter(x => {
@@ -57,8 +80,8 @@ export function AdminQuotations({ quotations: initialQuotations }) {
         </Button>
       </div>
 
-      <div className="bg-white rounded-2xl border border-border p-3 mb-4 grid grid-cols-1 sm:grid-cols-3 gap-2" data-testid="quot-filters">
-        <div className="relative">
+      <div className="bg-white rounded-2xl border border-border p-3 mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2" data-testid="quot-filters">
+        <div className="relative lg:col-span-2">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar nombre, email, teléfono, paquete..." className="pl-9 rounded-xl" data-testid="quot-search" />
           {q && <button type="button" onClick={() => setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2"><X className="w-4 h-4 text-muted-foreground" /></button>}
@@ -72,6 +95,28 @@ export function AdminQuotations({ quotations: initialQuotations }) {
           <option value="yes">Solo socios</option>
           <option value="no">Solo no socios</option>
         </select>
+        <select value={creatorFilter} onChange={e => setCreatorFilter(e.target.value)} className="h-10 rounded-xl border border-input px-3 text-sm bg-white" data-testid="quot-filter-creator">
+          <option value="">Todos los creadores</option>
+          <option value="system">Solo de la web (Sistema)</option>
+          {creators.filter(([k]) => k !== 'system').map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+        </select>
+        <div className="flex items-center gap-2 bg-secondary/40 rounded-xl px-3 h-10 text-xs">
+          <span className="text-muted-foreground">Desde</span>
+          <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="bg-transparent outline-none flex-1" data-testid="quot-date-from" />
+        </div>
+        <div className="flex items-center gap-2 bg-secondary/40 rounded-xl px-3 h-10 text-xs">
+          <span className="text-muted-foreground">Hasta</span>
+          <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="bg-transparent outline-none flex-1" data-testid="quot-date-to" />
+        </div>
+        <select value={sortOrder} onChange={e => setSortOrder(e.target.value)} className="h-10 rounded-xl border border-input px-3 text-sm bg-white" data-testid="quot-sort">
+          <option value="desc">Más recientes primero</option>
+          <option value="asc">Más antiguas primero</option>
+        </select>
+        {(dateFrom || dateTo || creatorFilter || statusFilter) && (
+          <button type="button" onClick={() => { setDateFrom(''); setDateTo(''); setCreatorFilter(''); setStatusFilter(''); }} className="h-10 rounded-xl bg-secondary hover:bg-secondary/70 text-xs font-medium px-3" data-testid="quot-clear-filters">
+            Limpiar filtros
+          </button>
+        )}
       </div>
 
       {filtered.length === 0 ? (
@@ -139,7 +184,11 @@ function QuotationCard({ quot, index, onEdit, onPreview, onChange }) {
         </div>
         <div className="text-right shrink-0">
           {total > 0 && <p className="font-bold text-lg text-primary">Q.{total.toLocaleString()}</p>}
-          <p className="text-[11px] text-muted-foreground">{quot.guests || 1} pax · {new Date(quot.created_at).toLocaleDateString('es')}</p>
+          <p className="text-[11px] text-muted-foreground">{quot.guests || 1} pax</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5" data-testid={`quot-meta-${index}`}>
+            {new Date(quot.created_at).toLocaleString('es', { dateStyle: 'short', timeStyle: 'short' })}
+            {quot.created_by_name && <span> · por {quot.created_by_name}</span>}
+          </p>
         </div>
       </div>
 
@@ -184,7 +233,7 @@ function QuotationEditor({ quot, onClose, onSaved }) {
   const [timeline, setTimeline] = useState(quot.timeline || []);
 
   useEffect(() => {
-    api.get('/packages').then(r => setPackages(r.data)).catch(() => {});
+    api.get('/packages?include_internal=true').then(r => setPackages(r.data)).catch(() => {});
   }, []);
 
   const addExtra = () => {

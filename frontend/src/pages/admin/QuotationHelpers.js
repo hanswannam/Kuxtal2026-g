@@ -15,7 +15,7 @@ export function PackageSearchSelect({ value, onChange, testId = 'pkg-select' }) 
   const wrapRef = useRef(null);
 
   useEffect(() => {
-    api.get('/packages').then(r => setPackages(r.data)).catch(() => {});
+    api.get('/packages?include_internal=true').then(r => setPackages(r.data)).catch(() => {});
   }, []);
 
   useEffect(() => {
