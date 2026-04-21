@@ -394,10 +394,22 @@ async def logout(response: Response):
 # ── Members CRUD (Admin) ──
 
 @api_router.get("/members")
-async def list_members(request: Request):
+async def list_members(request: Request, search: Optional[str] = None, status: Optional[str] = None):
     user = await require_role("super_admin", "admin")(request)
+    query = {}
+    if status:
+        query["status"] = status
+    if search:
+        s = search.strip()
+        query["$or"] = [
+            {"name": {"$regex": s, "$options": "i"}},
+            {"contract_number": {"$regex": s, "$options": "i"}},
+            {"dpi": {"$regex": s, "$options": "i"}},
+            {"phone": {"$regex": s, "$options": "i"}},
+            {"email": {"$regex": s, "$options": "i"}},
+        ]
     members_list = []
-    async for m in db.members.find().limit(1000):
+    async for m in db.members.find(query).limit(1000):
         members_list.append(serialize_doc(m))
     return members_list
 
@@ -971,7 +983,39 @@ async def serve_file(path: str):
 
 @api_router.get("/commerce/categories")
 async def get_commerce_categories():
-    return COMMERCE_CATEGORIES
+    # Return user-created categories from DB, falling back to defaults if none
+    cats = []
+    async for c in db.commerce_categories.find({}).sort("name", 1):
+        cats.append(c.get("name", ""))
+    if not cats:
+        return COMMERCE_CATEGORIES
+    # Merge with defaults so defaults always appear (unique)
+    merged = list(dict.fromkeys(COMMERCE_CATEGORIES + cats))
+    return merged
+
+@api_router.post("/commerce/categories")
+async def create_commerce_category(request: Request):
+    await require_role("super_admin", "admin")(request)
+    body = await request.json()
+    name = (body.get("name") or "").strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Nombre requerido")
+    existing = await db.commerce_categories.find_one({"name": name})
+    if existing or name in COMMERCE_CATEGORIES:
+        raise HTTPException(status_code=400, detail="Categoría ya existe")
+    await db.commerce_categories.insert_one({"name": name, "created_at": datetime.now(timezone.utc).isoformat()})
+    return {"name": name}
+
+@api_router.delete("/commerce/categories/{name}")
+async def delete_commerce_category(name: str, request: Request):
+    await require_role("super_admin", "admin")(request)
+    await verify_delete_code(request)
+    if name in COMMERCE_CATEGORIES:
+        raise HTTPException(status_code=400, detail="No se pueden eliminar categorías del sistema")
+    result = await db.commerce_categories.delete_one({"name": name})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Categoría no encontrada")
+    return {"message": "Categoría eliminada"}
 
 @api_router.get("/commerce")
 async def list_commerce(category: Optional[str] = None, search: Optional[str] = None):

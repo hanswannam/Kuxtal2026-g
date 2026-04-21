@@ -4,7 +4,7 @@ import { Input } from '../../components/ui/input';
 import { Textarea } from '../../components/ui/textarea';
 import { Label } from '../../components/ui/label';
 import { Badge } from '../../components/ui/badge';
-import { Plus, Edit, Gift } from 'lucide-react';
+import { Plus, Edit, Gift, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { DeleteWithCode } from '../../components/DeleteWithCode';
 import api from '../../lib/api';
@@ -20,6 +20,24 @@ const EMPTY_FORM = {
 
 export function AdminMembers({ members, memberForm, setMemberForm, showMemberForm, setShowMemberForm, editingMember, setEditingMember, saveMember, editMember, deleteMember }) {
   const set = (k, v) => setMemberForm({ ...memberForm, [k]: v });
+
+  // Búsqueda / filtros
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+
+  const normalize = (s) => (s || '').toString().toLowerCase();
+  const filteredMembers = members.filter(m => {
+    if (statusFilter && m.status !== statusFilter) return false;
+    if (!searchQuery.trim()) return true;
+    const q = normalize(searchQuery);
+    return (
+      normalize(m.name).includes(q) ||
+      normalize(m.contract_number).includes(q) ||
+      normalize(m.dpi).includes(q) ||
+      normalize(m.phone).includes(q) ||
+      normalize(m.email).includes(q)
+    );
+  });
 
   // Regalías picker
   const [allRegalias, setAllRegalias] = useState([]);
@@ -67,8 +85,8 @@ export function AdminMembers({ members, memberForm, setMemberForm, showMemberFor
 
   return (
     <div className="animate-fade-in">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="font-heading text-lg font-semibold">Socios ({members.length})</h2>
+      <div className="flex flex-col sm:flex-row gap-3 justify-between sm:items-center mb-4">
+        <h2 className="font-heading text-lg font-semibold">Socios ({filteredMembers.length}{filteredMembers.length !== members.length ? ` de ${members.length}` : ''})</h2>
         <Button
           onClick={() => { setShowMemberForm(true); setEditingMember(null); setMemberForm(EMPTY_FORM); }}
           className="rounded-full"
@@ -76,6 +94,39 @@ export function AdminMembers({ members, memberForm, setMemberForm, showMemberFor
         >
           <Plus className="w-4 h-4 mr-2" /> Nuevo Socio
         </Button>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-border p-3 mb-4 flex flex-col sm:flex-row gap-2" data-testid="members-filters">
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Buscar por nombre, contrato, DPI, teléfono o email..."
+            className="pl-9 rounded-xl"
+            data-testid="members-search-input"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              data-testid="members-search-clear"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+        <select
+          value={statusFilter}
+          onChange={e => setStatusFilter(e.target.value)}
+          className="h-10 rounded-xl border border-input px-3 text-sm bg-white"
+          data-testid="members-status-filter"
+        >
+          <option value="">Todos los estados</option>
+          <option value="active">Activos</option>
+          <option value="inactive">Inactivos</option>
+        </select>
       </div>
 
       <div className="bg-white rounded-2xl border border-border overflow-hidden">
@@ -91,7 +142,14 @@ export function AdminMembers({ members, memberForm, setMemberForm, showMemberFor
               </tr>
             </thead>
             <tbody>
-              {members.map((m, i) => (
+              {filteredMembers.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="text-center text-muted-foreground py-8 text-sm" data-testid="members-empty">
+                    No se encontraron socios con los filtros aplicados
+                  </td>
+                </tr>
+              )}
+              {filteredMembers.map((m, i) => (
                 <tr key={m._id} className="border-t border-border hover:bg-secondary/30 transition-colors" data-testid={`member-row-${i}`}>
                   <td className="p-3 font-medium">{m.contract_number}</td>
                   <td className="p-3">{m.name}</td>

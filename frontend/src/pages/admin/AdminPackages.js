@@ -1,23 +1,73 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Textarea } from '../../components/ui/textarea';
 import { Label } from '../../components/ui/label';
 import { Badge } from '../../components/ui/badge';
-import { Plus, Edit, X, Upload, Package } from 'lucide-react';
+import { Plus, Edit, X, Upload, Package, Search } from 'lucide-react';
 import { DeleteWithCode } from '../../components/DeleteWithCode';
 
 export function AdminPackages({ packages, packageForm, setPackageForm, showPackageForm, setShowPackageForm, editingPackage, setEditingPackage, savePackage, editPkg, deletePkg, includesInput, setIncludesInput, addInclude, removeInclude, handleImageUpload, uploading }) {
+  const [q, setQ] = useState('');
+  const [catFilter, setCatFilter] = useState('');
+  const [countryFilter, setCountryFilter] = useState('');
+  const [featuredFilter, setFeaturedFilter] = useState('');
+
+  const countries = useMemo(() => Array.from(new Set(packages.map(p => p.country).filter(Boolean))).sort(), [packages]);
+
+  const norm = (s) => (s || '').toString().toLowerCase();
+  const filtered = packages.filter(p => {
+    if (catFilter && p.category !== catFilter) return false;
+    if (countryFilter && p.country !== countryFilter) return false;
+    if (featuredFilter === 'yes' && !p.featured) return false;
+    if (featuredFilter === 'no' && p.featured) return false;
+    if (q.trim()) {
+      const n = norm(q);
+      if (!norm(p.title).includes(n) && !norm(p.short_description).includes(n) && !norm(p.description).includes(n) && !norm(p.country).includes(n)) return false;
+    }
+    return true;
+  });
+
   return (
     <div className="animate-fade-in">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="font-heading text-lg font-semibold">Paquetes ({packages.length})</h2>
-        <Button onClick={() => { setShowPackageForm(true); setEditingPackage(null); setPackageForm({ title: '', description: '', short_description: '', country: '', price: 0, member_price: 0, duration_days: 1, category: 'paquete', includes: [], rating: 4.8, image_url: '', gallery: [], featured: false, status: 'active' }); }} className="rounded-full" data-testid="add-package-btn">
+      <div className="flex flex-col sm:flex-row gap-3 justify-between sm:items-center mb-4">
+        <h2 className="font-heading text-lg font-semibold">Paquetes ({filtered.length}{filtered.length !== packages.length ? ` de ${packages.length}` : ''})</h2>
+        <Button onClick={() => { setShowPackageForm(true); setEditingPackage(null); setPackageForm({ title: '', description: '', short_description: '', country: '', price: 0, member_price: 0, duration_days: 1, category: 'paquete', includes: [], rating: 4.8, image_url: '', gallery: [], featured: false, status: 'active', promo_start: '', promo_end: '' }); }} className="rounded-full" data-testid="add-package-btn">
           <Plus className="w-4 h-4 mr-2" /> Nuevo Paquete
         </Button>
       </div>
+
+      <div className="bg-white rounded-2xl border border-border p-3 mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2" data-testid="pkg-filters">
+        <div className="relative lg:col-span-2">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar por título, país, descripción..." className="pl-9 rounded-xl" data-testid="pkg-search" />
+          {q && <button type="button" onClick={() => setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>}
+        </div>
+        <select value={catFilter} onChange={e => setCatFilter(e.target.value)} className="h-10 rounded-xl border border-input px-3 text-sm bg-white" data-testid="pkg-filter-category">
+          <option value="">Todas las categorías</option>
+          <option value="paquete">Paquete</option>
+          <option value="alojamiento">Alojamiento</option>
+          <option value="experiencia">Experiencia</option>
+        </select>
+        <select value={countryFilter} onChange={e => setCountryFilter(e.target.value)} className="h-10 rounded-xl border border-input px-3 text-sm bg-white" data-testid="pkg-filter-country">
+          <option value="">Todos los países</option>
+          {countries.map(c => <option key={c} value={c}>{c}</option>)}
+        </select>
+        <select value={featuredFilter} onChange={e => setFeaturedFilter(e.target.value)} className="h-10 rounded-xl border border-input px-3 text-sm bg-white sm:col-span-2 lg:col-span-1" data-testid="pkg-filter-featured">
+          <option value="">Destacados y no destacados</option>
+          <option value="yes">Solo destacados</option>
+          <option value="no">No destacados</option>
+        </select>
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="bg-white rounded-2xl p-12 border border-border text-center" data-testid="pkg-empty">
+          <Package className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+          <p className="text-sm text-muted-foreground">No se encontraron paquetes con los filtros aplicados</p>
+        </div>
+      ) : (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {packages.map((p, i) => (
+        {filtered.map((p, i) => (
           <div key={p._id} className="bg-white rounded-2xl border border-border overflow-hidden" data-testid={`pkg-card-${i}`}>
             <div className="aspect-video bg-muted overflow-hidden">
               {p.image_url ? <img src={p.image_url} alt={p.title} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-muted-foreground"><Package className="w-8 h-8" /></div>}
@@ -40,6 +90,7 @@ export function AdminPackages({ packages, packageForm, setPackageForm, showPacka
           </div>
         ))}
       </div>
+      )}
 
       {showPackageForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in" data-testid="package-form-modal">
