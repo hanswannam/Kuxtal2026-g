@@ -153,15 +153,21 @@ export default function CommerceWizard() {
               <div>
                 <Label className="text-sm font-medium mb-3 block">Categoría</Label>
                 <div className="grid grid-cols-3 gap-2">
-                  {categories.map(cat => (
-                    <button type="button" key={cat.name} onClick={() => setForm({...form, category: cat.name})}
-                      className={`flex flex-col items-center gap-1 p-3 rounded-xl border transition-all text-xs font-medium ${
-                        form.category === cat.name ? 'border-primary bg-accent text-primary scale-[1.02] shadow-sm' : 'border-border hover:border-primary/30'
-                      }`} data-testid={`wiz-cat-${cat.name}`}>
-                      <span className="text-xl">{cat.icon || CATEGORY_ICONS[cat.name] || '🏷️'}</span>
-                      <span className="leading-tight text-center">{cat.name}</span>
-                    </button>
-                  ))}
+                  {categories.map(cat => {
+                    const isImgIcon = cat.icon && (cat.icon.startsWith('http') || cat.icon.startsWith('/'));
+                    return (
+                      <button type="button" key={cat.name} onClick={() => setForm({...form, category: cat.name})}
+                        className={`flex flex-col items-center gap-1 p-3 rounded-xl border transition-all text-xs font-medium ${
+                          form.category === cat.name ? 'border-primary bg-accent text-primary scale-[1.02] shadow-sm' : 'border-border hover:border-primary/30'
+                        }`} data-testid={`wiz-cat-${cat.name}`}>
+                        {isImgIcon
+                          ? <img src={cat.icon} alt={cat.name} className="w-6 h-6 object-contain" />
+                          : <span className="text-xl">{cat.icon || CATEGORY_ICONS[cat.name] || '🏷️'}</span>
+                        }
+                        <span className="leading-tight text-center">{cat.name}</span>
+                      </button>
+                    );
+                  })}
                   <button
                     type="button"
                     onClick={() => setShowNewCatInput(true)}
