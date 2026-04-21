@@ -362,9 +362,13 @@ async def member_login(req: MemberLoginRequest, response: Response):
     if member.get("status") != "active":
         raise HTTPException(status_code=403, detail="Membresía inactiva")
     login_name = family_member_doc["name"] if is_family else member["name"]
-    user = await db.users.find_one({"member_id": str(member["_id"]), "family_dpi": req.dpi.strip() if is_family else {"$exists": False}})
-    if not user and is_family:
+    if is_family:
         user = await db.users.find_one({"member_id": str(member["_id"]), "family_dpi": req.dpi.strip()})
+    else:
+        user = await db.users.find_one({
+            "member_id": str(member["_id"]),
+            "$or": [{"family_dpi": None}, {"family_dpi": {"$exists": False}}],
+        })
     if not user:
         user_doc = {
             "email": f"{req.contract_number}{'_' + req.dpi.strip()[-4:] if is_family else ''}@kuxtal.member",
@@ -373,9 +377,10 @@ async def member_login(req: MemberLoginRequest, response: Response):
             "role": "member",
             "member_id": str(member["_id"]),
             "is_family_member": is_family,
-            "family_dpi": req.dpi.strip() if is_family else None,
             "created_at": datetime.now(timezone.utc).isoformat()
         }
+        if is_family:
+            user_doc["family_dpi"] = req.dpi.strip()
         result = await db.users.insert_one(user_doc)
         user_id = str(result.inserted_id)
     else:
@@ -439,16 +444,65 @@ async def create_member(req: MemberCreate, request: Request):
     doc["created_by"] = user["_id"]
     result = await db.members.insert_one(doc)
     doc["_id"] = str(result.inserted_id)
+    # Auto-crear usuario del socio: login = contract_number, password = dpi
+    contract = (req.contract_number or "").strip()
+    dpi = (req.dpi or "").strip()
+    if contract and dpi:
+        member_email = f"{contract}@kuxtal.member"
+        already_user = await db.users.find_one({"email": member_email})
+        if not already_user:
+            await db.users.insert_one({
+                "email": member_email,
+                "password_hash": hash_password(dpi),
+                "name": req.name,
+                "role": "member",
+                "member_id": str(result.inserted_id),
+                "is_family_member": False,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            })
     return doc
 
 @api_router.put("/members/{member_id}")
 async def update_member(member_id: str, req: MemberCreate, request: Request):
     user = await require_role("super_admin", "admin")(request)
+    prev = await db.members.find_one({"_id": ObjectId(member_id)})
+    if not prev:
+        raise HTTPException(status_code=404, detail="Socio no encontrado")
     update_data = req.model_dump()
     update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
     result = await db.members.update_one({"_id": ObjectId(member_id)}, {"$set": update_data})
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Socio no encontrado")
+    # Sincronizar usuario principal del socio si cambió contract_number o dpi
+    new_contract = (req.contract_number or "").strip()
+    new_dpi = (req.dpi or "").strip()
+    if new_contract and new_dpi:
+        new_email = f"{new_contract}@kuxtal.member"
+        existing_user = await db.users.find_one({
+            "member_id": str(prev["_id"]),
+            "$or": [{"family_dpi": None}, {"family_dpi": {"$exists": False}}],
+        })
+        if existing_user:
+            await db.users.update_one(
+                {"_id": existing_user["_id"]},
+                {"$set": {
+                    "email": new_email,
+                    "password_hash": hash_password(new_dpi),
+                    "name": req.name,
+                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                }},
+            )
+        else:
+            if not await db.users.find_one({"email": new_email}):
+                await db.users.insert_one({
+                    "email": new_email,
+                    "password_hash": hash_password(new_dpi),
+                    "name": req.name,
+                    "role": "member",
+                    "member_id": str(prev["_id"]),
+                    "is_family_member": False,
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                })
     updated = await db.members.find_one({"_id": ObjectId(member_id)})
     return serialize_doc(updated)
 
