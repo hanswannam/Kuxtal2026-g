@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
-// Local PNG with the Kuxtal logo centered on navy bg (already served via the PWA icons folder).
-export const KUXTAL_LOGO_FALLBACK = '/icons/icon-512.png';
+// White silhouette of the Kuxtal logo, looks great over the navy brand background.
+export const KUXTAL_LOGO_FALLBACK = '/icons/logo-white.png';
 
 /**
  * Image that shows the Kuxtal logo whenever:
@@ -19,7 +19,7 @@ export default function ImageWithFallback({ src, alt = '', className = '', fallb
       src={current}
       alt={alt || 'Kuxtal Travel'}
       onError={() => { if (!isFallback) setCurrent(fallback); }}
-      className={`${className} ${isFallback ? 'object-contain bg-[#1B325F] p-4' : ''}`.trim()}
+      className={`${className} ${isFallback ? 'object-contain bg-[#1B325F] p-8' : ''}`.trim()}
       loading={rest.loading || 'lazy'}
     />
   );

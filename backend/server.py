@@ -667,7 +667,9 @@ async def toggle_package_status(package_id: str, request: Request):
 async def delete_package(package_id: str, request: Request):
     user = await require_role("super_admin", "admin")(request)
     await verify_delete_code(request)
-    await db.packages.update_one({"_id": ObjectId(package_id)}, {"$set": {"status": "inactive"}})
+    result = await db.packages.delete_one({"_id": ObjectId(package_id)})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Paquete no encontrado")
     return {"message": "Paquete eliminado"}
 
 # ── Package Import from Google Drive ──
