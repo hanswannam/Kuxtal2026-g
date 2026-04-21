@@ -20,6 +20,7 @@ Sistema CRM para club vacacional con web publica estilo Expedia, programa Kuxtal
 - Clubs Vacacionales admin module (2026-02): CRUD with logo, description, address, benefits list; public GET. Member portal "Clubs" tab lists all clubs.
 - Member Dashboard cleanup (2026-02): "Familia" tab removed; "Regalías" + "Clubs" tabs added (9 tabs total).
 - TripDetailPage hardening (2026-02): switched to api wrapper; Array.isArray guards on itinerary/includes/gallery; numeric coercion for memberPrice; fmtPrice helper.
+- FASE 1 Cotizaciones CRM (2026-02): auto-detect socio (match contract/email), package snapshot on creation, full editor (status, pricing, extras, discount, total, customer/internal notes), timeline/seguimiento with manual notes, public `/cotizacion/:token` page with approve/reject buttons, WhatsApp & email share with pre-built message, public view auto-tracks "viewed" event.
 - Code Quality: Component refactoring, lazy loading, ErrorBoundary, SEO OG tags, 30+ MongoDB indexes
 
 ## Code Review Status (Applied)

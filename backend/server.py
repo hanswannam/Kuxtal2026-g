@@ -836,9 +836,43 @@ async def create_quotation(req: QuotationRequest):
     doc["created_at"] = datetime.now(timezone.utc).isoformat()
     doc["status"] = "pending"
     doc["id"] = str(uuid.uuid4())
+    doc["public_token"] = secrets.token_urlsafe(16)
+    doc["timeline"] = [{
+        "event": "created",
+        "label": "Cotización creada",
+        "at": doc["created_at"],
+        "note": "Solicitud recibida desde el sitio web" if not req.contract_number else "Solicitud recibida de socio"
+    }]
+    # Auto-detect member: match by contract_number, then email
+    member = None
+    if req.contract_number:
+        member = await db.members.find_one({"contract_number": req.contract_number.strip()})
+    if not member and req.email:
+        member = await db.members.find_one({"email": req.email.strip().lower()})
+    if member:
+        doc["is_member"] = True
+        doc["member_id"] = str(member["_id"])
+        doc["member_name"] = member.get("name", "")
+        doc["contract_number"] = member.get("contract_number", "")
+    else:
+        doc["is_member"] = False
+    # Snapshot package info if a package was requested
+    if req.package_id:
+        try:
+            pkg = await db.packages.find_one({"_id": ObjectId(req.package_id)})
+            if pkg:
+                doc["package_title"] = pkg.get("title", "")
+                doc["package_country"] = pkg.get("country", "")
+                doc["package_duration_days"] = pkg.get("duration_days", 0)
+                doc["unit_price"] = float(pkg.get("price", 0) or 0)
+                doc["member_unit_price"] = float(pkg.get("member_price", 0) or 0)
+                applied_price = doc["member_unit_price"] if (doc["is_member"] and doc["member_unit_price"] > 0) else doc["unit_price"]
+                doc["total"] = round(applied_price * (req.guests or 1), 2)
+        except Exception:
+            pass
     result = await db.quotations.insert_one(doc)
     doc["_id"] = str(result.inserted_id)
-    return doc
+    return serialize_doc(doc)
 
 @api_router.get("/quotations")
 async def list_quotations(request: Request):
@@ -858,15 +892,126 @@ async def list_quotations(request: Request):
         return quotations
     return []
 
+@api_router.put("/quotations/{quotation_id}")
+async def update_quotation(quotation_id: str, request: Request):
+    """Admin-only: edit a quotation (pricing, travel date, extras, status, notes)."""
+    user = await require_role("super_admin", "admin")(request)
+    body = await request.json()
+    q = await db.quotations.find_one({"_id": ObjectId(quotation_id)})
+    if not q:
+        raise HTTPException(status_code=404, detail="Cotización no encontrada")
+    ALLOWED = {
+        "status", "travel_date", "guests", "unit_price", "member_unit_price", "total",
+        "discount", "extras", "internal_notes", "customer_notes", "package_id",
+        "package_title", "package_country", "package_duration_days", "response", "response_html"
+    }
+    updates = {k: v for k, v in body.items() if k in ALLOWED}
+    if "package_id" in updates and updates["package_id"]:
+        try:
+            pkg = await db.packages.find_one({"_id": ObjectId(updates["package_id"])})
+            if pkg:
+                updates["package_title"] = pkg.get("title", "")
+                updates["package_country"] = pkg.get("country", "")
+                updates["package_duration_days"] = pkg.get("duration_days", 0)
+        except Exception:
+            pass
+    # Timeline
+    timeline = q.get("timeline", []) or []
+    status_changed = "status" in updates and updates["status"] != q.get("status")
+    if status_changed:
+        status_labels = {
+            "pending": "Pendiente", "in_review": "En revisión", "sent": "Enviada al cliente",
+            "approved": "Aprobada", "rejected": "Rechazada", "closed": "Cerrada",
+        }
+        timeline.append({
+            "event": "status_change",
+            "label": f"Estado cambiado a {status_labels.get(updates['status'], updates['status'])}",
+            "at": datetime.now(timezone.utc).isoformat(),
+            "by": user.get("name", "Admin"),
+        })
+    else:
+        timeline.append({
+            "event": "updated",
+            "label": "Cotización editada",
+            "at": datetime.now(timezone.utc).isoformat(),
+            "by": user.get("name", "Admin"),
+        })
+    updates["timeline"] = timeline
+    updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db.quotations.update_one({"_id": ObjectId(quotation_id)}, {"$set": updates})
+    q2 = await db.quotations.find_one({"_id": ObjectId(quotation_id)})
+    return serialize_doc(q2)
+
+@api_router.post("/quotations/{quotation_id}/timeline")
+async def add_timeline_entry(quotation_id: str, request: Request):
+    """Add a manual note to the quotation timeline (seguimiento)."""
+    user = await require_role("super_admin", "admin")(request)
+    body = await request.json()
+    note = (body.get("note") or "").strip()
+    if not note:
+        raise HTTPException(status_code=400, detail="Nota requerida")
+    entry = {
+        "event": "note",
+        "label": note,
+        "at": datetime.now(timezone.utc).isoformat(),
+        "by": user.get("name", "Admin"),
+    }
+    await db.quotations.update_one(
+        {"_id": ObjectId(quotation_id)},
+        {"$push": {"timeline": entry}}
+    )
+    return entry
+
 @api_router.put("/quotations/{quotation_id}/respond")
 async def respond_quotation(quotation_id: str, request: Request):
     user = await require_role("super_admin", "admin")(request)
     body = await request.json()
     await db.quotations.update_one(
         {"_id": ObjectId(quotation_id)},
-        {"$set": {"response": body.get("response", ""), "response_html": body.get("response_html", ""), "status": "responded", "responded_at": datetime.now(timezone.utc).isoformat(), "responded_by": user["_id"]}}
+        {"$set": {"response": body.get("response", ""), "response_html": body.get("response_html", ""), "status": "sent", "responded_at": datetime.now(timezone.utc).isoformat(), "responded_by": user["_id"]}}
     )
     return {"message": "Cotización respondida"}
+
+@api_router.get("/quotations/public/{token}")
+async def get_public_quotation(token: str):
+    """Public view of a quotation via the share link. No auth required."""
+    q = await db.quotations.find_one({"public_token": token})
+    if not q:
+        raise HTTPException(status_code=404, detail="Cotización no encontrada")
+    # Mark as viewed the first time
+    if not q.get("viewed_at"):
+        await db.quotations.update_one(
+            {"_id": q["_id"]},
+            {"$set": {"viewed_at": datetime.now(timezone.utc).isoformat()},
+             "$push": {"timeline": {
+                "event": "viewed",
+                "label": "Vista por el cliente",
+                "at": datetime.now(timezone.utc).isoformat(),
+             }}}
+        )
+    return serialize_doc(q)
+
+@api_router.post("/quotations/public/{token}/decision")
+async def public_quotation_decision(token: str, request: Request):
+    """Allow the customer to approve or reject their quotation through the public link."""
+    body = await request.json()
+    decision = body.get("decision")
+    if decision not in ("approved", "rejected"):
+        raise HTTPException(status_code=400, detail="Decisión inválida")
+    q = await db.quotations.find_one({"public_token": token})
+    if not q:
+        raise HTTPException(status_code=404, detail="Cotización no encontrada")
+    status_label = "Aprobada por el cliente" if decision == "approved" else "Rechazada por el cliente"
+    await db.quotations.update_one(
+        {"_id": q["_id"]},
+        {"$set": {"status": decision, f"{decision}_at": datetime.now(timezone.utc).isoformat()},
+         "$push": {"timeline": {
+            "event": f"customer_{decision}",
+            "label": status_label,
+            "at": datetime.now(timezone.utc).isoformat(),
+         }}}
+    )
+    return {"status": decision}
 
 # ── Announcements ──
 
