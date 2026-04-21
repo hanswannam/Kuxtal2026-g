@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kuxtal-v3';
+const CACHE_NAME = 'kuxtal-v4';
 const STATIC_ASSETS = ['/', '/manifest.json'];
 const API_CACHE = 'kuxtal-api-v1';
 
@@ -41,8 +41,22 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Cache-first for static assets (images, fonts, css, js)
-  if (url.pathname.match(/\.(js|css|png|jpg|jpeg|webp|avif|svg|woff2?)$/)) {
+  // Network-first for JS/CSS (prevents stale bundles after deploy causing runtime errors)
+  if (url.pathname.match(/\.(js|css)$/)) {
+    event.respondWith(
+      fetch(event.request).then((response) => {
+        if (response.ok) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
+        return response;
+      }).catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // Cache-first for static assets (images, fonts only)
+  if (url.pathname.match(/\.(png|jpg|jpeg|webp|avif|svg|woff2?)$/)) {
     event.respondWith(
       caches.open(CACHE_NAME).then(async (cache) => {
         const cached = await cache.match(event.request);

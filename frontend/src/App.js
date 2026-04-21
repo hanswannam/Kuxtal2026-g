@@ -34,10 +34,21 @@ function PageLoader() {
   );
 }
 
-// Register service worker for PWA
+// Register service worker for PWA. Auto-reload on new version to avoid stale bundles.
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
+    navigator.serviceWorker.register('/sw.js').then((reg) => {
+      reg.addEventListener('updatefound', () => {
+        const nw = reg.installing;
+        if (!nw) return;
+        nw.addEventListener('statechange', () => {
+          if (nw.state === 'activated' && navigator.serviceWorker.controller) {
+            // A new SW took control after initial load -> reload once to get fresh chunks
+            window.location.reload();
+          }
+        });
+      });
+    }).catch(() => {});
   });
 }
 
