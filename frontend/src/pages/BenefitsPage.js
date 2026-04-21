@@ -29,17 +29,29 @@ function getCatConfig(cat) {
   return CATEGORY_CONFIG[cat] || { icon: Store, color: 'from-gray-500 to-gray-600', light: 'bg-gray-50 text-gray-600 border-gray-200', accent: 'text-gray-500' };
 }
 
+// Renders a category icon: emoji (text) or uploaded image (URL). Falls back to Lucide icon.
+function CatIconRender({ icon, fallback: Fallback = Store, className = 'w-3.5 h-3.5' }) {
+  if (icon && (icon.startsWith('http') || icon.startsWith('/'))) {
+    return <img src={icon} alt="" className={`${className} object-contain inline-block`} />;
+  }
+  if (icon && icon.length <= 4) {
+    // Emoji — render as text so it renders at the same visual size as the surrounding text
+    return <span className="inline-block leading-none">{icon}</span>;
+  }
+  return <Fallback className={className} />;
+}
+
 export default function BenefitsPage() {
   const [searchParams] = useSearchParams();
   const [commerces, setCommerces] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const [categories, setCategories] = useState([]); // objects: { name, icon, system }
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState(searchParams.get('category') || '');
   useDocumentTitle('Kuxtal Club - Beneficios');
 
   useEffect(() => {
-    axios.get(`${API}/api/commerce/categories`).then(r => setCategories(r.data)).catch(() => {});
+    axios.get(`${API}/api/commerce/categories?full=true`).then(r => setCategories(r.data)).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -51,6 +63,7 @@ export default function BenefitsPage() {
   }, [search, category]);
 
   const activeCatConfig = category ? getCatConfig(category) : null;
+  const activeCatData = category ? categories.find(c => c.name === category) : null;
 
   return (
     <div className="min-h-screen" data-testid="benefits-page">
@@ -98,18 +111,18 @@ export default function BenefitsPage() {
               Todos
             </button>
             {categories.map(cat => {
-              const conf = getCatConfig(cat);
-              const CatIcon = conf.icon;
+              const name = cat.name;
+              const conf = getCatConfig(name);
               return (
                 <button
-                  key={cat}
-                  onClick={() => setCategory(cat)}
+                  key={name}
+                  onClick={() => setCategory(name)}
                   className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all truncate ${
-                    category === cat ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-black shadow-lg shadow-amber-500/20' : 'bg-white/10 text-white/70 hover:bg-white/15 hover:text-white border border-white/10'
+                    category === name ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-black shadow-lg shadow-amber-500/20' : 'bg-white/10 text-white/70 hover:bg-white/15 hover:text-white border border-white/10'
                   }`}
-                  data-testid={`cat-${cat}`}
+                  data-testid={`cat-${name}`}
                 >
-                  <CatIcon className="w-3.5 h-3.5" /> {cat}
+                  <CatIconRender icon={cat.icon} fallback={conf.icon} /> {name}
                 </button>
               );
             })}
@@ -122,7 +135,7 @@ export default function BenefitsPage() {
         <div className={`bg-gradient-to-r ${activeCatConfig.color} py-3`}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
             <div className="flex items-center gap-2 text-white">
-              <activeCatConfig.icon className="w-5 h-5" />
+              <CatIconRender icon={activeCatData?.icon} fallback={activeCatConfig.icon} className="w-5 h-5" />
               <span className="font-semibold text-sm">{category}</span>
               <span className="text-white/70 text-sm">- {commerces.length} comercios</span>
             </div>
@@ -182,6 +195,7 @@ export default function BenefitsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {commerces.map((c, i) => {
                 const conf = getCatConfig(c.category);
+                const catData = categories.find(x => x.name === c.category);
                 return (
                   <Link
                     key={c._id}
@@ -198,13 +212,19 @@ export default function BenefitsPage() {
                         <div className="w-14 h-14 rounded-xl bg-accent flex items-center justify-center shrink-0 overflow-hidden border border-border">
                           {c.logo_url ? (
                             <img src={c.logo_url} alt={c.name} className="w-full h-full object-cover" />
+                          ) : catData?.icon && (catData.icon.startsWith('http') || catData.icon.startsWith('/')) ? (
+                            <img src={catData.icon} alt={c.category} className="w-9 h-9 object-contain" />
+                          ) : catData?.icon ? (
+                            <span className="text-3xl leading-none">{catData.icon}</span>
                           ) : (
                             <conf.icon className={`w-7 h-7 ${conf.accent}`} />
                           )}
                         </div>
                         <div className="min-w-0 flex-1">
                           <h3 className="font-heading text-base font-semibold group-hover:text-primary transition-colors line-clamp-1">{c.name}</h3>
-                          <Badge className={`rounded-full text-[10px] mt-1 border ${conf.light}`}>{c.category}</Badge>
+                          <Badge className={`rounded-full text-[10px] mt-1 border ${conf.light}`}>
+                            <CatIconRender icon={catData?.icon} fallback={conf.icon} className="w-3 h-3 mr-1" /> {c.category}
+                          </Badge>
                         </div>
                         <ArrowRight className="w-4 h-4 text-muted-foreground/30 group-hover:text-primary group-hover:translate-x-1 transition-all shrink-0 mt-1" />
                       </div>
