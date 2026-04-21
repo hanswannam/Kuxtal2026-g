@@ -2,15 +2,18 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Badge } from '../../components/ui/badge';
-import { Plus, Edit2, Save, X, Upload, Smile, Image as ImageIcon } from 'lucide-react';
+import { Plus, Edit2, Save, X, Upload, Smile, Image as ImageIcon, PenLine } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../lib/api';
 import { DeleteWithCode } from '../../components/DeleteWithCode';
 import EmojiPicker from 'emoji-picker-react';
+import { LucideIconPicker, getLucideComponent } from '../../components/LucideIconPicker';
 
-// Show an emoji as text, OR a URL as an <img>. Icon is just a string.
+// Show an emoji, an uploaded URL, or a Lucide icon by name ("lucide:Name").
 function IconDisplay({ icon, className = '' }) {
   if (!icon) return <span className={className}>🏷️</span>;
+  const Lc = getLucideComponent(icon);
+  if (Lc) return <Lc className={className} strokeWidth={1.8} />;
   const isUrl = icon.startsWith('http') || icon.startsWith('/');
   if (isUrl) {
     return <img src={icon} alt="icon" className={`${className} object-contain rounded`} />;
@@ -19,7 +22,7 @@ function IconDisplay({ icon, className = '' }) {
 }
 
 function IconEditor({ icon, onChange, testIdPrefix = '' }) {
-  const [mode, setMode] = useState(null); // 'emoji' | 'upload' | null
+  const [mode, setMode] = useState(null); // 'emoji' | 'upload' | 'lucide' | null
   const fileRef = useRef(null);
   const [uploading, setUploading] = useState(false);
 
@@ -44,6 +47,9 @@ function IconEditor({ icon, onChange, testIdPrefix = '' }) {
     e.target.value = '';
   };
 
+  const iconIsImg = icon && (icon.startsWith('http') || icon.startsWith('/'));
+  const iconIsLucide = icon && icon.startsWith('lucide:');
+
   return (
     <div className="relative inline-block">
       <button
@@ -52,21 +58,24 @@ function IconEditor({ icon, onChange, testIdPrefix = '' }) {
         className="h-12 w-14 rounded-xl border border-input bg-white flex items-center justify-center hover:border-primary/50 transition overflow-hidden"
         data-testid={`${testIdPrefix}icon-trigger`}
       >
-        <IconDisplay icon={icon} className={icon?.startsWith('http') || icon?.startsWith('/') ? 'w-9 h-9' : 'text-3xl'} />
+        <IconDisplay icon={icon} className={iconIsImg ? 'w-9 h-9' : iconIsLucide ? 'w-7 h-7' : 'text-3xl'} />
       </button>
 
       {mode && (
         <div className="absolute z-50 mt-2 left-0 bg-white rounded-xl border border-border shadow-lg p-2" data-testid={`${testIdPrefix}icon-panel`}>
-          <div className="flex gap-1 mb-2">
-            <Button type="button" size="sm" variant={mode === 'emoji' ? 'default' : 'outline'} onClick={() => setMode('emoji')} className="rounded-lg flex-1" data-testid={`${testIdPrefix}mode-emoji`}>
-              <Smile className="w-3.5 h-3.5 mr-1" /> Emoji
-            </Button>
-            <Button type="button" size="sm" variant={mode === 'upload' ? 'default' : 'outline'} onClick={() => { setMode('upload'); fileRef.current?.click(); }} className="rounded-lg flex-1" data-testid={`${testIdPrefix}mode-upload`}>
-              <Upload className="w-3.5 h-3.5 mr-1" /> Subir
-            </Button>
-            <Button type="button" size="sm" variant="ghost" onClick={() => setMode(null)} className="rounded-lg">
+          <div className="grid grid-cols-4 gap-1 mb-2">
+            <button type="button" onClick={() => setMode('emoji')} className={`px-2 py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1 ${mode === 'emoji' ? 'bg-primary text-white' : 'bg-secondary hover:bg-secondary/70'}`} data-testid={`${testIdPrefix}mode-emoji`}>
+              <Smile className="w-3.5 h-3.5" /> Emoji
+            </button>
+            <button type="button" onClick={() => setMode('lucide')} className={`px-2 py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1 ${mode === 'lucide' ? 'bg-primary text-white' : 'bg-secondary hover:bg-secondary/70'}`} data-testid={`${testIdPrefix}mode-lucide`}>
+              <PenLine className="w-3.5 h-3.5" /> Icono
+            </button>
+            <button type="button" onClick={() => { setMode('upload'); fileRef.current?.click(); }} className={`px-2 py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1 ${mode === 'upload' ? 'bg-primary text-white' : 'bg-secondary hover:bg-secondary/70'}`} data-testid={`${testIdPrefix}mode-upload`}>
+              <Upload className="w-3.5 h-3.5" /> Subir
+            </button>
+            <button type="button" onClick={() => setMode(null)} className="px-2 py-1.5 rounded-lg text-xs font-medium bg-secondary hover:bg-secondary/70 flex items-center justify-center">
               <X className="w-3.5 h-3.5" />
-            </Button>
+            </button>
           </div>
 
           {mode === 'emoji' && (
@@ -78,8 +87,12 @@ function IconEditor({ icon, onChange, testIdPrefix = '' }) {
             />
           )}
 
+          {mode === 'lucide' && (
+            <LucideIconPicker onSelect={(name) => { onChange(name); setMode(null); }} />
+          )}
+
           {mode === 'upload' && (
-            <div className="p-3 text-center">
+            <div className="p-3 text-center w-[300px]">
               <input type="file" ref={fileRef} accept="image/*" className="hidden" onChange={handleUpload} />
               <Button type="button" onClick={() => fileRef.current?.click()} disabled={uploading} className="rounded-xl w-full" data-testid={`${testIdPrefix}upload-btn`}>
                 <ImageIcon className="w-4 h-4 mr-2" /> {uploading ? 'Subiendo...' : 'Elegir imagen'}
@@ -229,7 +242,11 @@ export function AdminCommerceCategories() {
                 ) : (
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center shrink-0 overflow-hidden">
-                      <IconDisplay icon={c.icon} className={c.icon?.startsWith('http') || c.icon?.startsWith('/') ? 'w-full h-full' : 'text-2xl'} />
+                      <IconDisplay icon={c.icon} className={
+                        c.icon?.startsWith('http') || c.icon?.startsWith('/') ? 'w-full h-full'
+                          : c.icon?.startsWith('lucide:') ? 'w-6 h-6 text-foreground'
+                          : 'text-2xl'
+                      } />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold truncate">{c.name}</p>

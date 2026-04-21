@@ -6,6 +6,7 @@ import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
 import { Search, MapPin, Phone, Gift, Store, Star, Heart, Shield, Globe, ArrowRight, Sparkles, ExternalLink } from 'lucide-react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
+import { getLucideComponent } from '../components/LucideIconPicker';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 const CLUB_LOGO = "https://customer-assets.emergentagent.com/job_vacation-club-portal/artifacts/s1oay7h5_Kuxtal%20Club.png";
@@ -29,13 +30,14 @@ function getCatConfig(cat) {
   return CATEGORY_CONFIG[cat] || { icon: Store, color: 'from-gray-500 to-gray-600', light: 'bg-gray-50 text-gray-600 border-gray-200', accent: 'text-gray-500' };
 }
 
-// Renders a category icon: emoji (text) or uploaded image (URL). Falls back to Lucide icon.
+// Renders a category icon: emoji, uploaded image URL, or lucide:Name. Falls back to a Lucide component.
 function CatIconRender({ icon, fallback: Fallback = Store, className = 'w-3.5 h-3.5' }) {
   if (!icon) return <Fallback className={className} />;
+  const Lc = getLucideComponent(icon);
+  if (Lc) return <Lc className={className} strokeWidth={1.8} />;
   if (icon.startsWith('http') || icon.startsWith('/')) {
     return <img src={icon} alt="" className={`${className} object-contain inline-block`} />;
   }
-  // Anything else that is not a URL — treat as emoji/text glyph (supports ZWJ compounds).
   return <span className="inline-block leading-none">{icon}</span>;
 }
 
@@ -210,10 +212,8 @@ export default function BenefitsPage() {
                         <div className="w-14 h-14 rounded-xl bg-accent flex items-center justify-center shrink-0 overflow-hidden border border-border">
                           {c.logo_url ? (
                             <img src={c.logo_url} alt={c.name} className="w-full h-full object-cover" />
-                          ) : catData?.icon && (catData.icon.startsWith('http') || catData.icon.startsWith('/')) ? (
-                            <img src={catData.icon} alt={c.category} className="w-9 h-9 object-contain" />
                           ) : catData?.icon ? (
-                            <span className="text-3xl leading-none">{catData.icon}</span>
+                            <CatIconRender icon={catData.icon} fallback={conf.icon} className="w-9 h-9" />
                           ) : (
                             <conf.icon className={`w-7 h-7 ${conf.accent}`} />
                           )}
