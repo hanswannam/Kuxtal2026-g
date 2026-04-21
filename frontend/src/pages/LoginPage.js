@@ -4,28 +4,12 @@ import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { ArrowRight, ArrowLeft, Store, Copy, Check } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Store } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
 
 const LOGO_URL = "https://customer-assets.emergentagent.com/job_vacation-club-portal/artifacts/ikgtmopq_logo%20kuxtal.avif";
 const API = process.env.REACT_APP_BACKEND_URL;
-
-function CopyField({ label, value }) {
-  const [copied, setCopied] = useState(false);
-  const copy = () => { navigator.clipboard.writeText(value).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500); }).catch(() => {}); };
-  return (
-    <div className="flex items-center justify-between gap-2 px-3 py-1.5 bg-secondary/50 rounded-lg">
-      <span className="text-[11px] text-muted-foreground shrink-0">{label}</span>
-      <div className="flex items-center gap-1.5">
-        <code className="text-[11px] font-mono font-medium select-all">{value}</code>
-        <button onClick={copy} className="text-muted-foreground hover:text-primary transition-colors shrink-0">
-          {copied ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
-        </button>
-      </div>
-    </div>
-  );
-}
 
 export default function LoginPage() {
   const { loginAdmin, loginMember, checkAuth } = useAuth();
@@ -120,31 +104,6 @@ export default function LoginPage() {
               </Button>
             </form>
           )}
-
-          {/* Test Credentials */}
-          <div className="mt-8 pt-6 border-t border-border" data-testid="test-credentials">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Credenciales de prueba</p>
-            {mode === 'member' && (
-              <div className="space-y-1.5">
-                <CopyField label="Contrato" value="KT-001" />
-                <CopyField label="DPI" value="1234567890101" />
-                <p className="text-[10px] text-muted-foreground mt-2">Familiar: mismo contrato, DPI: 9876543210101</p>
-              </div>
-            )}
-            {mode === 'admin' && (
-              <div className="space-y-1.5">
-                <CopyField label="Email" value="admin@kuxtaltravels.com" />
-                <CopyField label="Pass" value="KuxtalAdmin2024!" />
-              </div>
-            )}
-            {mode === 'commerce' && (
-              <div className="space-y-1.5">
-                <CopyField label="ID" value="69dd90c4b0e08b1f0a2eb0a8" />
-                <CopyField label="Código" value="GAUCHA01" />
-                <p className="text-[10px] text-muted-foreground mt-2">La Parrilla Gaucha (Restaurantes)</p>
-              </div>
-            )}
-          </div>
 
           <p className="text-center text-xs text-muted-foreground mt-6">
             ¿No eres socio? <Link to="/search" className="text-primary hover:underline font-medium">Explora destinos</Link>
