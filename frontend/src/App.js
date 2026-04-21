@@ -7,6 +7,7 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import Navbar from "./components/Navbar";
 import WhatsAppWidget from "./components/WhatsAppWidget";
+import InstallPrompt from "./components/InstallPrompt";
 import { Loader2 } from "lucide-react";
 
 // Eager: critical path pages
@@ -112,6 +113,7 @@ function App() {
                     <Route path="/admin/new-commerce" element={<CommerceWizard />} />
                   </Routes>
                   <WhatsAppWidget />
+                  <InstallPrompt />
                 </>
               } />
             </Routes>

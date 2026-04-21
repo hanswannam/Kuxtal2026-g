@@ -39,6 +39,14 @@ Sistema CRM para club vacacional con web publica estilo Expedia, programa Kuxtal
   - AdminUsers: search por nombre/email (user-search), filtro por rol (user-filter-role), filtro por estado activo/inactivo (user-filter-status), botón limpiar filtros.
   - AdminPackages: filtro de estado activo/inactivo (pkg-filter-status), toggle switch visual en cada card (toggle-pkg-i). Cards inactivas se muestran en grayscale + badge rojo "Inactivo".
   - Backend: nuevo endpoint `PUT /api/packages/{id}/toggle-status`. GET /api/packages ahora respeta `include_internal=true` también para mostrar paquetes inactivos a admins.
+  - Campo `deactivation_reason` (motivo de desactivación). Modal al desactivar pide el motivo (5 presets + textarea libre); se muestra en banner rojo en la tarjeta.
+- PWA + Push cross-platform (2026-02, iter 26):
+  - Iconos PNG generados 72/96/128/144/152/180/192/256/384/512 + 512-maskable (en `/public/icons/`) con logo centrado sobre fondo navy. Apple-touch-icon PNG en root.
+  - `manifest.json` v2: 11 iconos PNG, `display_override`, `lang: es-GT`, `shortcuts` (Cotizaciones, Kuxtal Club), theme color unificado `#1B325F`.
+  - `index.html`: apple-touch-icon PNG, msapplication-TileColor, favicon PNG links.
+  - `sw.js` v5: notificationclick ahora enfoca ventana existente antes de abrir nueva; icono/badge locales; tag+renotify para agrupar.
+  - `AuthContext.js`: `subscribePush` dividido en `syncPushSubscription` (silencioso, no pide permiso — se llama en cada checkAuth) y `enablePushNotifications` (exportado, requiere user gesture, funciona en iOS 16.4+).
+  - Nuevo componente `InstallPrompt.js`: banner flotante que (1) muestra botón "Instalar ahora" cuando dispara `beforeinstallprompt` (Android/PC); (2) muestra tutorial paso-a-paso para iOS/Safari con botón Compartir → Agregar a pantalla de inicio; (3) una vez instalado, ofrece banner secundario para activar push. Persistencia de dismissal en localStorage.
 - Package Visibility (2026-02, iter 21): campo `visibility` = public|internal. Endpoints públicos filtran visibility=internal. Admin management usa ?include_internal=true. AdminPackages con filtro Todos/Público/Interno + radio en form.
 - Quotations tracking & filters (2026-02, iter 21): created_at, created_by_id, created_by_name ('Sistema (web pública)' para web pública, nombre del admin para POST /quotations/admin). GET /api/quotations soporta created_by, date_from, date_to. UI con quot-date-from/to, quot-filter-creator, quot-clear-filters, meta muestra '· por <creador>'.
 - Code Quality: Component refactoring, lazy loading, ErrorBoundary, SEO OG tags, 30+ MongoDB indexes

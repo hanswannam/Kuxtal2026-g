@@ -21,11 +21,11 @@ function urlBase64ToUint8Array(base64String) {
   return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
 }
 
-async function subscribePush() {
+// Sync existing subscription (no permission request). Safe to call on every auth check.
+async function syncPushSubscription() {
   if (!('serviceWorker' in navigator) || !('PushManager' in window) || !VAPID_PUBLIC_KEY) return;
+  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
   try {
-    const permission = await Notification.requestPermission();
-    if (permission !== 'granted') return;
     const reg = await navigator.serviceWorker.ready;
     let sub = await reg.pushManager.getSubscription();
     if (!sub) {
@@ -39,8 +39,27 @@ async function subscribePush() {
       endpoint: subJson.endpoint,
       keys: subJson.keys
     }, { withCredentials: true });
-  } catch (e) { console.log('Push subscribe error:', e); }
+  } catch (e) { console.log('Push sync error:', e); }
 }
+
+// Explicit opt-in. Must be triggered by a user gesture (click). Works on iOS 16.4+ (PWA only).
+export async function enablePushNotifications() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window) || !VAPID_PUBLIC_KEY) {
+    return { ok: false, reason: 'unsupported' };
+  }
+  if (typeof Notification === 'undefined') return { ok: false, reason: 'unsupported' };
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') return { ok: false, reason: permission };
+    await syncPushSubscription();
+    return { ok: true };
+  } catch (e) {
+    console.error('Push enable error:', e);
+    return { ok: false, reason: 'error', error: e };
+  }
+}
+
+const subscribePush = syncPushSubscription;
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);

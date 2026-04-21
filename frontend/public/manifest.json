@@ -2,27 +2,33 @@
   "short_name": "Kuxtal Travel",
   "name": "Kuxtal Travel - Club Vacacional",
   "icons": [
-    {
-      "src": "https://customer-assets.emergentagent.com/job_vacation-club-portal/artifacts/ikgtmopq_logo%20kuxtal.avif",
-      "sizes": "192x192",
-      "type": "image/avif",
-      "purpose": "any"
-    },
-    {
-      "src": "https://customer-assets.emergentagent.com/job_vacation-club-portal/artifacts/ikgtmopq_logo%20kuxtal.avif",
-      "sizes": "512x512",
-      "type": "image/avif",
-      "purpose": "any maskable"
-    }
+    { "src": "/icons/icon-72.png", "sizes": "72x72", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-96.png", "sizes": "96x96", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-128.png", "sizes": "128x128", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-144.png", "sizes": "144x144", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-152.png", "sizes": "152x152", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-180.png", "sizes": "180x180", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-256.png", "sizes": "256x256", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-384.png", "sizes": "384x384", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
   "id": "/",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
   "orientation": "portrait",
-  "theme_color": "#C1121F",
+  "theme_color": "#1B325F",
   "background_color": "#FFFFFF",
   "description": "Club vacacional premium - Viajes diseñados a tu medida. Accede a destinos exclusivos, beneficios en comercios y más.",
   "categories": ["travel", "lifestyle"],
-  "prefer_related_applications": false
+  "lang": "es-GT",
+  "dir": "ltr",
+  "prefer_related_applications": false,
+  "shortcuts": [
+    { "name": "Mis cotizaciones", "short_name": "Cotizaciones", "url": "/member?tab=quotations", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Kuxtal Club", "short_name": "Club", "url": "/benefits", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
+  ]
 }
