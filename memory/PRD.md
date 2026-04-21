@@ -72,6 +72,12 @@ Sistema CRM para club vacacional con web publica estilo Expedia, programa Kuxtal
   - Aplicado en: HomePage (featured packages), SearchPage (resultados), TripDetailPage (hero gallery), AdminPackages (cards), CommerceDetailPage (logo). Se eliminaron las imágenes de Unsplash como fallback.
 - Fix DELETE de paquetes (2026-02, iter 31):
   - `DELETE /api/packages/{id}` ahora hace un borrado real (`delete_one`) en vez de marcar `status: inactive`. Devuelve 404 si el paquete no existe.
+- Precios con markup automático (2026-02, iter 32):
+  - Nuevo config key `pricing_settings` con `public_markup_percent` (default 30%) y `member_markup_percent` (default 15%). Endpoints `GET/PUT /api/config/pricing-settings`.
+  - Campo nuevo `agency_price` en `PackageCreate` (precio costo/agencia).
+  - UI AdminPackages: sección "Precios" con 4 campos (agency/public/member/days). Muestra sugerencias live (sug. Q.XXX) arriba de cada precio y botón "Aplicar precios sugeridos" que llena ambos con un click. Banner "Markup global: público +X% · socio +Y%".
+  - AdminSettings: nueva tarjeta "Porcentajes de precio" con inputs para configurar ambos markups globalmente.
+  - Plantilla de import masivo de paquetes incluye la nueva columna "Precio agencia Q (costo base)".
 - Package Visibility (2026-02, iter 21): campo `visibility` = public|internal. Endpoints públicos filtran visibility=internal. Admin management usa ?include_internal=true. AdminPackages con filtro Todos/Público/Interno + radio en form.
 - Quotations tracking & filters (2026-02, iter 21): created_at, created_by_id, created_by_name ('Sistema (web pública)' para web pública, nombre del admin para POST /quotations/admin). GET /api/quotations soporta created_by, date_from, date_to. UI con quot-date-from/to, quot-filter-creator, quot-clear-filters, meta muestra '· por <creador>'.
 - Code Quality: Component refactoring, lazy loading, ErrorBoundary, SEO OG tags, 30+ MongoDB indexes

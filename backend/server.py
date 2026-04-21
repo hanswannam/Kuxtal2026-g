@@ -204,6 +204,7 @@ class PackageCreate(BaseModel):
     country: str
     price: float
     member_price: Optional[float] = 0
+    agency_price: Optional[float] = 0  # precio base/costo. De aquí se derivan price y member_price con los markups globales.
     duration_days: int
     category: str = "paquete"
     includes: List[str] = []
@@ -1447,6 +1448,36 @@ async def set_quotation_settings(req: QuotationSettings, request: Request):
         upsert=True,
     )
     return {"message": "Configuración de cotizaciones actualizada", "payment_whatsapp": req.payment_whatsapp, "default_valid_days": days}
+
+# ── Pricing markups (public vs agency / member vs agency) ──
+
+class PricingSettings(BaseModel):
+    public_markup_percent: float = 30.0
+    member_markup_percent: float = 15.0
+
+@api_router.get("/config/pricing-settings")
+async def get_pricing_settings():
+    cfg = await db.config.find_one({"key": "pricing_settings"})
+    if cfg:
+        return {
+            "public_markup_percent": float(cfg.get("public_markup_percent", 30) or 0),
+            "member_markup_percent": float(cfg.get("member_markup_percent", 15) or 0),
+        }
+    return {"public_markup_percent": 30.0, "member_markup_percent": 15.0}
+
+@api_router.put("/config/pricing-settings")
+async def set_pricing_settings(req: PricingSettings, request: Request):
+    await require_role("super_admin", "admin")(request)
+    await db.config.update_one(
+        {"key": "pricing_settings"},
+        {"$set": {
+            "key": "pricing_settings",
+            "public_markup_percent": max(0.0, float(req.public_markup_percent or 0)),
+            "member_markup_percent": max(0.0, float(req.member_markup_percent or 0)),
+        }},
+        upsert=True,
+    )
+    return {"message": "Porcentajes de markup actualizados", "public_markup_percent": req.public_markup_percent, "member_markup_percent": req.member_markup_percent}
 
 async def _default_valid_days() -> int:
     cfg = await db.config.find_one({"key": "quotation_settings"})
@@ -2884,6 +2915,7 @@ PACKAGE_TEMPLATE_COLS = [
     ("description", "Descripción completa*", True, "Una aventura única en el corazón de la selva..."),
     ("country", "País*", True, "Guatemala"),
     ("price", "Precio público Q*", True, 2500),
+    ("agency_price", "Precio agencia Q (costo base)", False, 1500),
     ("member_price", "Precio socio Q", False, 1800),
     ("duration_days", "Duración (días)*", True, 3),
     ("category", "Categoría (paquete/alojamiento/experiencia)", False, "paquete"),
@@ -3108,7 +3140,7 @@ async def packages_bulk_import(request: Request, file: UploadFile = File(...), d
         raise HTTPException(status_code=400, detail=f"No se pudo leer el archivo: {e}")
 
     created, errors, preview = [], [], []
-    num_fields = {"price": float, "member_price": float, "duration_days": int, "min_group": int, "max_group": int, "rating": float}
+    num_fields = {"price": float, "agency_price": float, "member_price": float, "duration_days": int, "min_group": int, "max_group": int, "rating": float}
     list_fields = {"includes", "gallery"}
     bool_fields = {"featured"}
 

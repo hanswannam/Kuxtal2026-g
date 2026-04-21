@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Textarea } from '../../components/ui/textarea';
@@ -30,6 +30,30 @@ export function AdminPackages({ packages, packageForm, setPackageForm, showPacka
   const [deactivateTarget, setDeactivateTarget] = useState(null); // package being deactivated; modal open when set
   const [deactivationReason, setDeactivationReason] = useState('');
   const [showBulkImport, setShowBulkImport] = useState(false);
+  const [pricingCfg, setPricingCfg] = useState({ public_markup_percent: 30, member_markup_percent: 15 });
+
+  useEffect(() => {
+    api.get('/config/pricing-settings').then(r => setPricingCfg(r.data)).catch(() => {});
+  }, []);
+
+  const computePublicPrice = (agency) => {
+    const v = parseFloat(agency) || 0;
+    return v > 0 ? Math.round(v * (1 + (parseFloat(pricingCfg.public_markup_percent) || 0) / 100)) : 0;
+  };
+  const computeMemberPrice = (agency) => {
+    const v = parseFloat(agency) || 0;
+    return v > 0 ? Math.round(v * (1 + (parseFloat(pricingCfg.member_markup_percent) || 0) / 100)) : 0;
+  };
+  const applySuggestedPrices = () => {
+    const agency = parseFloat(packageForm.agency_price) || 0;
+    if (agency <= 0) { toast.error('Primero ingresa el precio de agencia'); return; }
+    setPackageForm({
+      ...packageForm,
+      price: computePublicPrice(agency),
+      member_price: computeMemberPrice(agency),
+    });
+    toast.success('Precios sugeridos aplicados');
+  };
 
   const countries = useMemo(() => Array.from(new Set(packages.map(p => p.country).filter(Boolean))).sort(), [packages]);
 
@@ -97,7 +121,7 @@ export function AdminPackages({ packages, packageForm, setPackageForm, showPacka
           <Button onClick={() => setShowBulkImport(true)} variant="outline" className="rounded-full" data-testid="bulk-import-packages-btn">
             <FileSpreadsheet className="w-4 h-4 mr-2" /> Importar Excel
           </Button>
-          <Button onClick={() => { setShowPackageForm(true); setEditingPackage(null); setPackageForm({ title: '', description: '', short_description: '', country: '', price: 0, member_price: 0, duration_days: 1, category: 'paquete', includes: [], rating: 4.8, image_url: '', gallery: [], featured: false, status: 'active', promo_start: '', promo_end: '', visibility: 'public' }); }} className="rounded-full" data-testid="add-package-btn">
+          <Button onClick={() => { setShowPackageForm(true); setEditingPackage(null); setPackageForm({ title: '', description: '', short_description: '', country: '', agency_price: 0, price: 0, member_price: 0, duration_days: 1, category: 'paquete', includes: [], rating: 4.8, image_url: '', gallery: [], featured: false, status: 'active', promo_start: '', promo_end: '', visibility: 'public' }); }} className="rounded-full" data-testid="add-package-btn">
             <Plus className="w-4 h-4 mr-2" /> Nuevo Paquete
           </Button>
         </div>
@@ -211,10 +235,58 @@ export function AdminPackages({ packages, packageForm, setPackageForm, showPacka
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div><Label className="text-xs">Precio (Q.)</Label><Input type="number" value={packageForm.price} onChange={e => setPackageForm({...packageForm, price: e.target.value})} required className="rounded-xl mt-1" data-testid="pf-price" /></div>
-                <div><Label className="text-xs">Precio Socio</Label><Input type="number" value={packageForm.member_price} onChange={e => setPackageForm({...packageForm, member_price: e.target.value})} className="rounded-xl mt-1" data-testid="pf-member-price" /></div>
-                <div><Label className="text-xs">Días</Label><Input type="number" value={packageForm.duration_days} onChange={e => setPackageForm({...packageForm, duration_days: e.target.value})} className="rounded-xl mt-1" data-testid="pf-days" /></div>
+              <div className="bg-secondary/30 border border-border rounded-xl p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-primary">Precios</Label>
+                  <span className="text-[11px] text-muted-foreground">
+                    Markup global: público +{pricingCfg.public_markup_percent}% · socio +{pricingCfg.member_markup_percent}%
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                  <div>
+                    <Label className="text-xs">Precio agencia Q <span className="text-muted-foreground">(costo)</span></Label>
+                    <Input
+                      type="number"
+                      value={packageForm.agency_price || ''}
+                      onChange={e => setPackageForm({ ...packageForm, agency_price: e.target.value })}
+                      className="rounded-xl mt-1"
+                      data-testid="pf-agency-price"
+                      placeholder="0"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs flex items-center justify-between">
+                      <span>Precio público Q</span>
+                      {packageForm.agency_price > 0 && (
+                        <span className="text-[10px] text-primary">sug. Q.{computePublicPrice(packageForm.agency_price)}</span>
+                      )}
+                    </Label>
+                    <Input type="number" value={packageForm.price} onChange={e => setPackageForm({ ...packageForm, price: e.target.value })} required className="rounded-xl mt-1" data-testid="pf-price" />
+                  </div>
+                  <div>
+                    <Label className="text-xs flex items-center justify-between">
+                      <span>Precio socio Q</span>
+                      {packageForm.agency_price > 0 && (
+                        <span className="text-[10px] text-primary">sug. Q.{computeMemberPrice(packageForm.agency_price)}</span>
+                      )}
+                    </Label>
+                    <Input type="number" value={packageForm.member_price} onChange={e => setPackageForm({ ...packageForm, member_price: e.target.value })} className="rounded-xl mt-1" data-testid="pf-member-price" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Días</Label>
+                    <Input type="number" value={packageForm.duration_days} onChange={e => setPackageForm({ ...packageForm, duration_days: e.target.value })} className="rounded-xl mt-1" data-testid="pf-days" />
+                  </div>
+                </div>
+                {packageForm.agency_price > 0 && (
+                  <button
+                    type="button"
+                    onClick={applySuggestedPrices}
+                    className="mt-2 text-xs font-medium text-primary hover:underline"
+                    data-testid="pf-apply-suggested"
+                  >
+                    Aplicar precios sugeridos (público Q.{computePublicPrice(packageForm.agency_price)} · socio Q.{computeMemberPrice(packageForm.agency_price)})
+                  </button>
+                )}
               </div>
               <div>
                 <Label className="text-xs">URL Imagen</Label>
