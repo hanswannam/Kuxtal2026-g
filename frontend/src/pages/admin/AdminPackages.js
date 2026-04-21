@@ -5,14 +5,18 @@ import { Textarea } from '../../components/ui/textarea';
 import { Label } from '../../components/ui/label';
 import { Badge } from '../../components/ui/badge';
 import { Plus, Edit, X, Upload, Package, Search } from 'lucide-react';
+import { toast } from 'sonner';
 import { DeleteWithCode } from '../../components/DeleteWithCode';
+import api from '../../lib/api';
 
-export function AdminPackages({ packages, packageForm, setPackageForm, showPackageForm, setShowPackageForm, editingPackage, setEditingPackage, savePackage, editPkg, deletePkg, includesInput, setIncludesInput, addInclude, removeInclude, handleImageUpload, uploading }) {
+export function AdminPackages({ packages, packageForm, setPackageForm, showPackageForm, setShowPackageForm, editingPackage, setEditingPackage, savePackage, editPkg, deletePkg, includesInput, setIncludesInput, addInclude, removeInclude, handleImageUpload, uploading, reloadPackages }) {
   const [q, setQ] = useState('');
   const [catFilter, setCatFilter] = useState('');
   const [countryFilter, setCountryFilter] = useState('');
   const [featuredFilter, setFeaturedFilter] = useState('');
   const [visibilityFilter, setVisibilityFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [togglingId, setTogglingId] = useState(null);
 
   const countries = useMemo(() => Array.from(new Set(packages.map(p => p.country).filter(Boolean))).sort(), [packages]);
 
@@ -25,12 +29,27 @@ export function AdminPackages({ packages, packageForm, setPackageForm, showPacka
     const vis = p.visibility || 'public';
     if (visibilityFilter === 'public' && vis !== 'public') return false;
     if (visibilityFilter === 'internal' && vis !== 'internal') return false;
+    const isActive = (p.status || 'active') === 'active';
+    if (statusFilter === 'active' && !isActive) return false;
+    if (statusFilter === 'inactive' && isActive) return false;
     if (q.trim()) {
       const n = norm(q);
       if (!norm(p.title).includes(n) && !norm(p.short_description).includes(n) && !norm(p.description).includes(n) && !norm(p.country).includes(n)) return false;
     }
     return true;
   });
+
+  const toggleStatus = async (p) => {
+    setTogglingId(p._id);
+    try {
+      await api.put(`/packages/${p._id}/toggle-status`);
+      toast.success(p.status === 'active' ? 'Paquete desactivado' : 'Paquete activado');
+      if (reloadPackages) await reloadPackages();
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Error al cambiar estado');
+    }
+    setTogglingId(null);
+  };
 
   return (
     <div className="animate-fade-in">
@@ -41,7 +60,7 @@ export function AdminPackages({ packages, packageForm, setPackageForm, showPacka
         </Button>
       </div>
 
-      <div className="bg-white rounded-2xl border border-border p-3 mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2" data-testid="pkg-filters">
+      <div className="bg-white rounded-2xl border border-border p-3 mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2" data-testid="pkg-filters">
         <div className="relative lg:col-span-2">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar por título, país, descripción..." className="pl-9 rounded-xl" data-testid="pkg-search" />
@@ -58,14 +77,19 @@ export function AdminPackages({ packages, packageForm, setPackageForm, showPacka
           {countries.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
         <select value={featuredFilter} onChange={e => setFeaturedFilter(e.target.value)} className="h-10 rounded-xl border border-input px-3 text-sm bg-white" data-testid="pkg-filter-featured">
-          <option value="">Destacados y no destacados</option>
+          <option value="">Destacados y no</option>
           <option value="yes">Solo destacados</option>
           <option value="no">No destacados</option>
         </select>
-        <select value={visibilityFilter} onChange={e => setVisibilityFilter(e.target.value)} className="h-10 rounded-xl border border-input px-3 text-sm bg-white sm:col-span-2 lg:col-span-1" data-testid="pkg-filter-visibility">
+        <select value={visibilityFilter} onChange={e => setVisibilityFilter(e.target.value)} className="h-10 rounded-xl border border-input px-3 text-sm bg-white" data-testid="pkg-filter-visibility">
           <option value="">Todos (web + internos)</option>
           <option value="public">Solo visibles en web</option>
           <option value="internal">Solo internos (cotizaciones)</option>
+        </select>
+        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="h-10 rounded-xl border border-input px-3 text-sm bg-white" data-testid="pkg-filter-status">
+          <option value="">Activos e inactivos</option>
+          <option value="active">Solo activos</option>
+          <option value="inactive">Solo inactivos</option>
         </select>
       </div>
 
@@ -76,29 +100,46 @@ export function AdminPackages({ packages, packageForm, setPackageForm, showPacka
         </div>
       ) : (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filtered.map((p, i) => (
-          <div key={p._id} className="bg-white rounded-2xl border border-border overflow-hidden" data-testid={`pkg-card-${i}`}>
-            <div className="aspect-video bg-muted overflow-hidden">
-              {p.image_url ? <img src={p.image_url} alt={p.title} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-muted-foreground"><Package className="w-8 h-8" /></div>}
+        {filtered.map((p, i) => {
+          const isActive = (p.status || 'active') === 'active';
+          return (
+          <div key={p._id} className={`bg-white rounded-2xl border overflow-hidden transition-all ${isActive ? 'border-border' : 'border-red-200 opacity-70'}`} data-testid={`pkg-card-${i}`}>
+            <div className="aspect-video bg-muted overflow-hidden relative">
+              {p.image_url ? <img src={p.image_url} alt={p.title} className={`w-full h-full object-cover ${!isActive ? 'grayscale' : ''}`} /> : <div className="w-full h-full flex items-center justify-center text-muted-foreground"><Package className="w-8 h-8" /></div>}
+              {!isActive && <div className="absolute inset-0 bg-black/20 flex items-center justify-center"><Badge className="rounded-full bg-red-600 text-white">Inactivo</Badge></div>}
             </div>
             <div className="p-4">
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
                 <Badge variant="secondary" className="rounded-full text-xs">{p.category}</Badge>
                 {p.featured && <Badge className="rounded-full text-xs bg-primary">Destacado</Badge>}
                 {p.visibility === 'internal' && <Badge className="rounded-full text-xs bg-amber-100 text-amber-700 border-amber-300">🔒 Solo cotiz.</Badge>}
               </div>
               <h3 className="font-semibold mb-1 line-clamp-1">{p.title}</h3>
-              <p className="text-sm text-muted-foreground mb-2">{p.country} &middot; {p.duration_days} días</p>
-              <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground mb-3">{p.country} &middot; {p.duration_days} días</p>
+              <div className="flex items-center justify-between mb-3">
                 <span className="font-bold text-primary">Q.{p.price?.toLocaleString()}</span>
-                <div className="flex gap-1">
-                  <Button size="sm" variant="ghost" onClick={() => editPkg(p)} data-testid={`edit-pkg-${i}`}><Edit className="w-3.5 h-3.5" /></Button>
-                  <DeleteWithCode onConfirm={(code) => deletePkg(p._id, code)} />
-                </div>
+                <button
+                  type="button"
+                  onClick={() => toggleStatus(p)}
+                  disabled={togglingId === p._id}
+                  className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium transition-all ${isActive ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'bg-red-50 text-red-700 hover:bg-red-100'}`}
+                  data-testid={`toggle-pkg-${i}`}
+                  title={isActive ? 'Desactivar paquete' : 'Activar paquete'}
+                >
+                  <span className={`relative inline-block w-8 h-4 rounded-full transition-colors ${isActive ? 'bg-emerald-500' : 'bg-red-400'}`}>
+                    <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all ${isActive ? 'left-4' : 'left-0.5'}`} />
+                  </span>
+                  {isActive ? 'Activo' : 'Inactivo'}
+                </button>
+              </div>
+              <div className="flex gap-1 justify-end pt-2 border-t border-border">
+                <Button size="sm" variant="ghost" onClick={() => editPkg(p)} data-testid={`edit-pkg-${i}`}><Edit className="w-3.5 h-3.5" /></Button>
+                <DeleteWithCode onConfirm={(code) => deletePkg(p._id, code)} />
               </div>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
       )}
 

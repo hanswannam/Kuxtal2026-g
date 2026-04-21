@@ -541,9 +541,10 @@ async def list_packages(request: Request, category: Optional[str] = None, countr
         is_admin = u.get("role") in ("super_admin", "admin")
     except Exception:
         is_admin = False
-    query = {"status": "active"}
+    query = {}
     if not (is_admin and include_internal):
-        # Restrict to public-visible packages for web consumers
+        # Public/member consumers: only active, public-visible packages
+        query["status"] = "active"
         query["$and"] = [{"$or": [{"visibility": "public"}, {"visibility": {"$exists": False}}]}]
     if category:
         query["category"] = category
@@ -629,6 +630,16 @@ async def update_package(package_id: str, req: PackageCreate, request: Request):
     await db.packages.update_one({"_id": ObjectId(package_id)}, {"$set": update_data})
     updated = await db.packages.find_one({"_id": ObjectId(package_id)})
     return serialize_doc(updated)
+
+@api_router.put("/packages/{package_id}/toggle-status")
+async def toggle_package_status(package_id: str, request: Request):
+    await require_role("super_admin", "admin")(request)
+    pkg = await db.packages.find_one({"_id": ObjectId(package_id)})
+    if not pkg:
+        raise HTTPException(status_code=404, detail="Paquete no encontrado")
+    new_status = "inactive" if pkg.get("status") == "active" else "active"
+    await db.packages.update_one({"_id": ObjectId(package_id)}, {"$set": {"status": new_status, "updated_at": datetime.now(timezone.utc).isoformat()}})
+    return {"message": f"Paquete {'activado' if new_status == 'active' else 'desactivado'}", "status": new_status}
 
 @api_router.delete("/packages/{package_id}")
 async def delete_package(package_id: str, request: Request):

@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Badge } from '../../components/ui/badge';
-import { Plus, Shield, X, Check } from 'lucide-react';
+import { Plus, Shield, X, Check, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { DeleteWithCode } from '../../components/DeleteWithCode';
 import api from '../../lib/api';
@@ -30,12 +30,33 @@ const FEATURE_LABELS = {
 
 export function AdminUsers({ adminUsers, allUsers, showUserForm, setShowUserForm, userForm, setUserForm, userView, setUserView, loadUsers }) {
   const [permsUser, setPermsUser] = useState(null);
+  const [q, setQ] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+
+  const sourceList = userView === 'admins' ? adminUsers : allUsers;
+  const norm = (s) => (s || '').toString().toLowerCase();
+  const filteredUsers = useMemo(() => sourceList.filter(u => {
+    if (roleFilter && u.role !== roleFilter) return false;
+    const active = u.is_active !== false;
+    if (statusFilter === 'active' && !active) return false;
+    if (statusFilter === 'inactive' && active) return false;
+    if (q.trim()) {
+      const n = norm(q);
+      if (!norm(u.name).includes(n) && !norm(u.email).includes(n)) return false;
+    }
+    return true;
+  }), [sourceList, q, roleFilter, statusFilter]);
+
+  const availableRoles = useMemo(() => Array.from(new Set(sourceList.map(u => u.role).filter(Boolean))).sort(), [sourceList]);
 
   return (
     <div className="animate-fade-in" data-testid="admin-users">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
         <div>
-          <h2 className="font-heading text-lg font-semibold">Control de Usuarios</h2>
+          <h2 className="font-heading text-lg font-semibold">
+            Control de Usuarios ({filteredUsers.length}{filteredUsers.length !== sourceList.length ? ` de ${sourceList.length}` : ''})
+          </h2>
           <div className="flex gap-2 mt-2">
             <Button size="sm" variant={userView === 'admins' ? 'default' : 'outline'} className="rounded-full text-xs" onClick={() => setUserView('admins')}>Administradores ({adminUsers.length})</Button>
             <Button size="sm" variant={userView === 'all' ? 'default' : 'outline'} className="rounded-full text-xs" onClick={() => setUserView('all')}>Todos ({allUsers.length})</Button>
@@ -45,6 +66,28 @@ export function AdminUsers({ adminUsers, allUsers, showUserForm, setShowUserForm
           <Plus className="w-4 h-4 mr-2" /> Nuevo Admin
         </Button>
       </div>
+
+      <div className="bg-white rounded-2xl border border-border p-3 mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2" data-testid="user-filters">
+        <div className="relative lg:col-span-2">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar por nombre o email..." className="pl-9 rounded-xl" data-testid="user-search" />
+          {q && <button type="button" onClick={() => setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>}
+        </div>
+        <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)} className="h-10 rounded-xl border border-input px-3 text-sm bg-white" data-testid="user-filter-role">
+          <option value="">Todos los roles</option>
+          {availableRoles.map(r => <option key={r} value={r}>{r}</option>)}
+        </select>
+        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="h-10 rounded-xl border border-input px-3 text-sm bg-white" data-testid="user-filter-status">
+          <option value="">Activos e inactivos</option>
+          <option value="active">Solo activos</option>
+          <option value="inactive">Solo inactivos</option>
+        </select>
+        {(q || roleFilter || statusFilter) && (
+          <button type="button" onClick={() => { setQ(''); setRoleFilter(''); setStatusFilter(''); }} className="h-10 rounded-xl bg-secondary hover:bg-secondary/70 text-xs font-medium px-3 sm:col-span-2 lg:col-span-4" data-testid="user-clear-filters">
+            Limpiar filtros
+          </button>
+        )}
+      </div>
       <div className="bg-white rounded-2xl border border-border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -52,7 +95,10 @@ export function AdminUsers({ adminUsers, allUsers, showUserForm, setShowUserForm
               <tr><th className="text-left p-3 font-medium">Nombre</th><th className="text-left p-3 font-medium">Email</th><th className="text-left p-3 font-medium">Rol</th><th className="text-center p-3 font-medium">Estado</th><th className="text-right p-3 font-medium">Acciones</th></tr>
             </thead>
             <tbody>
-              {(userView === 'admins' ? adminUsers : allUsers).map((u, i) => (
+              {filteredUsers.length === 0 && (
+                <tr><td colSpan={5} className="p-8 text-center text-sm text-muted-foreground" data-testid="user-empty">No se encontraron usuarios con los filtros aplicados</td></tr>
+              )}
+              {filteredUsers.map((u, i) => (
                 <tr key={u._id} className="border-t border-border hover:bg-secondary/30 transition-colors" data-testid={`user-row-${i}`}>
                   <td className="p-3 font-medium">{u.name}</td>
                   <td className="p-3 text-muted-foreground text-xs">{u.email}</td>

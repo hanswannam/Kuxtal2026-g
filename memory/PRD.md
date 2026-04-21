@@ -30,6 +30,15 @@ Sistema CRM para club vacacional con web publica estilo Expedia, programa Kuxtal
   - PublicQuotationPage con `CountdownBadge` (verde/ámbar/rojo + animate-pulse <24h) y CTA "Pagar ahora por WhatsApp" con mensaje pre-armado (#COT + paquete + total Q.). Al vencer: badge rojo "Cotización vencida", CTA "Pagar ahora" permanece activo + aparece "Solicitar renovación" con mensaje WhatsApp distinto.
   - AdminSettings tab: inputs `payment_whatsapp` y `default_valid_days` (data-testid payment-wa-input / default-valid-days-input / save-quot-settings-btn).
   - Backfill: las 26 cotizaciones existentes recibieron valid_until = created_at + 10 días.
+- UI polish — navbar + modales (2026-02, iter 24):
+  - `glass-nav` opacidad a 97% + blur 20px + sombra sutil para legibilidad sobre contenido.
+  - Regla global CSS `body:has(.fixed.inset-0.z-50) [data-testid="main-navbar"] { visibility: hidden }` — navbar se oculta automáticamente cuando hay cualquier modal abierto (19 modales cubiertos).
+  - Navbar a `z-40` (antes z-50) para que modales naturalmente queden encima.
+  - `PublicQuotationPage` con `pt-24` para que el countdown no quede detrás del navbar fijo.
+- Búsqueda + filtros + activar/desactivar (2026-02, iter 25):
+  - AdminUsers: search por nombre/email (user-search), filtro por rol (user-filter-role), filtro por estado activo/inactivo (user-filter-status), botón limpiar filtros.
+  - AdminPackages: filtro de estado activo/inactivo (pkg-filter-status), toggle switch visual en cada card (toggle-pkg-i). Cards inactivas se muestran en grayscale + badge rojo "Inactivo".
+  - Backend: nuevo endpoint `PUT /api/packages/{id}/toggle-status`. GET /api/packages ahora respeta `include_internal=true` también para mostrar paquetes inactivos a admins.
 - Package Visibility (2026-02, iter 21): campo `visibility` = public|internal. Endpoints públicos filtran visibility=internal. Admin management usa ?include_internal=true. AdminPackages con filtro Todos/Público/Interno + radio en form.
 - Quotations tracking & filters (2026-02, iter 21): created_at, created_by_id, created_by_name ('Sistema (web pública)' para web pública, nombre del admin para POST /quotations/admin). GET /api/quotations soporta created_by, date_from, date_to. UI con quot-date-from/to, quot-filter-creator, quot-clear-filters, meta muestra '· por <creador>'.
 - Code Quality: Component refactoring, lazy loading, ErrorBoundary, SEO OG tags, 30+ MongoDB indexes
