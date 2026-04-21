@@ -2724,16 +2724,21 @@ async def create_admin_user(request: Request):
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     result = await db.users.insert_one(doc)
+    created = {**doc, "_id": result.inserted_id}
+    await log_user_audit(user, created, "create_user", {"role": role, "permissions": perms}, request)
     return {"id": str(result.inserted_id), "email": doc["email"], "name": doc["name"], "role": doc["role"], "permissions": perms}
 
 @api_router.put("/admin/users/{user_id}/permissions")
 async def update_user_permissions(user_id: str, request: Request):
-    await require_role("super_admin")(request)
+    admin_user = await require_role("super_admin")(request)
     body = await request.json()
     perms = body.get("permissions") or {}
     # Normalize: ensure only booleans and valid keys
     clean = {k: bool(perms.get(k)) for k in FEATURE_KEYS if k in perms}
+    target = await db.users.find_one({"_id": ObjectId(user_id)})
     await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"permissions": clean}})
+    if target:
+        await log_user_audit(admin_user, target, "update_permissions", {"before": target.get("permissions", {}), "after": clean}, request)
     return {"permissions": clean}
 
 @api_router.get("/admin/feature-keys")
@@ -2749,18 +2754,42 @@ async def toggle_user_active(user_id: str, request: Request):
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     new_status = not target.get("is_active", True)
     await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"is_active": new_status}})
+    await log_user_audit(user, target, "toggle_active", {"before": target.get("is_active", True), "after": new_status}, request)
     return {"message": f"Usuario {'activado' if new_status else 'desactivado'}", "is_active": new_status}
+
+async def log_user_audit(admin_user: dict, target: dict, action: str, details: dict, request: Request):
+    try:
+        await db.user_changes_audit.insert_one({
+            "admin_id": str(admin_user.get("_id")),
+            "admin_email": admin_user.get("email"),
+            "admin_name": admin_user.get("name"),
+            "target_user_id": str(target.get("_id")),
+            "target_email": target.get("email"),
+            "target_name": target.get("name"),
+            "target_role": target.get("role"),
+            "action": action,
+            "details": details,
+            "ip": request.client.host if request.client else None,
+            "user_agent": request.headers.get("user-agent", "")[:200],
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        })
+    except Exception as e:
+        print(f"[audit] failed to log: {e}")
 
 @api_router.put("/admin/users/{user_id}")
 async def update_admin_user(user_id: str, request: Request):
-    await require_role("super_admin")(request)
+    admin_user = await require_role("super_admin")(request)
     body = await request.json()
     target = await db.users.find_one({"_id": ObjectId(user_id)})
     if not target:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     updates = {}
+    changes = {}
     if "name" in body:
-        updates["name"] = (body.get("name") or "").strip()
+        new_name = (body.get("name") or "").strip()
+        if new_name != target.get("name", ""):
+            updates["name"] = new_name
+            changes["name"] = {"before": target.get("name", ""), "after": new_name}
     if "email" in body:
         new_email = (body.get("email") or "").lower().strip()
         if not new_email:
@@ -2773,9 +2802,11 @@ async def update_admin_user(user_id: str, request: Request):
             if target.get("email") == main_admin_email:
                 raise HTTPException(status_code=400, detail="No se puede cambiar el email del admin principal")
             updates["email"] = new_email
+            changes["email"] = {"before": target.get("email"), "after": new_email}
     if not updates:
         return {"message": "Sin cambios"}
     await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": updates})
+    await log_user_audit(admin_user, target, "update_profile", changes, request)
     updated = await db.users.find_one({"_id": ObjectId(user_id)})
     u_doc = serialize_doc(updated)
     u_doc.pop("password_hash", None)
@@ -2783,7 +2814,7 @@ async def update_admin_user(user_id: str, request: Request):
 
 @api_router.post("/admin/users/{user_id}/reset-password")
 async def reset_user_password(user_id: str, request: Request):
-    await require_role("super_admin")(request)
+    admin_user = await require_role("super_admin")(request)
     body = await request.json()
     new_password = (body.get("password") or "").strip()
     if len(new_password) < 6:
@@ -2792,7 +2823,24 @@ async def reset_user_password(user_id: str, request: Request):
     if not target:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"password_hash": hash_password(new_password)}})
+    await log_user_audit(admin_user, target, "reset_password", {"password_length": len(new_password)}, request)
     return {"message": "Contraseña actualizada"}
+
+@api_router.get("/admin/audit/user-changes")
+async def list_user_audit(request: Request, target_user_id: str = None, admin_id: str = None, action: str = None, limit: int = 200):
+    await require_role("super_admin")(request)
+    query = {}
+    if target_user_id:
+        query["target_user_id"] = target_user_id
+    if admin_id:
+        query["admin_id"] = admin_id
+    if action:
+        query["action"] = action
+    limit = max(1, min(int(limit or 200), 500))
+    out = []
+    async for doc in db.user_changes_audit.find(query).sort("timestamp", -1).limit(limit):
+        out.append(serialize_doc(doc))
+    return out
 
 @api_router.delete("/admin/users/{user_id}")
 async def delete_admin_user(user_id: str, request: Request):
@@ -2804,6 +2852,7 @@ async def delete_admin_user(user_id: str, request: Request):
     if target.get("email") == os.environ.get("ADMIN_EMAIL", "admin@kuxtaltravels.com").lower():
         raise HTTPException(status_code=400, detail="No se puede eliminar el admin principal")
     await db.users.delete_one({"_id": ObjectId(user_id)})
+    await log_user_audit(user, target, "delete_user", {"role": target.get("role"), "email": target.get("email")}, request)
     return {"message": "Usuario eliminado"}
 
 # ── Seed & Startup ──
@@ -2989,6 +3038,9 @@ async def startup():
     await db.chat_messages.create_index("conversation_id")
     await db.announcements.create_index("target")
     await db.announcements.create_index("created_at")
+    await db.user_changes_audit.create_index("target_user_id")
+    await db.user_changes_audit.create_index("admin_id")
+    await db.user_changes_audit.create_index("timestamp")
     await db.vacation_requests.create_index("user_id")
     await db.vacation_requests.create_index("status")
     await db.referrals.create_index("referral_code")

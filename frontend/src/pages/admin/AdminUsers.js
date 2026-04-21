@@ -1,9 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Badge } from '../../components/ui/badge';
-import { Plus, Shield, X, Check, Search, Pencil, KeyRound, Eye, EyeOff } from 'lucide-react';
+import { Plus, Shield, X, Check, Search, Pencil, KeyRound, Eye, EyeOff, History } from 'lucide-react';
 import { toast } from 'sonner';
 import { DeleteWithCode } from '../../components/DeleteWithCode';
 import api from '../../lib/api';
@@ -128,6 +128,9 @@ export function AdminUsers({ adminUsers, allUsers, showUserForm, setShowUserForm
                       <Button size="sm" variant="ghost" onClick={() => setResetUser(u)} className="text-amber-600 hover:text-amber-700" title="Resetear contraseña" data-testid={`reset-password-${i}`}>
                         <KeyRound className="w-3.5 h-3.5" />
                       </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setAuditUser(u)} className="text-foreground/70 hover:text-primary" title="Historial de cambios" data-testid={`audit-user-${i}`}>
+                        <History className="w-3.5 h-3.5" />
+                      </Button>
                       {(u.role === 'admin' || u.role === 'super_admin') && (
                         <Button size="sm" variant="ghost" onClick={() => setPermsUser(u)} className="text-primary" title="Permisos" data-testid={`perms-user-${i}`}>
                           <Shield className="w-3.5 h-3.5" />
@@ -172,6 +175,7 @@ export function AdminUsers({ adminUsers, allUsers, showUserForm, setShowUserForm
       {permsUser && <PermissionsModal user={permsUser} onClose={() => setPermsUser(null)} onSaved={() => { loadUsers(); setPermsUser(null); }} />}
       {editUser && <EditUserModal user={editUser} onClose={() => setEditUser(null)} onSaved={() => { loadUsers(); setEditUser(null); }} />}
       {resetUser && <ResetPasswordModal user={resetUser} onClose={() => setResetUser(null)} onSaved={() => setResetUser(null)} />}
+      {auditUser && <AuditHistoryModal user={auditUser} onClose={() => setAuditUser(null)} />}
     </div>
   );
 }
@@ -357,6 +361,132 @@ function PermissionsModal({ user, onClose, onSaved }) {
               <Button onClick={save} disabled={saving} className="flex-1 rounded-xl bg-primary" data-testid="perms-save">{saving ? 'Guardando...' : 'Guardar permisos'}</Button>
             </div>
           </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
+const ACTION_LABELS = {
+  create_user: { label: 'Creación de usuario', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  update_profile: { label: 'Edición de perfil', color: 'bg-blue-50 text-blue-700 border-blue-200' },
+  reset_password: { label: 'Reset de contraseña', color: 'bg-amber-50 text-amber-700 border-amber-200' },
+  toggle_active: { label: 'Cambio de estado', color: 'bg-purple-50 text-purple-700 border-purple-200' },
+  update_permissions: { label: 'Cambio de permisos', color: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
+  delete_user: { label: 'Eliminación', color: 'bg-red-50 text-red-700 border-red-200' },
+};
+
+function AuditHistoryModal({ user, onClose }) {
+  const [entries, setEntries] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const { data } = await api.get(`/admin/audit/user-changes?target_user_id=${user._id}`);
+        if (mounted) setEntries(data || []);
+      } catch (e) {
+        toast.error(e.response?.data?.detail || 'Error al cargar historial');
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [user._id]);
+
+  const fmtDate = (iso) => {
+    try { return new Date(iso).toLocaleString('es-GT', { dateStyle: 'medium', timeStyle: 'short' }); }
+    catch { return iso; }
+  };
+
+  const renderDetails = (action, details) => {
+    if (!details) return null;
+    if (action === 'update_profile') {
+      return (
+        <div className="space-y-1 text-xs">
+          {Object.entries(details).map(([field, change]) => (
+            <div key={field} className="flex items-start gap-2">
+              <span className="font-medium capitalize text-muted-foreground w-14">{field}:</span>
+              <span className="text-red-600 line-through break-all">{String(change.before || '—')}</span>
+              <span className="text-muted-foreground">→</span>
+              <span className="text-emerald-700 font-medium break-all">{String(change.after || '—')}</span>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    if (action === 'reset_password') {
+      return <div className="text-xs text-muted-foreground">Nueva contraseña ({details.password_length} caracteres)</div>;
+    }
+    if (action === 'toggle_active') {
+      return <div className="text-xs text-muted-foreground">{details.before ? 'Activo' : 'Inactivo'} → <span className="font-medium text-foreground">{details.after ? 'Activo' : 'Inactivo'}</span></div>;
+    }
+    if (action === 'update_permissions') {
+      const before = details.before || {};
+      const after = details.after || {};
+      const keys = Array.from(new Set([...Object.keys(before), ...Object.keys(after)]));
+      const diffs = keys.filter(k => !!before[k] !== !!after[k]);
+      if (!diffs.length) return <div className="text-xs text-muted-foreground">Sin cambios detectables</div>;
+      return (
+        <div className="text-xs space-y-0.5">
+          {diffs.map(k => (
+            <div key={k}>
+              <span className="font-medium">{FEATURE_LABELS[k] || k}:</span>{' '}
+              <span className={before[k] ? 'text-red-600' : 'text-muted-foreground'}>{before[k] ? 'sí' : 'no'}</span>
+              {' → '}
+              <span className={after[k] ? 'text-emerald-700 font-medium' : 'text-muted-foreground'}>{after[k] ? 'sí' : 'no'}</span>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    if (action === 'create_user') {
+      return <div className="text-xs text-muted-foreground">Rol: <span className="font-medium text-foreground">{details.role}</span></div>;
+    }
+    if (action === 'delete_user') {
+      return <div className="text-xs text-muted-foreground">Email: {details.email} · Rol: {details.role}</div>;
+    }
+    return null;
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" data-testid="audit-history-modal">
+      <div className="bg-white rounded-2xl w-full max-w-2xl p-6 max-h-[92vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="font-heading text-xl font-semibold">Historial de cambios</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">{user.name} · {user.email}</p>
+          </div>
+          <Button variant="ghost" onClick={onClose}><X className="w-4 h-4" /></Button>
+        </div>
+
+        {loading ? (
+          <div className="py-10 text-center text-sm text-muted-foreground">Cargando...</div>
+        ) : entries.length === 0 ? (
+          <div className="py-10 text-center text-sm text-muted-foreground" data-testid="audit-empty">
+            Sin cambios registrados todavía.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {entries.map((e, i) => {
+              const meta = ACTION_LABELS[e.action] || { label: e.action, color: 'bg-secondary text-foreground border-border' };
+              return (
+                <div key={e._id || i} className="border border-border rounded-xl p-3" data-testid={`audit-entry-${i}`}>
+                  <div className="flex items-start justify-between gap-2 mb-1.5">
+                    <Badge variant="outline" className={`rounded-full text-[11px] ${meta.color}`}>{meta.label}</Badge>
+                    <span className="text-[11px] text-muted-foreground whitespace-nowrap">{fmtDate(e.timestamp)}</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground mb-2">
+                    Por <span className="font-medium text-foreground">{e.admin_name || e.admin_email}</span>
+                    {e.ip && <span> · IP {e.ip}</span>}
+                  </div>
+                  {renderDetails(e.action, e.details)}
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
     </div>

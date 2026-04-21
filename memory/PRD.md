@@ -99,6 +99,12 @@ Sistema CRM para club vacacional con web publica estilo Expedia, programa Kuxtal
   - AdminUsers.js: botones Editar (Pencil) y Resetear contraseña (KeyRound) disponibles para todos los usuarios del listado.
   - EditUserModal: edita nombre + email con validación.
   - ResetPasswordModal: input con show/hide, confirmación, botón "Generar aleatoria" (copia al portapapeles al guardar).
+- Log de auditoría de cambios de usuario (2026-02, iter 35):
+  - Nueva colección `user_changes_audit` con campos admin_id/email/name, target_user_id/email, action, details (diff before/after), ip, user_agent, timestamp.
+  - `log_user_audit()` se ejecuta en: create_user, update_profile, reset_password, toggle_active, update_permissions, delete_user.
+  - Nuevo endpoint `GET /api/admin/audit/user-changes?target_user_id=&admin_id=&action=&limit=`.
+  - AdminUsers.js: botón Historial (History) por fila abre `AuditHistoryModal` con lista timeline (badges coloridos por tipo, fecha local, admin ejecutor+IP, diff visual con before/after tachado/verde para profile/permissions).
+  - Índices MongoDB en target_user_id / admin_id / timestamp.
 - Package Visibility (2026-02, iter 21): campo `visibility` = public|internal. Endpoints públicos filtran visibility=internal. Admin management usa ?include_internal=true. AdminPackages con filtro Todos/Público/Interno + radio en form.
 - Quotations tracking & filters (2026-02, iter 21): created_at, created_by_id, created_by_name ('Sistema (web pública)' para web pública, nombre del admin para POST /quotations/admin). GET /api/quotations soporta created_by, date_from, date_to. UI con quot-date-from/to, quot-filter-creator, quot-clear-filters, meta muestra '· por <creador>'.
 - Code Quality: Component refactoring, lazy loading, ErrorBoundary, SEO OG tags, 30+ MongoDB indexes
