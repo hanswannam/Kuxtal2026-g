@@ -109,6 +109,12 @@ code {
   box-shadow: 0 4px 16px -8px rgba(27, 50, 95, 0.08);
 }
 
+/* Hide navbar when a modal/overlay is open so it never overlaps floating panels */
+body:has(.fixed.inset-0.z-50) [data-testid="main-navbar"] {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 /* WhatsApp floating */
 .whatsapp-float {
   position: fixed;
