@@ -32,6 +32,7 @@ export function AdminUsers({ adminUsers, allUsers, showUserForm, setShowUserForm
   const [permsUser, setPermsUser] = useState(null);
   const [editUser, setEditUser] = useState(null);
   const [resetUser, setResetUser] = useState(null);
+  const [auditUser, setAuditUser] = useState(null);
   const [q, setQ] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
