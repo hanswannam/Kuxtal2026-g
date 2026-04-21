@@ -164,7 +164,7 @@ export function AdminUsers({ adminUsers, allUsers, showUserForm, setShowUserForm
                   <option value="super_admin">Super Admin</option>
                 </select>
               </div>
-              <p className="text-[11px] text-muted-foreground">Nuevos administradores comienzan con acceso a Cotizaciones, Clientes y Dashboard. Puedes configurar más permisos luego con el botón escudo.</p>
+              <p className="text-[11px] text-muted-foreground">Nuevos administradores comienzan con acceso a Dashboard, Cotizaciones, Clientes y Socios. Puedes configurar más permisos luego con el botón escudo.</p>
               <div className="flex gap-3 pt-2">
                 <Button type="button" variant="outline" onClick={() => setShowUserForm(false)} className="flex-1 rounded-xl">Cancelar</Button>
                 <Button type="submit" className="flex-1 rounded-xl bg-primary hover:bg-primary/90" data-testid="uf-submit">Crear</Button>

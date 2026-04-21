@@ -89,11 +89,16 @@ async def get_current_user(request: Request) -> dict:
     except (jwt.InvalidTokenError, Exception):
         raise HTTPException(status_code=401, detail="Token inválido")
 
-def require_role(*roles):
+def require_role(*roles, permission: str = None):
     async def checker(request: Request):
         user = await get_current_user(request)
         if user.get("role") not in roles:
             raise HTTPException(status_code=403, detail="Acceso denegado")
+        # Per-module permission enforcement for admin role (super_admin bypass)
+        if permission and user.get("role") == "admin":
+            perms = user.get("permissions") or {}
+            if not perms.get(permission):
+                raise HTTPException(status_code=403, detail=f"No tienes permiso para '{permission}'")
         return user
     return checker
 
@@ -441,7 +446,7 @@ async def list_members(request: Request, search: Optional[str] = None, status: O
 
 @api_router.post("/members")
 async def create_member(req: MemberCreate, request: Request):
-    user = await require_role("super_admin", "admin")(request)
+    user = await require_role("super_admin", "admin", permission="members")(request)
     existing = await db.members.find_one({"contract_number": req.contract_number})
     if existing:
         raise HTTPException(status_code=400, detail="Número de contrato ya existe")
@@ -470,7 +475,7 @@ async def create_member(req: MemberCreate, request: Request):
 
 @api_router.put("/members/{member_id}")
 async def update_member(member_id: str, req: MemberCreate, request: Request):
-    user = await require_role("super_admin", "admin")(request)
+    user = await require_role("super_admin", "admin", permission="members")(request)
     prev = await db.members.find_one({"_id": ObjectId(member_id)})
     if not prev:
         raise HTTPException(status_code=404, detail="Socio no encontrado")
@@ -514,7 +519,7 @@ async def update_member(member_id: str, req: MemberCreate, request: Request):
 
 @api_router.delete("/members/{member_id}")
 async def delete_member(member_id: str, request: Request):
-    user = await require_role("super_admin", "admin")(request)
+    user = await require_role("super_admin", "admin", permission="members")(request)
     await verify_delete_code(request)
     result = await db.members.delete_one({"_id": ObjectId(member_id)})
     if result.deleted_count == 0:
@@ -612,7 +617,7 @@ async def get_package(package_id: str):
 
 @api_router.post("/packages")
 async def create_package(req: PackageCreate, request: Request):
-    user = await require_role("super_admin", "admin")(request)
+    user = await require_role("super_admin", "admin", permission="packages")(request)
     doc = req.model_dump()
     doc["created_at"] = datetime.now(timezone.utc).isoformat()
     doc["created_by"] = user["_id"]
@@ -630,7 +635,7 @@ async def create_package(req: PackageCreate, request: Request):
 
 @api_router.put("/packages/{package_id}")
 async def update_package(package_id: str, req: PackageCreate, request: Request):
-    user = await require_role("super_admin", "admin")(request)
+    user = await require_role("super_admin", "admin", permission="packages")(request)
     update_data = req.model_dump()
     update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
     await db.packages.update_one({"_id": ObjectId(package_id)}, {"$set": update_data})
@@ -639,7 +644,7 @@ async def update_package(package_id: str, req: PackageCreate, request: Request):
 
 @api_router.put("/packages/{package_id}/toggle-status")
 async def toggle_package_status(package_id: str, request: Request):
-    await require_role("super_admin", "admin")(request)
+    await require_role("super_admin", "admin", permission="packages")(request)
     pkg = await db.packages.find_one({"_id": ObjectId(package_id)})
     if not pkg:
         raise HTTPException(status_code=404, detail="Paquete no encontrado")
@@ -666,7 +671,7 @@ async def toggle_package_status(package_id: str, request: Request):
 
 @api_router.delete("/packages/{package_id}")
 async def delete_package(package_id: str, request: Request):
-    user = await require_role("super_admin", "admin")(request)
+    user = await require_role("super_admin", "admin", permission="packages")(request)
     await verify_delete_code(request)
     result = await db.packages.delete_one({"_id": ObjectId(package_id)})
     if result.deleted_count == 0:
@@ -824,7 +829,7 @@ Notas:
 @api_router.post("/packages/import-from-drive")
 async def import_package_from_drive(request: Request):
     """Import a package from a Google Drive shared link using AI extraction."""
-    user = await require_role("super_admin", "admin")(request)
+    user = await require_role("super_admin", "admin", permission="packages")(request)
     body = await request.json()
     drive_url = body.get("drive_url", "").strip()
 
@@ -1047,7 +1052,7 @@ async def list_quotations(
 @api_router.post("/quotations/admin")
 async def create_quotation_as_admin(request: Request):
     """Admin creates a quotation for an existing socio, existing client, or a new client."""
-    user = await require_role("super_admin", "admin")(request)
+    user = await require_role("super_admin", "admin", permission="quotations")(request)
     body = await request.json()
     name = (body.get("name") or "").strip()
     email = (body.get("email") or "").strip()
@@ -1129,7 +1134,7 @@ async def create_quotation_as_admin(request: Request):
 @api_router.put("/quotations/{quotation_id}")
 async def update_quotation(quotation_id: str, request: Request):
     """Admin-only: edit a quotation (pricing, travel date, extras, status, notes)."""
-    user = await require_role("super_admin", "admin")(request)
+    user = await require_role("super_admin", "admin", permission="quotations")(request)
     body = await request.json()
     q = await db.quotations.find_one({"_id": ObjectId(quotation_id)})
     if not q:
@@ -1180,7 +1185,7 @@ async def update_quotation(quotation_id: str, request: Request):
 @api_router.post("/quotations/{quotation_id}/timeline")
 async def add_timeline_entry(quotation_id: str, request: Request):
     """Add a manual note to the quotation timeline (seguimiento)."""
-    user = await require_role("super_admin", "admin")(request)
+    user = await require_role("super_admin", "admin", permission="quotations")(request)
     body = await request.json()
     note = (body.get("note") or "").strip()
     if not note:
@@ -1199,7 +1204,7 @@ async def add_timeline_entry(quotation_id: str, request: Request):
 
 @api_router.put("/quotations/{quotation_id}/respond")
 async def respond_quotation(quotation_id: str, request: Request):
-    user = await require_role("super_admin", "admin")(request)
+    user = await require_role("super_admin", "admin", permission="quotations")(request)
     body = await request.json()
     await db.quotations.update_one(
         {"_id": ObjectId(quotation_id)},
@@ -1299,7 +1304,7 @@ async def list_clients(request: Request, search: Optional[str] = None):
 
 @api_router.post("/clients")
 async def create_client(req: ClientCreate, request: Request):
-    await require_role("super_admin", "admin")(request)
+    await require_role("super_admin", "admin", permission="clients")(request)
     email = (req.email or "").strip().lower()
     phone = (req.phone or "").strip()
     # De-dup check
@@ -1318,7 +1323,7 @@ async def create_client(req: ClientCreate, request: Request):
 
 @api_router.put("/clients/{client_id}")
 async def update_client(client_id: str, req: ClientCreate, request: Request):
-    await require_role("super_admin", "admin")(request)
+    await require_role("super_admin", "admin", permission="clients")(request)
     updates = req.model_dump()
     updates["email"] = (updates.get("email") or "").strip().lower()
     updates["phone"] = (updates.get("phone") or "").strip()
@@ -1329,7 +1334,7 @@ async def update_client(client_id: str, req: ClientCreate, request: Request):
 
 @api_router.delete("/clients/{client_id}")
 async def delete_client(client_id: str, request: Request):
-    await require_role("super_admin", "admin")(request)
+    await require_role("super_admin", "admin", permission="clients")(request)
     await verify_delete_code(request)
     await db.clients.delete_one({"_id": ObjectId(client_id)})
     return {"message": "Cliente eliminado"}
@@ -1348,7 +1353,7 @@ async def list_announcements(target: Optional[str] = None):
 
 @api_router.post("/announcements")
 async def create_announcement(req: AnnouncementCreate, request: Request):
-    user = await require_role("super_admin", "admin")(request)
+    user = await require_role("super_admin", "admin", permission="announcements")(request)
     doc = req.model_dump()
     doc["created_at"] = datetime.now(timezone.utc).isoformat()
     doc["created_by"] = user["_id"]
@@ -1358,7 +1363,7 @@ async def create_announcement(req: AnnouncementCreate, request: Request):
 
 @api_router.delete("/announcements/{ann_id}")
 async def delete_announcement(ann_id: str, request: Request):
-    user = await require_role("super_admin", "admin")(request)
+    user = await require_role("super_admin", "admin", permission="announcements")(request)
     await verify_delete_code(request)
     await db.announcements.update_one({"_id": ObjectId(ann_id)}, {"$set": {"status": "inactive"}})
     return {"message": "Anuncio eliminado"}
@@ -1402,7 +1407,7 @@ async def add_message(req_id: str, request: Request):
 
 @api_router.put("/vacation-requests/{req_id}/status")
 async def update_request_status(req_id: str, request: Request):
-    user = await require_role("super_admin", "admin")(request)
+    user = await require_role("super_admin", "admin", permission="requests")(request)
     body = await request.json()
     await db.vacation_requests.update_one({"_id": ObjectId(req_id)}, {"$set": {"status": body.get("status", "pending")}})
     return {"message": "Estado actualizado"}
@@ -1418,7 +1423,7 @@ async def get_whatsapp_config():
 
 @api_router.put("/config/whatsapp")
 async def set_whatsapp_config(req: WhatsAppConfig, request: Request):
-    user = await require_role("super_admin", "admin")(request)
+    user = await require_role("super_admin", "admin", permission="settings")(request)
     await db.config.update_one({"key": "whatsapp"}, {"$set": {"key": "whatsapp", "phone": req.phone}}, upsert=True)
     return {"message": "Configuración actualizada", "phone": req.phone}
 
@@ -1440,7 +1445,7 @@ async def get_quotation_settings():
 
 @api_router.put("/config/quotation-settings")
 async def set_quotation_settings(req: QuotationSettings, request: Request):
-    await require_role("super_admin", "admin")(request)
+    await require_role("super_admin", "admin", permission="settings")(request)
     days = max(1, int(req.default_valid_days or 10))
     await db.config.update_one(
         {"key": "quotation_settings"},
@@ -1467,7 +1472,7 @@ async def get_pricing_settings():
 
 @api_router.put("/config/pricing-settings")
 async def set_pricing_settings(req: PricingSettings, request: Request):
-    await require_role("super_admin", "admin")(request)
+    await require_role("super_admin", "admin", permission="settings")(request)
     await db.config.update_one(
         {"key": "pricing_settings"},
         {"$set": {
@@ -1481,14 +1486,14 @@ async def set_pricing_settings(req: PricingSettings, request: Request):
 
 @api_router.get("/admin/packages/recalculatable-count")
 async def packages_recalculatable_count(request: Request):
-    await require_role("super_admin", "admin")(request)
+    await require_role("super_admin", "admin", permission="packages")(request)
     count = await db.packages.count_documents({"agency_price": {"$gt": 0}})
     total = await db.packages.count_documents({})
     return {"total": total, "with_agency_price": count, "without_agency_price": total - count}
 
 @api_router.post("/admin/packages/recalculate-prices")
 async def recalculate_package_prices(request: Request):
-    user = await require_role("super_admin", "admin")(request)
+    user = await require_role("super_admin", "admin", permission="packages")(request)
     cfg = await db.config.find_one({"key": "pricing_settings"}) or {}
     public_pct = float(cfg.get("public_markup_percent", 30) or 0)
     member_pct = float(cfg.get("member_markup_percent", 15) or 0)
@@ -1576,7 +1581,7 @@ async def get_commerce_categories(full: Optional[bool] = False):
 
 @api_router.post("/commerce/categories")
 async def create_commerce_category(request: Request):
-    await require_role("super_admin", "admin")(request)
+    await require_role("super_admin", "admin", permission="categories")(request)
     body = await request.json()
     name = (body.get("name") or "").strip()
     icon = (body.get("icon") or "🏷️").strip() or "🏷️"
@@ -1593,7 +1598,7 @@ async def create_commerce_category(request: Request):
 
 @api_router.put("/commerce/categories/{name}")
 async def update_commerce_category(name: str, request: Request):
-    await require_role("super_admin", "admin")(request)
+    await require_role("super_admin", "admin", permission="categories")(request)
     body = await request.json()
     new_name = (body.get("name") or name).strip()
     icon = (body.get("icon") or "").strip()
@@ -1633,7 +1638,7 @@ async def update_commerce_category(name: str, request: Request):
 
 @api_router.delete("/commerce/categories/{name}")
 async def delete_commerce_category(name: str, request: Request):
-    await require_role("super_admin", "admin")(request)
+    await require_role("super_admin", "admin", permission="categories")(request)
     await verify_delete_code(request)
     if name in COMMERCE_CATEGORIES:
         raise HTTPException(status_code=400, detail="No se pueden eliminar categorías del sistema")
@@ -1724,7 +1729,7 @@ async def create_commerce(req: CommerceCreate, request: Request):
 
 @api_router.post("/admin/commerce/{commerce_id}/approve")
 async def approve_commerce(commerce_id: str, request: Request):
-    await require_role("super_admin", "admin")(request)
+    await require_role("super_admin", "admin", permission="commerce")(request)
     pkg = await db.commerce.find_one({"_id": ObjectId(commerce_id)})
     if not pkg:
         raise HTTPException(status_code=404, detail="Comercio no encontrado")
@@ -1745,7 +1750,7 @@ async def approve_commerce(commerce_id: str, request: Request):
 
 @api_router.post("/admin/commerce/{commerce_id}/reject")
 async def reject_commerce(commerce_id: str, request: Request):
-    await require_role("super_admin", "admin")(request)
+    await require_role("super_admin", "admin", permission="commerce")(request)
     body = {}
     try:
         body = await request.json()
@@ -1788,7 +1793,7 @@ async def get_social_links():
 
 @api_router.put("/config/social-links")
 async def set_social_links(req: SocialLinks, request: Request):
-    await require_role("super_admin", "admin")(request)
+    await require_role("super_admin", "admin", permission="settings")(request)
     doc = {"key": "social_links", **req.model_dump()}
     await db.config.update_one({"key": "social_links"}, {"$set": doc}, upsert=True)
     return {"message": "Redes sociales actualizadas", **req.model_dump()}
@@ -1806,7 +1811,7 @@ async def update_commerce(commerce_id: str, req: CommerceCreate, request: Reques
 
 @api_router.delete("/commerce/{commerce_id}")
 async def delete_commerce(commerce_id: str, request: Request):
-    user = await require_role("super_admin", "admin")(request)
+    user = await require_role("super_admin", "admin", permission="commerce")(request)
     await verify_delete_code(request)
     await db.commerce.update_one({"_id": ObjectId(commerce_id)}, {"$set": {"status": "inactive"}})
     return {"message": "Comercio eliminado"}
@@ -1905,7 +1910,7 @@ async def member_generate_coupon(request: Request):
 @api_router.post("/admin/coupons")
 async def admin_create_coupon(request: Request):
     """Admin creates a special coupon for a member+commerce combo."""
-    user = await require_role("super_admin", "admin")(request)
+    user = await require_role("super_admin", "admin", permission="commerce")(request)
     body = await request.json()
     member_id = body.get("member_id")
     commerce_id = body.get("commerce_id")
@@ -2134,7 +2139,7 @@ async def push_subscribe(req: PushSubscription, request: Request):
 
 @api_router.post("/push/send")
 async def send_push(request: Request):
-    user = await require_role("super_admin", "admin")(request)
+    user = await require_role("super_admin", "admin", permission="push")(request)
     body = await request.json()
     title = body.get("title", "Kuxtal Travel")
     message = body.get("message", "")
@@ -2217,7 +2222,7 @@ async def push_history(request: Request):
 
 @api_router.post("/regalias")
 async def create_regalia(request: Request):
-    user = await require_role("super_admin", "admin")(request)
+    user = await require_role("super_admin", "admin", permission="regalias")(request)
     body = await request.json()
     regalia = {
         "name": body.get("name", ""),
@@ -2257,7 +2262,7 @@ async def list_regalias(request: Request, member_id: Optional[str] = None, all: 
 @api_router.put("/members/{member_id}/regalias")
 async def assign_regalias_to_member(member_id: str, request: Request):
     """Bulk update which regalias belong to this socio. Body: { regalia_ids: [...] }."""
-    user = await require_role("super_admin", "admin")(request)
+    user = await require_role("super_admin", "admin", permission="members")(request)
     body = await request.json()
     ids = body.get("regalia_ids", []) or []
     member = await db.members.find_one({"_id": ObjectId(member_id)})
@@ -2280,7 +2285,7 @@ async def assign_regalias_to_member(member_id: str, request: Request):
 
 @api_router.put("/regalias/{regalia_id}/toggle-used")
 async def toggle_regalia_used(regalia_id: str, request: Request):
-    user = await require_role("super_admin", "admin")(request)
+    user = await require_role("super_admin", "admin", permission="regalias")(request)
     reg = await db.regalias.find_one({"_id": ObjectId(regalia_id)})
     if not reg:
         raise HTTPException(status_code=404, detail="Regalia no encontrada")
@@ -2290,7 +2295,7 @@ async def toggle_regalia_used(regalia_id: str, request: Request):
 
 @api_router.delete("/regalias/{regalia_id}")
 async def delete_regalia(regalia_id: str, request: Request):
-    user = await require_role("super_admin", "admin")(request)
+    user = await require_role("super_admin", "admin", permission="regalias")(request)
     await verify_delete_code(request)
     await db.regalias.update_one({"_id": ObjectId(regalia_id)}, {"$set": {"status": "inactive"}})
     return {"message": "Regalia eliminada"}
@@ -2299,7 +2304,7 @@ async def delete_regalia(regalia_id: str, request: Request):
 
 @api_router.post("/clubs")
 async def create_club(request: Request):
-    user = await require_role("super_admin", "admin")(request)
+    user = await require_role("super_admin", "admin", permission="clubs")(request)
     body = await request.json()
     club = {
         "name": body.get("name", ""),
@@ -2331,7 +2336,7 @@ async def list_clubs():
 
 @api_router.put("/clubs/{club_id}")
 async def update_club(club_id: str, request: Request):
-    user = await require_role("super_admin", "admin")(request)
+    user = await require_role("super_admin", "admin", permission="clubs")(request)
     body = await request.json()
     update_data = {k: v for k, v in body.items() if k != "_id"}
     update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
@@ -2341,7 +2346,7 @@ async def update_club(club_id: str, request: Request):
 
 @api_router.delete("/clubs/{club_id}")
 async def delete_club(club_id: str, request: Request):
-    user = await require_role("super_admin", "admin")(request)
+    user = await require_role("super_admin", "admin", permission="clubs")(request)
     await verify_delete_code(request)
     await db.vacation_clubs.update_one({"_id": ObjectId(club_id)}, {"$set": {"status": "inactive"}})
     return {"message": "Club eliminado"}
@@ -2578,7 +2583,7 @@ async def list_referrals(request: Request):
 
 @api_router.put("/referrals/{ref_id}/status")
 async def update_referral_status(ref_id: str, request: Request):
-    user = await require_role("super_admin", "admin")(request)
+    user = await require_role("super_admin", "admin", permission="referrals")(request)
     body = await request.json()
     await db.referrals.update_one({"_id": ObjectId(ref_id)}, {"$set": {"status": body.get("status", "pending"), "updated_at": datetime.now(timezone.utc).isoformat()}})
     return {"message": "Estado actualizado"}
@@ -2713,7 +2718,7 @@ async def create_admin_user(request: Request):
     # Default: if no perms provided for a regular admin, grant only quotations+dashboard
     role = body.get("role", "admin")
     if not perms and role == "admin":
-        perms = {"dashboard": True, "quotations": True, "clients": True}
+        perms = {"dashboard": True, "quotations": True, "clients": True, "members": True}
     doc = {
         "email": body["email"].lower().strip(),
         "password_hash": hash_password(body["password"]),
@@ -2752,6 +2757,14 @@ async def toggle_user_active(user_id: str, request: Request):
     target = await db.users.find_one({"_id": ObjectId(user_id)})
     if not target:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    # Protección: solo super_admin puede togglear a otro super_admin o al admin principal
+    main_admin_email = os.environ.get("ADMIN_EMAIL", "admin@kuxtaltravels.com").lower()
+    if user.get("role") != "super_admin":
+        if target.get("role") == "super_admin" or target.get("email") == main_admin_email:
+            raise HTTPException(status_code=403, detail="No tienes permiso para cambiar el estado de este usuario")
+    # Prohibir que un super_admin se desactive a sí mismo (lockout)
+    if str(user.get("_id")) == user_id and target.get("is_active", True) is True:
+        raise HTTPException(status_code=400, detail="No puedes desactivarte a ti mismo")
     new_status = not target.get("is_active", True)
     await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"is_active": new_status}})
     await log_user_audit(user, target, "toggle_active", {"before": target.get("is_active", True), "after": new_status}, request)

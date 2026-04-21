@@ -1,0 +1,68 @@
+{
+  "summary": "Iteration 23 backend regression complete. Validated per-module permission enforcement added to require_role('super_admin','admin', permission='X'): super_admin bypasses the check, and limited admin (testadmin@kuxtaltravels.com, perms={dashboard:true,members:true, others:false}) correctly receives 403 'No tienes permiso para <module>' on POST/PUT/DELETE for modules packages, quotations, clients, commerce, categories, clubs, regalias, referrals, settings. Public GET endpoints remain open (no auth). Login response still includes the 'permissions' key. toggle-active safety verified: admin role cannot toggle super_admin (403), and super_admin cannot self-deactivate (400). Iteration 22 suite still 35/35 green — no regression.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "POST /api/quotations/admin",
+        "issue": "Handler uses `request: Request` (no Pydantic model) and body is parsed lazily — permission check fires first so enforcement is correct, but schema-less body makes it easy to miss validation for super_admin path. Not a regression; pre-existing."
+      },
+      {
+        "endpoint": "require_role(permission=...)",
+        "issue": "Permission check only fires for role=='admin'; if future roles (e.g. 'staff') are added they will bypass the check silently. Consider else-branch / allow-list instead of role-equality."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "passed_tests": {
+    "backend": [
+      "POST /api/auth/login returns 'permissions' key for super_admin and limited admin; testadmin perms confirm dashboard+members=True and packages/quotations/clients/commerce/categories/clubs/regalias/referrals/settings/announcements/requests/push=False.",
+      "Limited admin (testadmin) receives 403 with detail containing 'permiso'/'<module>' for: POST /commerce/categories, POST /clubs, POST /regalias, POST /quotations/admin, POST /admin/commerce/{id}/approve, POST /admin/commerce/{id}/reject, PUT /referrals/{id}/status, PUT /packages/{id}/toggle-status, DELETE /packages/{id}?delete_code=..., POST /admin/packages/recalculate-prices, DELETE /clubs/{id}, PUT /clubs/{id}, DELETE /regalias/{id}, PUT /regalias/{id}/toggle-used, DELETE /commerce/categories/{name}.",
+      "Limited admin receives 403 with valid Pydantic bodies for: POST /packages, PUT /packages/{id}, PUT /config/whatsapp, PUT /config/pricing-settings (confirms permission check fires BEFORE any write).",
+      "super_admin NEVER receives a permission-403 on any of the 20 tested endpoints (may receive 404/400/422/200 depending on payload/target, but never detail='No tienes permiso...').",
+      "Limited admin CAN access module 'members': GET /api/members → 200, GET /api/auth/me → 200.",
+      "Public GETs unaffected (no auth required): GET /api/packages, /api/commerce, /api/commerce/categories, /api/config/pricing-settings, /api/clubs all returned 200.",
+      "Public POST /api/quotations (no auth) returns 200/201 — unaffected by permission changes.",
+      "toggle-active protection: limited admin gets 403 when trying to toggle super_admin's is_active (detail 'No tienes permiso para cambiar el estado de este usuario').",
+      "toggle-active self-lockout guard: super_admin gets 400 'No puedes desactivarte a ti mismo' when toggling their own id while currently active.",
+      "Regression: full iteration_22 admin users/audit suite (35 tests) re-executed — 35/35 passing, no behavioural regression from permission-enforcement change."
+    ],
+    "frontend": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration23_permission_enforcement.py",
+    "/app/test_reports/pytest/pytest_results_iter23.xml",
+    "/app/backend/tests/test_iteration22_admin_users_audit.py"
+  ],
+  "action_items": [
+    "Consider tightening require_role(permission=...) to enforce the check for any non-super_admin role instead of only role=='admin', so future roles aren't silently bypassed.",
+    "Optional: add a similar `permission=` check to the remaining admin-only endpoints not yet covered (e.g. /api/admin/audit/user-changes is super_admin-only which is fine, but /admin/packages/* still mixes scopes)."
+  ],
+  "critical_code_review_comments": [
+    "server.py is 3551 lines — continues to grow; recommend splitting into routers by domain.",
+    "FEATURE_KEYS list is duplicated between backend and frontend AdminUsers.js (already flagged in iter22).",
+    "require_role: if `permission` is provided but user.role is 'super_admin', the check is bypassed only because of the role!=='admin' guard. Cleaner to state intent as `if permission and user.role != 'super_admin':`.",
+    "No structured logging of failed authz attempts — a brute-force scan of endpoints by a low-privilege admin would not be detected from logs. Consider log_user_audit('authz_denied', ...) for 403 paths."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration23_permission_enforcement.py (new, 50 parametrized tests, all passing)"
+  ],
+  "success_rate": {
+    "backend": "100% (50/50 iter23 + 35/35 iter22 regression)",
+    "frontend": "not tested (backend-only request)"
+  },
+  "test_credentials": {
+    "super_admin": "admin@kuxtaltravels.com / KuxtalAdmin2024!",
+    "limited_admin": "testadmin@kuxtaltravels.com / TestAdmin123! (perms: dashboard+members=true, all other FEATURE_KEYS=false)",
+    "delete_code": "BORRAR YA"
+  },
+  "seed_data_creation": "No persistent seed data created. The public-POST /api/quotations test inserts one quotation doc for TEST_iter23_public@example.com (intentional, validates that the public endpoint remains unauth'd). No packages/clubs/regalias/commerce categories were created because all limited-admin write attempts were expected to 403, and super_admin tests targeted non-existent IDs (000000000000000000000000) so they returned 404 without persisting.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration 23 confirmed module-level authorization enforcement on 40+ admin endpoints via require_role('super_admin','admin', permission='X'). Test file: /app/backend/tests/test_iteration23_permission_enforcement.py (parametrized, 50 tests). Uses limited_token = testadmin (dashboard+members only) and super_token = admin@kuxtaltravels.com. Previous iter22 suite still green (no regression). Uncovered policy nuance: permission check is guarded by `if permission and user.role == 'admin'` — any future non-admin, non-super_admin role will bypass the permission check. Public GETs and public POST /api/quotations remain unauthenticated and untouched by the change.",
+  "rca of the issue": "N/A — no bugs found. Implementation of require_role(permission=...) matches spec: super_admin bypass, limited admin 403 with descriptive detail. toggle-active protections against targeting super_admin and self-deactivation also verified working."
+}
