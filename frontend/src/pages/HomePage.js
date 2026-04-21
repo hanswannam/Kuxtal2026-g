@@ -11,7 +11,7 @@ const API = process.env.REACT_APP_BACKEND_URL;
 const LOGO_URL = "https://customer-assets.emergentagent.com/job_vacation-club-portal/artifacts/ikgtmopq_logo%20kuxtal.avif";
 
 const SEARCH_TABS = [
-  { id: 'paquete', label: 'Paquetes', icon: Package, placeholder: 'Cancun, Riviera Maya...' },
+  { id: 'paquete', label: 'Paquetes', icon: Package, placeholder: 'Cancún, Riviera Maya...' },
   { id: 'alojamiento', label: 'Alojamientos', icon: Hotel, placeholder: 'Hotel, Resort, Villa...' },
   { id: 'experiencia', label: 'Experiencias', icon: Compass, placeholder: 'Tours, Aventuras...' },
 ];
@@ -302,7 +302,7 @@ export default function HomePage() {
                       <span className="text-sm font-semibold">{pkg.rating}</span>
                       <span className="text-xs text-muted-foreground">/5</span>
                     </div>
-                    <span className="text-xs text-muted-foreground">{pkg.duration_days} dias</span>
+                    <span className="text-xs text-muted-foreground">{pkg.duration_days} días</span>
                   </div>
                   <h3 className="font-heading text-lg font-semibold mb-1 text-primary transition-colors line-clamp-1">
                     {pkg.title}

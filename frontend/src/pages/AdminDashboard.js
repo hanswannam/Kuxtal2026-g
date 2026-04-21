@@ -213,7 +213,7 @@ export default function AdminDashboard() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="font-heading text-2xl font-bold tracking-tight">Panel Administrativo</h1>
-            <p className="text-sm text-muted-foreground">Gestion CRM de Kuxtal Travel</p>
+            <p className="text-sm text-muted-foreground">Gestión CRM de Kuxtal Travel</p>
           </div>
           <Badge className="rounded-full bg-primary/10 text-primary border-0 px-3">{user?.role === 'super_admin' ? 'Super Admin' : 'Admin'}</Badge>
         </div>

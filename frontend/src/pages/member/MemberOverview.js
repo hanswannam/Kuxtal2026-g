@@ -2,21 +2,32 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Badge } from '../../components/ui/badge';
 import { FileText, Bell, MessageSquare, Package, Store, Gift } from 'lucide-react';
+import { MembershipCard } from '../../components/MembershipCard';
 
 export function MemberOverview({ member, quotations, announcements, vacationRequests, packages, commerces }) {
   return (
     <div className="space-y-6 animate-fade-in">
       {member && (
+        <div className="flex justify-center sm:justify-start" data-testid="membership-card-wrapper">
+          <MembershipCard
+            name={member.name}
+            contractNumber={member.contract_number}
+            startDate={member.membership_start || member.contract_date}
+            endDate={member.membership_end || member.termination_date}
+          />
+        </div>
+      )}
+      {member && (
         <div className="bg-white rounded-2xl p-5 sm:p-6 border border-border" data-testid="member-info-card">
-          <h2 className="font-heading text-lg font-semibold mb-4">Mi Membresia</h2>
+          <h2 className="font-heading text-lg font-semibold mb-4">Mi Membresía</h2>
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             <div className="p-3 sm:p-4 bg-accent/50 rounded-xl">
               <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider mb-1">Contrato</p>
               <p className="font-semibold text-base sm:text-lg">{member.contract_number}</p>
             </div>
             <div className="p-3 sm:p-4 bg-accent/50 rounded-xl">
-              <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider mb-1">Anios de Servicio</p>
-              <p className="font-semibold text-base sm:text-lg">{member.service_years} anios</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider mb-1">Años de Servicio</p>
+              <p className="font-semibold text-base sm:text-lg">{member.service_years} años</p>
             </div>
             <div className="p-3 sm:p-4 bg-accent/50 rounded-xl">
               <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider mb-1">Vigencia</p>
@@ -28,7 +39,7 @@ export function MemberOverview({ member, quotations, announcements, vacationRequ
             </div>
             {(member.investment_amount > 0 || member.investment_plan) && (
               <div className="p-3 sm:p-4 bg-primary/5 rounded-xl border border-primary/10 col-span-2">
-                <p className="text-[10px] sm:text-xs text-primary uppercase tracking-wider mb-1 font-semibold">Inversion</p>
+                <p className="text-[10px] sm:text-xs text-primary uppercase tracking-wider mb-1 font-semibold">Inversión</p>
                 <p className="font-bold text-xl sm:text-2xl text-primary">Q.{(member.investment_amount || 0).toLocaleString()}</p>
                 {member.investment_plan && <p className="text-xs text-muted-foreground mt-1">{member.investment_plan}</p>}
               </div>
@@ -79,7 +90,7 @@ export function MemberOverview({ member, quotations, announcements, vacationRequ
                 <div className="p-3">
                   <h3 className="font-medium text-sm group-hover:text-primary transition-colors line-clamp-1">{pkg.title}</h3>
                   <div className="flex items-center justify-between mt-2">
-                    <span className="text-xs text-muted-foreground">{pkg.duration_days} dias</span>
+                    <span className="text-xs text-muted-foreground">{pkg.duration_days} días</span>
                     <span className="text-sm font-bold text-primary">Q.{pkg.member_price > 0 ? pkg.member_price.toLocaleString() : pkg.price?.toLocaleString()}</span>
                   </div>
                 </div>

@@ -35,7 +35,7 @@ export function MemberReferrals({ referralData }) {
                 <MessageCircle className="w-4 h-4 mr-2" /> Compartir por WhatsApp
               </Button>
               <Button variant="outline" className="flex-1 rounded-xl" onClick={() => {
-                window.open(`mailto:?subject=${encodeURIComponent('Invitacion a Kuxtal Travel')}&body=${encodeURIComponent(`Te invito a conocer Kuxtal Travel Club: ${window.location.origin}/referral/${referralData.code}`)}`, '_blank');
+                window.open(`mailto:?subject=${encodeURIComponent('Invitación a Kuxtal Travel')}&body=${encodeURIComponent(`Te invito a conocer Kuxtal Travel Club: ${window.location.origin}/referral/${referralData.code}`)}`, '_blank');
               }} data-testid="share-email-referral">
                 <Send className="w-4 h-4 mr-2" /> Email
               </Button>

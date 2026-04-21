@@ -114,8 +114,8 @@ export function AdminClubs({ handleImageUpload, uploading }) {
                 </div>
                 {form.logo_url && <img src={form.logo_url} alt="Logo" className="w-16 h-16 rounded-xl object-cover mt-2 border" />}
               </div>
-              <div><Label className="text-xs">Descripcion</Label><Textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} className="rounded-xl mt-1" data-testid="clf-desc" /></div>
-              <div><Label className="text-xs">Direccion</Label><Input value={form.address} onChange={e => setForm({...form, address: e.target.value})} placeholder="Direccion del club" className="rounded-xl mt-1" data-testid="clf-address" /></div>
+              <div><Label className="text-xs">Descripción</Label><Textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} className="rounded-xl mt-1" data-testid="clf-desc" /></div>
+              <div><Label className="text-xs">Dirección</Label><Input value={form.address} onChange={e => setForm({...form, address: e.target.value})} placeholder="Dirección del club" className="rounded-xl mt-1" data-testid="clf-address" /></div>
               <div>
                 <Label className="text-xs">Beneficios</Label>
                 <div className="flex gap-2 mt-1">

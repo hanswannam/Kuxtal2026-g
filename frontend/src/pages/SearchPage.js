@@ -20,8 +20,8 @@ const SORT_OPTIONS = [
   { id: '', label: 'Recomendados' },
   { id: 'price_asc', label: 'Precio: Menor a Mayor' },
   { id: 'price_desc', label: 'Precio: Mayor a Menor' },
-  { id: 'duration_asc', label: 'Duracion: Corta' },
-  { id: 'duration_desc', label: 'Duracion: Larga' },
+  { id: 'duration_asc', label: 'Duración: Corta' },
+  { id: 'duration_desc', label: 'Duración: Larga' },
   { id: 'rating', label: 'Mejor Calificacion' },
 ];
 
@@ -231,7 +231,7 @@ export default function SearchPage() {
                     </div>
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Calendar className="w-3 h-3" />
-                      <span>{pkg.duration_days} dias</span>
+                      <span>{pkg.duration_days} días</span>
                     </div>
                   </div>
                   <h3 className="font-heading text-lg font-semibold mb-1 text-primary transition-colors line-clamp-1">

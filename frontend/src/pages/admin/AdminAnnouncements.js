@@ -37,7 +37,7 @@ export function AdminAnnouncements({ announcements, announcementForm, setAnnounc
           <div className="bg-white rounded-2xl w-full max-w-md p-6">
             <h3 className="font-heading text-xl font-semibold mb-4">Nuevo Anuncio</h3>
             <form onSubmit={saveAnnouncement} className="space-y-3">
-              <div><Label className="text-xs">Titulo</Label><Input value={announcementForm.title} onChange={e => setAnnouncementForm({...announcementForm, title: e.target.value})} required className="rounded-xl mt-1" data-testid="af-title" /></div>
+              <div><Label className="text-xs">Título</Label><Input value={announcementForm.title} onChange={e => setAnnouncementForm({...announcementForm, title: e.target.value})} required className="rounded-xl mt-1" data-testid="af-title" /></div>
               <div><Label className="text-xs">Contenido</Label><Textarea value={announcementForm.content} onChange={e => setAnnouncementForm({...announcementForm, content: e.target.value})} required className="rounded-xl mt-1" data-testid="af-content" /></div>
               <div><Label className="text-xs">Enlace (opcional)</Label><Input value={announcementForm.link} onChange={e => setAnnouncementForm({...announcementForm, link: e.target.value})} className="rounded-xl mt-1" data-testid="af-link" /></div>
               <div>

@@ -45,18 +45,18 @@ export function AdminCommerces({ commerces, commerceForm, setCommerceForm, showC
             <h3 className="font-heading text-xl font-semibold mb-4">{commerceForm._id ? 'Editar Comercio' : 'Nuevo Comercio'}</h3>
             <form onSubmit={saveCommerce} className="space-y-3">
               <div><Label className="text-xs">Nombre</Label><Input value={commerceForm.name} onChange={e => setCommerceForm({...commerceForm, name: e.target.value})} required className="rounded-xl mt-1" data-testid="cf-name" /></div>
-              <div><Label className="text-xs">Descripcion</Label><Textarea value={commerceForm.description} onChange={e => setCommerceForm({...commerceForm, description: e.target.value})} className="rounded-xl mt-1" data-testid="cf-desc" /></div>
+              <div><Label className="text-xs">Descripción</Label><Textarea value={commerceForm.description} onChange={e => setCommerceForm({...commerceForm, description: e.target.value})} className="rounded-xl mt-1" data-testid="cf-desc" /></div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-xs">Categoria</Label>
+                  <Label className="text-xs">Categoría</Label>
                   <select value={commerceForm.category} onChange={e => setCommerceForm({...commerceForm, category: e.target.value})} className="w-full mt-1 h-10 rounded-xl border border-input px-3 text-sm" data-testid="cf-category">
                     {commerceCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                   </select>
                 </div>
-                <div><Label className="text-xs">Ubicacion</Label><Input value={commerceForm.location} onChange={e => setCommerceForm({...commerceForm, location: e.target.value})} className="rounded-xl mt-1" data-testid="cf-location" /></div>
+                <div><Label className="text-xs">Ubicación</Label><Input value={commerceForm.location} onChange={e => setCommerceForm({...commerceForm, location: e.target.value})} className="rounded-xl mt-1" data-testid="cf-location" /></div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div><Label className="text-xs">Telefono</Label><Input value={commerceForm.phone} onChange={e => setCommerceForm({...commerceForm, phone: e.target.value})} className="rounded-xl mt-1" data-testid="cf-phone" /></div>
+                <div><Label className="text-xs">Teléfono</Label><Input value={commerceForm.phone} onChange={e => setCommerceForm({...commerceForm, phone: e.target.value})} className="rounded-xl mt-1" data-testid="cf-phone" /></div>
                 <div><Label className="text-xs">Email</Label><Input value={commerceForm.email} onChange={e => setCommerceForm({...commerceForm, email: e.target.value})} className="rounded-xl mt-1" data-testid="cf-email" /></div>
               </div>
               <div><Label className="text-xs">Beneficio para Socios</Label><Textarea value={commerceForm.benefit_description} onChange={e => setCommerceForm({...commerceForm, benefit_description: e.target.value})} placeholder="Ej: 20% de descuento en consumo" className="rounded-xl mt-1" data-testid="cf-benefit" /></div>
@@ -72,7 +72,7 @@ export function AdminCommerces({ commerces, commerceForm, setCommerceForm, showC
                 {commerceForm.logo_url && <img src={commerceForm.logo_url} alt="Logo" className="w-16 h-16 rounded-xl object-cover mt-2 border" />}
               </div>
               <div><Label className="text-xs">Sitio Web</Label><Input value={commerceForm.website || ''} onChange={e => setCommerceForm({...commerceForm, website: e.target.value})} placeholder="https://www.micomercio.com" className="rounded-xl mt-1" data-testid="cf-website" /></div>
-              <div><Label className="text-xs">Codigo de Validacion</Label><Input value={commerceForm.validation_code} onChange={e => setCommerceForm({...commerceForm, validation_code: e.target.value.toUpperCase()})} placeholder="Ej: MICOMERCIO01" className="rounded-xl mt-1 font-mono" data-testid="cf-code" /></div>
+              <div><Label className="text-xs">Codigo de Validación</Label><Input value={commerceForm.validation_code} onChange={e => setCommerceForm({...commerceForm, validation_code: e.target.value.toUpperCase()})} placeholder="Ej: MICOMERCIO01" className="rounded-xl mt-1 font-mono" data-testid="cf-code" /></div>
               <div className="flex gap-3 pt-2">
                 <Button type="button" variant="outline" onClick={() => setShowCommerceForm(false)} className="flex-1 rounded-xl">Cancelar</Button>
                 <Button type="submit" className="flex-1 rounded-xl bg-primary hover:bg-primary/90" data-testid="cf-submit">{commerceForm._id ? 'Guardar' : 'Crear'}</Button>

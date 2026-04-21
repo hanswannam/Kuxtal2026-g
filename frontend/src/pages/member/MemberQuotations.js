@@ -17,7 +17,7 @@ export function MemberQuotations({ quotations }) {
           <div key={q._id} className="bg-white rounded-2xl p-5 border border-border" data-testid={`quotation-${i}`}>
             <div className="flex items-start justify-between mb-3">
               <div>
-                <h3 className="font-semibold">Cotizacion #{q._id?.slice(-6)}</h3>
+                <h3 className="font-semibold">Cotización #{q._id?.slice(-6)}</h3>
                 <p className="text-xs text-muted-foreground">{new Date(q.created_at).toLocaleDateString('es')}</p>
               </div>
               <Badge variant={q.status === 'responded' ? 'default' : 'secondary'} className="rounded-full">

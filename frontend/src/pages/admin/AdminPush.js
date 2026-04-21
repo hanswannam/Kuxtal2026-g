@@ -12,7 +12,7 @@ export function AdminPush({ pushForm, setPushForm, sendPush, pushHistory }) {
       <div className="max-w-md">
         <h2 className="font-heading text-lg font-semibold mb-4">Enviar Notificacion Push</h2>
         <form onSubmit={sendPush} className="bg-white rounded-2xl p-6 border border-border space-y-3">
-          <div><Label className="text-xs">Titulo</Label><Input value={pushForm.title} onChange={e => setPushForm({...pushForm, title: e.target.value})} required placeholder="Kuxtal Travel" className="rounded-xl mt-1" data-testid="push-title" /></div>
+          <div><Label className="text-xs">Título</Label><Input value={pushForm.title} onChange={e => setPushForm({...pushForm, title: e.target.value})} required placeholder="Kuxtal Travel" className="rounded-xl mt-1" data-testid="push-title" /></div>
           <div><Label className="text-xs">Mensaje</Label><Textarea value={pushForm.message} onChange={e => setPushForm({...pushForm, message: e.target.value})} required placeholder="Tu mensaje aqui..." className="rounded-xl mt-1" data-testid="push-message" /></div>
           <div><Label className="text-xs">Enlace</Label><Input value={pushForm.link} onChange={e => setPushForm({...pushForm, link: e.target.value})} placeholder="/" className="rounded-xl mt-1" data-testid="push-link" /></div>
           <div><Label className="text-xs">Imagen (URL opcional)</Label><Input value={pushForm.image_url || ''} onChange={e => setPushForm({...pushForm, image_url: e.target.value})} placeholder="https://..." className="rounded-xl mt-1" data-testid="push-image" /></div>

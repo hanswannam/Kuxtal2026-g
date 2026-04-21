@@ -54,7 +54,7 @@ export function AdminAnalytics({ analytics, stats }) {
 
         {analytics.country_distribution?.length > 0 && (
           <div className="bg-white rounded-2xl p-6 border border-border">
-            <h3 className="font-heading text-lg font-semibold mb-4">Distribucion por Pais</h3>
+            <h3 className="font-heading text-lg font-semibold mb-4">Distribución por País</h3>
             <ResponsiveContainer width="100%" height={250}>
               <RechartPie>
                 <Pie data={analytics.country_distribution} dataKey="count" nameKey="country" cx="50%" cy="50%" outerRadius={80} label={({ country, count }) => `${country} (${count})`}>

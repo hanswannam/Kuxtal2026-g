@@ -79,7 +79,7 @@ export default function BenefitsPage() {
               <Input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder="Buscar comercio, categoria o beneficio..."
+                placeholder="Buscar comercio, categoría o beneficio..."
                 className="pl-12 h-12 rounded-xl bg-white/10 border-white/10 text-white placeholder:text-white/30 focus:bg-white/15 focus:border-amber-400/50"
                 data-testid="commerce-search"
               />
@@ -167,7 +167,7 @@ export default function BenefitsPage() {
               </div>
               <h3 className="font-heading text-xl font-semibold mb-2">Sin comercios disponibles</h3>
               <p className="text-muted-foreground text-sm mb-6">
-                {category ? `No hay comercios en la categoria "${category}"` : 'Pronto agregaremos mas comercios aliados'}
+                {category ? `No hay comercios en la categoría "${category}"` : 'Pronto agregaremos mas comercios aliados'}
               </p>
               {category && (
                 <Button variant="outline" className="rounded-full" onClick={() => setCategory('')} data-testid="clear-category-btn">
@@ -228,7 +228,7 @@ export default function BenefitsPage() {
                       {c.promotions && c.promotions.length > 0 && (
                         <div className="flex items-center gap-1.5 mb-3">
                           <Sparkles className="w-3.5 h-3.5 text-primary" />
-                          <span className="text-xs font-semibold text-primary">{c.promotions.length} {c.promotions.length === 1 ? 'promocion activa' : 'promociones activas'}</span>
+                          <span className="text-xs font-semibold text-primary">{c.promotions.length} {c.promotions.length === 1 ? 'promoción activa' : 'promociones activas'}</span>
                         </div>
                       )}
 

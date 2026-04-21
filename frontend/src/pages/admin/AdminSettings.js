@@ -9,7 +9,7 @@ export function AdminSettings({ whatsappPhone, setWhatsappPhone, saveWhatsApp, s
     <div className="max-w-md space-y-6 animate-fade-in" data-testid="admin-settings">
       <div className="bg-white rounded-2xl p-6 border border-border">
         <h2 className="font-heading text-lg font-semibold mb-4 flex items-center gap-2"><Phone className="w-5 h-5 text-primary" /> WhatsApp</h2>
-        <p className="text-sm text-muted-foreground mb-4">Configura el numero de WhatsApp para el widget de chat</p>
+        <p className="text-sm text-muted-foreground mb-4">Configura el número de WhatsApp para el widget de chat</p>
         <div className="flex gap-2">
           <Input value={whatsappPhone} onChange={e => setWhatsappPhone(e.target.value)} placeholder="+502 5555-1234" className="rounded-xl" data-testid="whatsapp-input" />
           <Button onClick={saveWhatsApp} className="rounded-xl bg-primary hover:bg-primary/90" data-testid="save-whatsapp-btn">Guardar</Button>

@@ -28,7 +28,7 @@ export function AdminPackages({ packages, packageForm, setPackageForm, showPacka
                 {p.featured && <Badge className="rounded-full text-xs bg-primary">Destacado</Badge>}
               </div>
               <h3 className="font-semibold mb-1 line-clamp-1">{p.title}</h3>
-              <p className="text-sm text-muted-foreground mb-2">{p.country} &middot; {p.duration_days} dias</p>
+              <p className="text-sm text-muted-foreground mb-2">{p.country} &middot; {p.duration_days} días</p>
               <div className="flex items-center justify-between">
                 <span className="font-bold text-primary">Q.{p.price?.toLocaleString()}</span>
                 <div className="flex gap-1">
@@ -46,13 +46,13 @@ export function AdminPackages({ packages, packageForm, setPackageForm, showPacka
           <div className="bg-white rounded-2xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
             <h3 className="font-heading text-xl font-semibold mb-4">{editingPackage ? 'Editar Paquete' : 'Nuevo Paquete'}</h3>
             <form onSubmit={savePackage} className="space-y-3">
-              <div><Label className="text-xs">Titulo</Label><Input value={packageForm.title} onChange={e => setPackageForm({...packageForm, title: e.target.value})} required className="rounded-xl mt-1" data-testid="pf-title" /></div>
-              <div><Label className="text-xs">Descripcion corta</Label><Input value={packageForm.short_description} onChange={e => setPackageForm({...packageForm, short_description: e.target.value})} className="rounded-xl mt-1" data-testid="pf-short-desc" /></div>
-              <div><Label className="text-xs">Descripcion</Label><Textarea value={packageForm.description} onChange={e => setPackageForm({...packageForm, description: e.target.value})} required className="rounded-xl mt-1" data-testid="pf-description" /></div>
+              <div><Label className="text-xs">Título</Label><Input value={packageForm.title} onChange={e => setPackageForm({...packageForm, title: e.target.value})} required className="rounded-xl mt-1" data-testid="pf-title" /></div>
+              <div><Label className="text-xs">Descripción corta</Label><Input value={packageForm.short_description} onChange={e => setPackageForm({...packageForm, short_description: e.target.value})} className="rounded-xl mt-1" data-testid="pf-short-desc" /></div>
+              <div><Label className="text-xs">Descripción</Label><Textarea value={packageForm.description} onChange={e => setPackageForm({...packageForm, description: e.target.value})} required className="rounded-xl mt-1" data-testid="pf-description" /></div>
               <div className="grid grid-cols-2 gap-3">
-                <div><Label className="text-xs">Pais</Label><Input value={packageForm.country} onChange={e => setPackageForm({...packageForm, country: e.target.value})} required className="rounded-xl mt-1" data-testid="pf-country" /></div>
+                <div><Label className="text-xs">País</Label><Input value={packageForm.country} onChange={e => setPackageForm({...packageForm, country: e.target.value})} required className="rounded-xl mt-1" data-testid="pf-country" /></div>
                 <div>
-                  <Label className="text-xs">Categoria</Label>
+                  <Label className="text-xs">Categoría</Label>
                   <select value={packageForm.category} onChange={e => setPackageForm({...packageForm, category: e.target.value})} className="w-full mt-1 h-10 rounded-xl border border-input px-3 text-sm" data-testid="pf-category">
                     <option value="paquete">Paquete</option>
                     <option value="alojamiento">Alojamiento</option>
@@ -63,7 +63,7 @@ export function AdminPackages({ packages, packageForm, setPackageForm, showPacka
               <div className="grid grid-cols-3 gap-3">
                 <div><Label className="text-xs">Precio (Q.)</Label><Input type="number" value={packageForm.price} onChange={e => setPackageForm({...packageForm, price: e.target.value})} required className="rounded-xl mt-1" data-testid="pf-price" /></div>
                 <div><Label className="text-xs">Precio Socio</Label><Input type="number" value={packageForm.member_price} onChange={e => setPackageForm({...packageForm, member_price: e.target.value})} className="rounded-xl mt-1" data-testid="pf-member-price" /></div>
-                <div><Label className="text-xs">Dias</Label><Input type="number" value={packageForm.duration_days} onChange={e => setPackageForm({...packageForm, duration_days: e.target.value})} className="rounded-xl mt-1" data-testid="pf-days" /></div>
+                <div><Label className="text-xs">Días</Label><Input type="number" value={packageForm.duration_days} onChange={e => setPackageForm({...packageForm, duration_days: e.target.value})} className="rounded-xl mt-1" data-testid="pf-days" /></div>
               </div>
               <div>
                 <Label className="text-xs">URL Imagen</Label>

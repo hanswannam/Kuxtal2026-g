@@ -305,7 +305,7 @@ export function AdminImport({ onPackageCreated }) {
                       ) : (
                         <div>
                           <p className="text-sm font-semibold line-clamp-1">{item.extracted.title}</p>
-                          <p className="text-xs text-muted-foreground">{item.extracted.country} &middot; {item.extracted.duration_days} dias &middot; Q.{Number(item.extracted.price).toLocaleString()}</p>
+                          <p className="text-xs text-muted-foreground">{item.extracted.country} &middot; {item.extracted.duration_days} días &middot; Q.{Number(item.extracted.price).toLocaleString()}</p>
                         </div>
                       )}
                     </div>
@@ -329,16 +329,16 @@ export function AdminImport({ onPackageCreated }) {
                     <div className="px-4 pb-4 pt-0 border-t border-border space-y-3 animate-fade-in">
                       <div className="grid grid-cols-2 gap-3 mt-3">
                         <div>
-                          <Label className="text-xs">Titulo</Label>
+                          <Label className="text-xs">Título</Label>
                           <Input value={item.extracted.title} onChange={e => updateBatchField(idx, 'title', e.target.value)} className="rounded-lg mt-1 h-9 text-sm" />
                         </div>
                         <div>
-                          <Label className="text-xs">Pais</Label>
+                          <Label className="text-xs">País</Label>
                           <Input value={item.extracted.country} onChange={e => updateBatchField(idx, 'country', e.target.value)} className="rounded-lg mt-1 h-9 text-sm" />
                         </div>
                       </div>
                       <div>
-                        <Label className="text-xs">Descripcion corta</Label>
+                        <Label className="text-xs">Descripción corta</Label>
                         <Input value={item.extracted.short_description} onChange={e => updateBatchField(idx, 'short_description', e.target.value)} className="rounded-lg mt-1 h-9 text-sm" />
                       </div>
                       <div className="grid grid-cols-4 gap-3">
@@ -351,11 +351,11 @@ export function AdminImport({ onPackageCreated }) {
                           <Input type="number" value={item.extracted.member_price} onChange={e => updateBatchField(idx, 'member_price', e.target.value)} className="rounded-lg mt-1 h-9 text-sm" />
                         </div>
                         <div>
-                          <Label className="text-xs">Dias</Label>
+                          <Label className="text-xs">Días</Label>
                           <Input type="number" value={item.extracted.duration_days} onChange={e => updateBatchField(idx, 'duration_days', e.target.value)} className="rounded-lg mt-1 h-9 text-sm" />
                         </div>
                         <div>
-                          <Label className="text-xs">Categoria</Label>
+                          <Label className="text-xs">Categoría</Label>
                           <select value={item.extracted.category} onChange={e => updateBatchField(idx, 'category', e.target.value)} className="w-full mt-1 h-9 rounded-lg border border-input px-2 text-sm">
                             <option value="paquete">Paquete</option>
                             <option value="alojamiento">Alojamiento</option>
@@ -373,7 +373,7 @@ export function AdminImport({ onPackageCreated }) {
                         <div>
                           <Label className="text-xs">Dificultad</Label>
                           <select value={item.extracted.difficulty || ''} onChange={e => updateBatchField(idx, 'difficulty', e.target.value)} className="w-full mt-1 h-9 rounded-lg border border-input px-2 text-sm">
-                            <option value="">-</option><option value="facil">Facil</option><option value="moderado">Moderado</option><option value="dificil">Dificil</option>
+                            <option value="">-</option><option value="fácil">Fácil</option><option value="moderado">Moderado</option><option value="difícil">Difícil</option>
                           </select>
                         </div>
                         <div className="grid grid-cols-2 gap-2">
@@ -404,7 +404,7 @@ export function AdminImport({ onPackageCreated }) {
                       )}
                       {item.extracted.itinerary?.length > 0 && (
                         <div>
-                          <Label className="text-xs">Itinerario ({item.extracted.itinerary.length} dias)</Label>
+                          <Label className="text-xs">Itinerario ({item.extracted.itinerary.length} días)</Label>
                           <div className="space-y-1 mt-1">
                             {item.extracted.itinerary.map((d, di) => (
                               <div key={`it-${di}`} className="text-xs p-2 bg-secondary/50 rounded-lg"><strong>Dia {d.day || di+1}:</strong> {d.title} - {d.description?.slice(0,100)}{d.description?.length > 100 ? '...' : ''}</div>
@@ -445,14 +445,14 @@ function SingleEditForm({ editForm, setEditForm, mimeType, includeInput, setIncl
         <p className="text-xs text-amber-700">Revisa y edita los datos antes de crear el paquete. El AI puede cometer errores.</p>
       </div>
 
-      <div><Label className="text-xs">Titulo</Label><Input value={editForm.title} onChange={e => setEditForm({...editForm, title: e.target.value})} className="rounded-xl mt-1" data-testid="import-title" /></div>
-      <div><Label className="text-xs">Descripcion corta</Label><Input value={editForm.short_description} onChange={e => setEditForm({...editForm, short_description: e.target.value})} className="rounded-xl mt-1" data-testid="import-short-desc" /></div>
-      <div><Label className="text-xs">Descripcion completa</Label><Textarea value={editForm.description} onChange={e => setEditForm({...editForm, description: e.target.value})} rows={4} className="rounded-xl mt-1" data-testid="import-description" /></div>
+      <div><Label className="text-xs">Título</Label><Input value={editForm.title} onChange={e => setEditForm({...editForm, title: e.target.value})} className="rounded-xl mt-1" data-testid="import-title" /></div>
+      <div><Label className="text-xs">Descripción corta</Label><Input value={editForm.short_description} onChange={e => setEditForm({...editForm, short_description: e.target.value})} className="rounded-xl mt-1" data-testid="import-short-desc" /></div>
+      <div><Label className="text-xs">Descripción completa</Label><Textarea value={editForm.description} onChange={e => setEditForm({...editForm, description: e.target.value})} rows={4} className="rounded-xl mt-1" data-testid="import-description" /></div>
 
       <div className="grid grid-cols-2 gap-3">
-        <div><Label className="text-xs">Pais / Destino</Label><Input value={editForm.country} onChange={e => setEditForm({...editForm, country: e.target.value})} className="rounded-xl mt-1" data-testid="import-country" /></div>
+        <div><Label className="text-xs">País / Destino</Label><Input value={editForm.country} onChange={e => setEditForm({...editForm, country: e.target.value})} className="rounded-xl mt-1" data-testid="import-country" /></div>
         <div>
-          <Label className="text-xs">Categoria</Label>
+          <Label className="text-xs">Categoría</Label>
           <select value={editForm.category} onChange={e => setEditForm({...editForm, category: e.target.value})} className="w-full mt-1 h-10 rounded-xl border border-input px-3 text-sm" data-testid="import-category">
             <option value="paquete">Paquete</option><option value="alojamiento">Alojamiento</option><option value="experiencia">Experiencia</option>
           </select>
@@ -462,7 +462,7 @@ function SingleEditForm({ editForm, setEditForm, mimeType, includeInput, setIncl
       <div className="grid grid-cols-3 gap-3">
         <div><Label className="text-xs">Precio (Q.)</Label><Input type="number" value={editForm.price} onChange={e => setEditForm({...editForm, price: e.target.value})} className="rounded-xl mt-1" data-testid="import-price" /></div>
         <div><Label className="text-xs">Precio Socio</Label><Input type="number" value={editForm.member_price} onChange={e => setEditForm({...editForm, member_price: e.target.value})} className="rounded-xl mt-1" data-testid="import-member-price" /></div>
-        <div><Label className="text-xs">Dias</Label><Input type="number" value={editForm.duration_days} onChange={e => setEditForm({...editForm, duration_days: e.target.value})} className="rounded-xl mt-1" data-testid="import-days" /></div>
+        <div><Label className="text-xs">Días</Label><Input type="number" value={editForm.duration_days} onChange={e => setEditForm({...editForm, duration_days: e.target.value})} className="rounded-xl mt-1" data-testid="import-days" /></div>
       </div>
 
       <div><Label className="text-xs">URL Imagen Principal</Label><Input value={editForm.image_url || ''} onChange={e => setEditForm({...editForm, image_url: e.target.value})} placeholder="URL de la imagen del paquete" className="rounded-xl mt-1" data-testid="import-image" /></div>
@@ -504,7 +504,7 @@ function SingleEditForm({ editForm, setEditForm, mimeType, includeInput, setIncl
         <div>
           <Label className="text-xs">Dificultad</Label>
           <select value={editForm.difficulty || ''} onChange={e => setEditForm({...editForm, difficulty: e.target.value})} className="w-full mt-1 h-10 rounded-xl border border-input px-3 text-sm" data-testid="import-difficulty">
-            <option value="">Sin especificar</option><option value="facil">Facil</option><option value="moderado">Moderado</option><option value="dificil">Dificil</option>
+            <option value="">Sin especificar</option><option value="fácil">Fácil</option><option value="moderado">Moderado</option><option value="difícil">Difícil</option>
           </select>
         </div>
         <div className="grid grid-cols-2 gap-2">
@@ -533,7 +533,7 @@ function SingleEditForm({ editForm, setEditForm, mimeType, includeInput, setIncl
 
       {editForm.itinerary && editForm.itinerary.length > 0 && (
         <div data-testid="import-itinerary">
-          <Label className="text-xs font-semibold">Itinerario ({editForm.itinerary.length} dias)</Label>
+          <Label className="text-xs font-semibold">Itinerario ({editForm.itinerary.length} días)</Label>
           <div className="space-y-2 mt-2">
             {editForm.itinerary.map((day, idx) => (
               <div key={`day-${idx}`} className="p-3 bg-secondary/50 rounded-xl text-sm">

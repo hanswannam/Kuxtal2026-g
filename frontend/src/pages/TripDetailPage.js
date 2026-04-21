@@ -32,10 +32,10 @@ export default function TripDetailPage() {
     e.preventDefault();
     try {
       await api.post(`/quotations`, { ...quoteForm, package_id: id });
-      toast.success('Cotizacion enviada correctamente');
+      toast.success('Cotización enviada correctamente');
       setShowQuoteForm(false);
       setQuoteForm({ name: '', email: '', phone: '', contract_number: '', message: '', guests: 2 });
-    } catch { toast.error('Error al enviar cotizacion'); }
+    } catch { toast.error('Error al enviar cotización'); }
   };
 
   const allImages = pkg ? [pkg.image_url, ...(Array.isArray(pkg.gallery) ? pkg.gallery : [])].filter(Boolean) : [];
@@ -125,7 +125,7 @@ export default function TripDetailPage() {
               </h1>
               <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-accent-foreground" />{pkg.country}</span>
-                <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4" />{pkg.duration_days} dias</span>
+                <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4" />{pkg.duration_days} días</span>
                 <span className="flex items-center gap-1.5"><Star className="w-4 h-4 text-amber-400 fill-amber-400" />{pkg.rating}/5</span>
                 {pkg.accommodation_type && <span className="flex items-center gap-1.5"><Hotel className="w-4 h-4" />{pkg.accommodation_type}</span>}
                 {pkg.difficulty && <span className="flex items-center gap-1.5"><Mountain className="w-4 h-4" />{pkg.difficulty}</span>}
@@ -135,7 +135,7 @@ export default function TripDetailPage() {
 
             {/* Description */}
             <div className="bg-white rounded-2xl p-6 border border-border">
-              <h2 className="font-heading text-lg font-semibold mb-3 text-primary">Descripcion</h2>
+              <h2 className="font-heading text-lg font-semibold mb-3 text-primary">Descripción</h2>
               <p className="text-muted-foreground leading-relaxed whitespace-pre-line" data-testid="trip-description">
                 {pkg.description}
               </p>
@@ -209,8 +209,8 @@ export default function TripDetailPage() {
 
                 <div className="space-y-3 mb-5 text-sm">
                   <div className="flex items-center justify-between py-2 border-b border-border">
-                    <span className="text-muted-foreground flex items-center gap-2"><Calendar className="w-3.5 h-3.5" /> Duracion</span>
-                    <span className="font-medium">{pkg.duration_days} dias</span>
+                    <span className="text-muted-foreground flex items-center gap-2"><Calendar className="w-3.5 h-3.5" /> Duración</span>
+                    <span className="font-medium">{pkg.duration_days} días</span>
                   </div>
                   <div className="flex items-center justify-between py-2 border-b border-border">
                     <span className="text-muted-foreground flex items-center gap-2"><MapPin className="w-3.5 h-3.5" /> Destino</span>
@@ -235,7 +235,7 @@ export default function TripDetailPage() {
                   className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-white text-base font-semibold shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
                   data-testid="request-quote-btn"
                 >
-                  Solicitar Cotizacion
+                  Solicitar Cotización
                 </Button>
                 <p className="text-[10px] text-center text-muted-foreground mt-3">Sin compromiso. Te respondemos en menos de 24 horas.</p>
               </div>
@@ -243,10 +243,10 @@ export default function TripDetailPage() {
               {/* Trust signals */}
               <div className="bg-white rounded-2xl p-5 border border-border">
                 <div className="space-y-3 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-accent-foreground" /><span>Asesoria personalizada</span></div>
+                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-accent-foreground" /><span>Asesoría personalizada</span></div>
                   <div className="flex items-center gap-2"><Check className="w-4 h-4 text-accent-foreground" /><span>Precios exclusivos para socios</span></div>
                   <div className="flex items-center gap-2"><Check className="w-4 h-4 text-accent-foreground" /><span>Pago en cuotas disponible</span></div>
-                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-accent-foreground" /><span>Garantia de mejor precio</span></div>
+                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-accent-foreground" /><span>Garantía de mejor precio</span></div>
                 </div>
               </div>
             </div>
@@ -258,7 +258,7 @@ export default function TripDetailPage() {
       {showQuoteForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in" data-testid="quote-modal">
           <div className="bg-white rounded-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
-            <h3 className="font-heading text-xl font-semibold mb-1">Solicitar Cotizacion</h3>
+            <h3 className="font-heading text-xl font-semibold mb-1">Solicitar Cotización</h3>
             <p className="text-sm text-muted-foreground mb-5">Para: {pkg.title}</p>
             <form onSubmit={submitQuote} className="space-y-3">
               <div>
@@ -271,7 +271,7 @@ export default function TripDetailPage() {
                   <input type="email" value={quoteForm.email} onChange={e => setQuoteForm({...quoteForm, email: e.target.value})} required className="w-full mt-1 h-10 rounded-xl border border-input px-3 text-sm" data-testid="quote-email" />
                 </div>
                 <div>
-                  <label className="text-xs font-medium">Telefono</label>
+                  <label className="text-xs font-medium">Teléfono</label>
                   <input value={quoteForm.phone} onChange={e => setQuoteForm({...quoteForm, phone: e.target.value})} required className="w-full mt-1 h-10 rounded-xl border border-input px-3 text-sm" data-testid="quote-phone" />
                 </div>
               </div>
@@ -291,7 +291,7 @@ export default function TripDetailPage() {
               </div>
               <div className="flex gap-3 pt-2">
                 <Button type="button" variant="outline" onClick={() => setShowQuoteForm(false)} className="flex-1 rounded-xl">Cancelar</Button>
-                <Button type="submit" className="flex-1 rounded-xl bg-primary hover:bg-primary/90 text-white" data-testid="quote-submit-btn">Enviar Cotizacion</Button>
+                <Button type="submit" className="flex-1 rounded-xl bg-primary hover:bg-primary/90 text-white" data-testid="quote-submit-btn">Enviar Cotización</Button>
               </div>
             </form>
           </div>
