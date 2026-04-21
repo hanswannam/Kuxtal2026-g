@@ -15,8 +15,8 @@ const EMPTY_FORM = {
   service_years: 1, membership_start: '', membership_end: '',
   family_members_allowed: 1, investment_amount: 0, investment_plan: '', status: 'active',
   contract_date: '', age: 0, marital_status: '', nationality: '', profession: '', address: '',
-  coowner_name: '', coowner_nationality: '', coowner_profession: '', coowner_phone: '', coowner_email: '',
-  vigencia: '', cuotas: '', bank: '', termination_date: '', tc: '', nit: '', billing_name: '', observations: '',
+  coowner_name: '', coowner_nationality: '', coowner_profession: '', coowner_phone: '', coowner_email: '', coowner_investment: '',
+  vigencia: '', cuotas: '', bank: '', termination_date: '', tc: '', nit: '', billing_name: '', observations: '', dpi_words: '',
 };
 
 export function AdminMembers({ members, memberForm, setMemberForm, showMemberForm, setShowMemberForm, editingMember, setEditingMember, saveMember, editMember, deleteMember, reloadData }) {
@@ -244,6 +244,11 @@ export function AdminMembers({ members, memberForm, setMemberForm, showMemberFor
                   <div><Label className="text-xs">DPI</Label><Input value={memberForm.dpi} onChange={e => set('dpi', e.target.value)} required className="rounded-xl mt-1" data-testid="mf-dpi" /></div>
                   <div><Label className="text-xs">Teléfono</Label><Input value={memberForm.phone} onChange={e => set('phone', e.target.value)} className="rounded-xl mt-1" data-testid="mf-phone" /></div>
                 </div>
+                <div className="mt-3">
+                  <Label className="text-xs">DPI en letras</Label>
+                  <Input value={memberForm.dpi_words || ''} onChange={e => set('dpi_words', e.target.value)} placeholder="Ej: CIENTO VEINTITRES MILLONES..." className="rounded-xl mt-1" data-testid="mf-dpi-words" />
+                  <p className="text-[11px] text-muted-foreground mt-1">Usado para documentos legales y exportación.</p>
+                </div>
                 <div className="mt-3"><Label className="text-xs">Correo</Label><Input type="email" value={memberForm.email} onChange={e => set('email', e.target.value)} className="rounded-xl mt-1" data-testid="mf-email" /></div>
               </div>
 
@@ -258,6 +263,10 @@ export function AdminMembers({ members, memberForm, setMemberForm, showMemberFor
                 <div className="grid grid-cols-2 gap-3 mt-3">
                   <div><Label className="text-xs">Teléfono</Label><Input value={memberForm.coowner_phone || ''} onChange={e => set('coowner_phone', e.target.value)} className="rounded-xl mt-1" data-testid="mf-co-phone" /></div>
                   <div><Label className="text-xs">Correo</Label><Input type="email" value={memberForm.coowner_email || ''} onChange={e => set('coowner_email', e.target.value)} className="rounded-xl mt-1" data-testid="mf-co-email" /></div>
+                </div>
+                <div className="mt-3">
+                  <Label className="text-xs">Inversión copropietario</Label>
+                  <Input value={memberForm.coowner_investment || ''} onChange={e => set('coowner_investment', e.target.value)} placeholder="Ej: 50%" className="rounded-xl mt-1" data-testid="mf-co-investment" />
                 </div>
               </div>
 

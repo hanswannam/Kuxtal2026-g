@@ -193,6 +193,9 @@ class MemberCreate(BaseModel):
     nit: Optional[str] = ""
     billing_name: Optional[str] = ""
     observations: Optional[str] = ""
+    # Campos adicionales exclusivos del export formal
+    dpi_words: Optional[str] = ""  # DPI escrito en letras
+    coowner_investment: Optional[str] = ""  # Inversión del copropietario (p.ej. "50%")
 
 class PackageCreate(BaseModel):
     title: str
@@ -2861,6 +2864,7 @@ MEMBER_TEMPLATE_COLS = [
     ("coowner_profession", "Copropietario - Profesión", False, "Médico"),
     ("coowner_phone", "Copropietario - Teléfono", False, "+50255551235"),
     ("coowner_email", "Copropietario - Email", False, "ana@ejemplo.com"),
+    ("coowner_investment", "Copropietario - Inversión", False, "50%"),
     ("vigencia", "Vigencia", False, ""),
     ("cuotas", "Cuotas", False, ""),
     ("bank", "Banco", False, ""),
@@ -2868,6 +2872,7 @@ MEMBER_TEMPLATE_COLS = [
     ("tc", "TC", False, ""),
     ("nit", "NIT", False, ""),
     ("billing_name", "Nombre facturación", False, ""),
+    ("dpi_words", "DPI en letras", False, "CIENTO VEINTITRES MILLONES..."),
     ("observations", "Observaciones", False, ""),
 ]
 
@@ -3144,143 +3149,82 @@ async def packages_bulk_import(request: Request, file: UploadFile = File(...), d
 
 # ─────────────────────── Export individual member to Excel ───────────────────────
 
-_MEMBER_FIELD_GROUPS = [
-    ("Datos de contrato", [
-        ("contract_number", "Número de contrato"),
-        ("contract_date", "Fecha de contrato"),
-        ("membership_start", "Inicio de membresía"),
-        ("membership_end", "Fin de membresía"),
-        ("service_years", "Años de servicio"),
-        ("family_members_allowed", "Familiares permitidos"),
-        ("status", "Estado"),
-        ("vigencia", "Vigencia"),
-        ("cuotas", "Cuotas"),
-        ("bank", "Banco"),
-        ("termination_date", "Fecha de terminación"),
-        ("tc", "TC"),
-    ]),
-    ("Datos personales", [
-        ("name", "Nombre completo"),
-        ("dpi", "DPI"),
-        ("email", "Email"),
-        ("phone", "Teléfono"),
-        ("age", "Edad"),
-        ("marital_status", "Estado civil"),
-        ("nationality", "Nacionalidad"),
-        ("profession", "Profesión"),
-        ("address", "Dirección"),
-    ]),
-    ("Copropietario", [
-        ("coowner_name", "Nombre"),
-        ("coowner_nationality", "Nacionalidad"),
-        ("coowner_profession", "Profesión"),
-        ("coowner_phone", "Teléfono"),
-        ("coowner_email", "Email"),
-    ]),
-    ("Inversión y facturación", [
-        ("investment_amount", "Monto de inversión (Q)"),
-        ("investment_plan", "Plan de inversión"),
-        ("nit", "NIT"),
-        ("billing_name", "Nombre de facturación"),
-    ]),
-    ("Otros", [
-        ("observations", "Observaciones"),
-    ]),
+# 26-column horizontal layout (matches the client's "DATOS HANSEN" spreadsheet).
+_MEMBER_EXPORT_COLUMNS = [
+    ("FECHA", "contract_date"),
+    ("CONTRATO", "contract_number"),
+    ("NOMBRE PROPIETARIO", "name"),
+    ("EDAD", "age"),
+    ("ESTADO CIVIL", "marital_status"),
+    ("NACIONALIDAD", "nationality"),
+    ("PROFESION", "profession"),
+    ("DOMICILIO", "address"),
+    ("DPI", "dpi"),
+    ("DPI EN LETRAS", "dpi_words"),
+    ("TELEFONO", "phone"),
+    ("CORREO", "email"),
+    ("NOMBRE COPROPIETARIO", "coowner_name"),
+    ("NACIONALIDAD", "coowner_nationality"),
+    ("COPROPIETARIO PROFESION", "coowner_profession"),
+    ("COPROPIETARIO TEL", "coowner_phone"),
+    ("COPROPIETARIO CORREO", "coowner_email"),
+    ("COPROPIETARIO INVERSION", "coowner_investment"),
+    ("VIGENCIA", "vigencia"),
+    ("CUOTAS", "cuotas"),
+    ("BANCO", "bank"),
+    ("TERMINACION", "termination_date"),
+    ("TC", "tc"),
+    ("NIT", "nit"),
+    ("NOMBRE DE FACTURACIÓN", "billing_name"),
+    ("OBSERVACIONES", "observations"),
 ]
+
+def _format_date_value(v):
+    """Convert ISO / plain strings to DD/MM/YYYY. Leaves arbitrary strings untouched if unparseable."""
+    if not v:
+        return ""
+    s = str(v).strip()
+    if not s:
+        return ""
+    # Try ISO YYYY-MM-DD (optionally with time)
+    try:
+        from datetime import datetime as _dt
+        if "T" in s:
+            s = s.split("T", 1)[0]
+        parts = s.split("-")
+        if len(parts) == 3 and len(parts[0]) == 4:
+            dt = _dt.strptime(s[:10], "%Y-%m-%d")
+            return dt.strftime("%d/%m/%Y")
+    except Exception:
+        pass
+    return s
 
 async def _build_member_export_xlsx(member: dict) -> bytes:
     wb = _Workbook()
-    # Sheet 1: Datos Personales
     ws = wb.active
-    ws.title = "Datos"
-    title_fill = _PatternFill(start_color="1B325F", end_color="1B325F", fill_type="solid")
-    title_font = _Font(color="FFFFFF", bold=True, size=14)
-    group_fill = _PatternFill(start_color="EAE4E4", end_color="EAE4E4", fill_type="solid")
-    group_font = _Font(bold=True, color="1B325F", size=11)
-    key_font = _Font(bold=True, size=10)
-    # Title
-    ws.merge_cells("A1:B1")
-    ws.cell(row=1, column=1, value="Información personal — Kuxtal Travel").font = title_font
-    ws.cell(row=1, column=1).fill = title_fill
-    ws.cell(row=1, column=1).alignment = _Alignment(horizontal="center", vertical="center")
-    ws.row_dimensions[1].height = 28
-    ws.column_dimensions["A"].width = 32
-    ws.column_dimensions["B"].width = 48
-    row = 3
-    for group_label, fields in _MEMBER_FIELD_GROUPS:
-        ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=2)
-        gc = ws.cell(row=row, column=1, value=group_label)
-        gc.font = group_font
-        gc.fill = group_fill
-        gc.alignment = _Alignment(horizontal="left", vertical="center")
-        row += 1
-        for key, label in fields:
-            ws.cell(row=row, column=1, value=label).font = key_font
-            val = member.get(key, "")
-            if val in (None, ""):
-                val = "—"
-            ws.cell(row=row, column=2, value=str(val) if not isinstance(val, (int, float)) else val)
-            row += 1
-        row += 1
-
-    # Sheet 2: Cotizaciones
-    quots = await db.quotations.find({"member_id": str(member["_id"])}).to_list(length=500)
-    ws2 = wb.create_sheet("Cotizaciones")
-    headers2 = ["# Cotización", "Paquete", "Estado", "Pax", "Total (Q)", "Creada", "Válida hasta"]
-    for i, h in enumerate(headers2, start=1):
-        c = ws2.cell(row=1, column=i, value=h)
-        c.fill = title_fill
-        c.font = _Font(color="FFFFFF", bold=True, size=11)
-        ws2.column_dimensions[c.column_letter].width = 22
-    for r, q in enumerate(quots, start=2):
-        ws2.cell(row=r, column=1, value=q.get("quotation_number") or str(q.get("_id", ""))[:8])
-        ws2.cell(row=r, column=2, value=q.get("package_title") or q.get("package_country") or "")
-        ws2.cell(row=r, column=3, value=q.get("status") or "")
-        ws2.cell(row=r, column=4, value=q.get("guests") or "")
-        ws2.cell(row=r, column=5, value=q.get("total") or 0)
-        ws2.cell(row=r, column=6, value=(q.get("created_at") or "")[:10])
-        ws2.cell(row=r, column=7, value=(q.get("valid_until") or "")[:10])
-    ws2.freeze_panes = "A2"
-    if not quots:
-        ws2.cell(row=2, column=1, value="No hay cotizaciones aún.")
-
-    # Sheet 3: Cupones canjeados
-    coupons = await db.coupons.find({"member_id": str(member["_id"])}).to_list(length=500)
-    ws3 = wb.create_sheet("Cupones")
-    headers3 = ["Código", "Comercio", "Descripción", "Canjeado", "Fecha"]
-    for i, h in enumerate(headers3, start=1):
-        c = ws3.cell(row=1, column=i, value=h)
-        c.fill = title_fill
-        c.font = _Font(color="FFFFFF", bold=True, size=11)
-        ws3.column_dimensions[c.column_letter].width = 22
-    for r, cp in enumerate(coupons, start=2):
-        ws3.cell(row=r, column=1, value=cp.get("code") or "")
-        ws3.cell(row=r, column=2, value=cp.get("commerce_name") or "")
-        ws3.cell(row=r, column=3, value=cp.get("description") or cp.get("benefit") or "")
-        ws3.cell(row=r, column=4, value="Sí" if cp.get("redeemed") else "No")
-        ws3.cell(row=r, column=5, value=(cp.get("redeemed_at") or cp.get("created_at") or "")[:10])
-    ws3.freeze_panes = "A2"
-    if not coupons:
-        ws3.cell(row=2, column=1, value="No hay cupones canjeados.")
-
-    # Sheet 4: Familiares
-    fams = await db.family_members.find({"member_id": str(member["_id"])}).to_list(length=50)
-    ws4 = wb.create_sheet("Familiares")
-    headers4 = ["Nombre", "DPI", "Parentesco", "Teléfono"]
-    for i, h in enumerate(headers4, start=1):
-        c = ws4.cell(row=1, column=i, value=h)
-        c.fill = title_fill
-        c.font = _Font(color="FFFFFF", bold=True, size=11)
-        ws4.column_dimensions[c.column_letter].width = 24
-    for r, fm in enumerate(fams, start=2):
-        ws4.cell(row=r, column=1, value=fm.get("name") or "")
-        ws4.cell(row=r, column=2, value=fm.get("dpi") or "")
-        ws4.cell(row=r, column=3, value=fm.get("relationship") or "")
-        ws4.cell(row=r, column=4, value=fm.get("phone") or "")
-    ws4.freeze_panes = "A2"
-    if not fams:
-        ws4.cell(row=2, column=1, value="No hay familiares registrados.")
-
+    ws.title = "Socios"
+    header_fill = _PatternFill(start_color="1B325F", end_color="1B325F", fill_type="solid")
+    header_font = _Font(color="FFFFFF", bold=True, size=11)
+    # Write header row
+    for idx, (label, _key) in enumerate(_MEMBER_EXPORT_COLUMNS, start=1):
+        c = ws.cell(row=1, column=idx, value=label)
+        c.fill = header_fill
+        c.font = header_font
+        c.alignment = _Alignment(horizontal="center", vertical="center", wrap_text=True)
+        ws.column_dimensions[c.column_letter].width = max(14, min(36, len(label) + 2))
+    ws.row_dimensions[1].height = 30
+    ws.freeze_panes = "A2"
+    # Write the single data row
+    date_keys = {"contract_date", "termination_date"}
+    for idx, (_lb, key) in enumerate(_MEMBER_EXPORT_COLUMNS, start=1):
+        val = member.get(key, "")
+        if val in (None, ""):
+            out = ""
+        elif key in date_keys:
+            out = _format_date_value(val)
+        else:
+            out = val if isinstance(val, (int, float)) else str(val)
+        ws.cell(row=2, column=idx, value=out)
     buf = _io.BytesIO()
     wb.save(buf)
     buf.seek(0)
