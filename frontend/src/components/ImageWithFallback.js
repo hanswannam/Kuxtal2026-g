@@ -1,25 +1,41 @@
 import React, { useState } from 'react';
 
-// White silhouette of the Kuxtal logo, looks great over the navy brand background.
 export const KUXTAL_LOGO_FALLBACK = '/icons/logo-white.png';
 
 /**
- * Image that shows the Kuxtal logo whenever:
- *   1. `src` is empty / null / undefined
- *   2. `src` exists but fails to load (onError)
- *
- * The fallback matches the brand (logo centered on navy #1B325F) so no broken-image placeholders ever show.
+ * Image that shows the Kuxtal logo as a centered 20% badge over a navy background
+ * whenever `src` is empty/null/undefined OR fails to load.
  */
 export default function ImageWithFallback({ src, alt = '', className = '', fallback = KUXTAL_LOGO_FALLBACK, ...rest }) {
-  const [current, setCurrent] = useState(src || fallback);
-  const isFallback = current === fallback;
+  const [errored, setErrored] = useState(false);
+  const useFallback = !src || errored;
+
+  if (useFallback) {
+    // Render the "no-image" state: navy box with logo centered at ~20% of the box width.
+    return (
+      <div
+        className={`${className} bg-[#1B325F] flex items-center justify-center`.trim()}
+        role="img"
+        aria-label={alt || 'Kuxtal Travels'}
+        data-testid={rest['data-testid']}
+      >
+        <img
+          src={fallback}
+          alt={alt || 'Kuxtal Travels'}
+          className="w-1/5 max-w-[120px] h-auto object-contain opacity-90"
+          loading="lazy"
+        />
+      </div>
+    );
+  }
+
   return (
     <img
       {...rest}
-      src={current}
-      alt={alt || 'Kuxtal Travel'}
-      onError={() => { if (!isFallback) setCurrent(fallback); }}
-      className={`${className} ${isFallback ? 'object-contain bg-[#1B325F] p-8' : ''}`.trim()}
+      src={src}
+      alt={alt}
+      onError={() => setErrored(true)}
+      className={className}
       loading={rest.loading || 'lazy'}
     />
   );
