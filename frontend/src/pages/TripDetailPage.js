@@ -200,7 +200,9 @@ export default function TripDetailPage() {
                     </div>
                   )}
                   <p className="text-[11px] text-muted-foreground italic leading-relaxed mt-3" data-testid="price-disclaimer">
-                    Los precios pueden variar según fechas, temporada y disponibilidad. Contáctanos para recibir una cotización actualizada.
+                    Los precios mostrados son referenciales y pueden variar según fechas de viaje, temporada y disponibilidad al momento de la reserva. Para obtener una cotización exacta, contáctanos directamente.
+                    <br />
+                    No incluyen vuelos, impuestos ni otros gastos adicionales.
                   </p>
                 </div>
 
