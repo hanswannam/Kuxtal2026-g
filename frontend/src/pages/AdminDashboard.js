@@ -48,6 +48,7 @@ export default function AdminDashboard() {
   const [announcements, setAnnouncements] = useState([]);
   const [vacationReqs, setVacationReqs] = useState([]);
   const [whatsappPhone, setWhatsappPhone] = useState('');
+  const [quotSettings, setQuotSettings] = useState({ payment_whatsapp: '', default_valid_days: 10 });
   const [commerces, setCommerces] = useState([]);
   const [showCommerceForm, setShowCommerceForm] = useState(false);
   const [commerceForm, setCommerceForm] = useState({ name: '', description: '', category: 'Servicios', location: '', phone: '', email: '', website: '', logo_url: '', benefit_description: '', validation_code: '', status: 'active' });
@@ -86,6 +87,7 @@ export default function AdminDashboard() {
       setStats(s.data); setMembers(m.data); setPackages(p.data);
       setQuotations(q.data); setAnnouncements(a.data); setVacationReqs(v.data);
       setWhatsappPhone(w.data.phone || '');
+      api.get('/config/quotation-settings').then(r => setQuotSettings(r.data)).catch(() => {});
       api.get('/commerce').then(r => setCommerces(r.data)).catch(e => console.error('Failed to load commerce:', e));
       api.get('/commerce/categories').then(r => setCommerceCategories(r.data)).catch(e => console.error('Failed to load categories:', e));
       api.get('/push/history').then(r => setPushHistory(r.data)).catch(e => console.error('Failed to load push history:', e));
@@ -145,6 +147,19 @@ export default function AdminDashboard() {
   };
 
   const saveWhatsApp = async () => { await api.put('/config/whatsapp', { phone: whatsappPhone }); toast.success('WhatsApp actualizado'); };
+
+  const saveQuotSettings = async () => {
+    try {
+      const r = await api.put('/config/quotation-settings', {
+        payment_whatsapp: quotSettings.payment_whatsapp || '',
+        default_valid_days: parseInt(quotSettings.default_valid_days) || 10,
+      });
+      setQuotSettings({ payment_whatsapp: r.data.payment_whatsapp || '', default_valid_days: r.data.default_valid_days || 10 });
+      toast.success('Configuración de cotizaciones actualizada');
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Error al guardar');
+    }
+  };
 
   const saveCommerce = async (e) => {
     e.preventDefault();
@@ -279,7 +294,7 @@ export default function AdminDashboard() {
           {tab === 'regalias' && <AdminRegalias members={members} handleImageUpload={handleImageUpload} uploading={uploading} />}
           {tab === 'push' && <AdminPush pushForm={pushForm} setPushForm={setPushForm} sendPush={sendPush} pushHistory={pushHistory} />}
           {tab === 'users' && <AdminUsers adminUsers={adminUsers} allUsers={allUsers} showUserForm={showUserForm} setShowUserForm={setShowUserForm} userForm={userForm} setUserForm={setUserForm} userView={userView} setUserView={setUserView} loadUsers={loadUsers} />}
-          {tab === 'settings' && <AdminSettings whatsappPhone={whatsappPhone} setWhatsappPhone={setWhatsappPhone} saveWhatsApp={saveWhatsApp} stats={stats} />}
+          {tab === 'settings' && <AdminSettings whatsappPhone={whatsappPhone} setWhatsappPhone={setWhatsappPhone} saveWhatsApp={saveWhatsApp} quotSettings={quotSettings} setQuotSettings={setQuotSettings} saveQuotSettings={saveQuotSettings} stats={stats} />}
         </Suspense>
       </div>
     </div>

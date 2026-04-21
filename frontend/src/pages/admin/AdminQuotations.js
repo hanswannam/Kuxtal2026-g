@@ -225,6 +225,7 @@ function QuotationEditor({ quot, onClose, onSaved }) {
     internal_notes: quot.internal_notes || '',
     extras: quot.extras || [],
     package_id: quot.package_id || '',
+    valid_until: quot.valid_until ? String(quot.valid_until).slice(0, 10) : '',
   });
   const [extraInput, setExtraInput] = useState({ name: '', price: 0 });
   const [newNote, setNewNote] = useState('');
@@ -268,7 +269,12 @@ function QuotationEditor({ quot, onClose, onSaved }) {
   const save = async () => {
     setSaving(true);
     try {
-      await api.put(`/quotations/${quot._id}`, form);
+      const payload = { ...form };
+      // Convert date-only to ISO with end-of-day UTC so countdown ends at end of selected day
+      if (payload.valid_until && payload.valid_until.length === 10) {
+        payload.valid_until = new Date(`${payload.valid_until}T23:59:59Z`).toISOString();
+      }
+      await api.put(`/quotations/${quot._id}`, payload);
       toast.success('Cotización guardada');
       onSaved();
     } catch (e) {
@@ -315,6 +321,18 @@ function QuotationEditor({ quot, onClose, onSaved }) {
                 <Label className="text-xs">Fecha de viaje</Label>
                 <Input type="date" value={form.travel_date} onChange={e => setForm({ ...form, travel_date: e.target.value })} className="rounded-xl mt-1" data-testid="ed-date" />
               </div>
+            </div>
+
+            <div>
+              <Label className="text-xs flex items-center gap-1"><Clock className="w-3 h-3" /> Válida hasta</Label>
+              <Input
+                type="date"
+                value={form.valid_until}
+                onChange={e => setForm({ ...form, valid_until: e.target.value })}
+                className="rounded-xl mt-1"
+                data-testid="ed-valid-until"
+              />
+              <p className="text-[11px] text-muted-foreground mt-1">El contador de urgencia en la vista pública usa esta fecha. Déjalo por defecto o ajústalo para esta cotización.</p>
             </div>
 
             <div className="grid grid-cols-3 gap-3">
@@ -406,6 +424,7 @@ function NewQuotationModal({ onClose, onCreated }) {
   const [packageId, setPackageId] = useState('');
   const [guests, setGuests] = useState(2);
   const [travelDate, setTravelDate] = useState('');
+  const [validUntil, setValidUntil] = useState('');
   const [message, setMessage] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -436,6 +455,7 @@ function NewQuotationModal({ onClose, onCreated }) {
         guests,
         travel_date: travelDate,
         message,
+        valid_until: validUntil ? new Date(`${validUntil}T23:59:59Z`).toISOString() : '',
       };
       await api.post('/quotations/admin', payload);
       toast.success('Cotización creada');
@@ -470,6 +490,12 @@ function NewQuotationModal({ onClose, onCreated }) {
           <div className="grid grid-cols-2 gap-3">
             <div><Label className="text-xs">Pax</Label><Input type="number" min="1" value={guests} onChange={e => setGuests(parseInt(e.target.value) || 1)} className="rounded-xl mt-1" data-testid="newq-guests" /></div>
             <div><Label className="text-xs">Fecha de viaje</Label><Input type="date" value={travelDate} onChange={e => setTravelDate(e.target.value)} className="rounded-xl mt-1" data-testid="newq-date" /></div>
+          </div>
+
+          <div>
+            <Label className="text-xs flex items-center gap-1"><Clock className="w-3 h-3" /> Válida hasta (opcional)</Label>
+            <Input type="date" value={validUntil} onChange={e => setValidUntil(e.target.value)} className="rounded-xl mt-1" data-testid="newq-valid-until" />
+            <p className="text-[11px] text-muted-foreground mt-1">Si no eliges una fecha, se calcula con los días de validez configurados.</p>
           </div>
 
           <div>

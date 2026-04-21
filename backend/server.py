@@ -925,6 +925,9 @@ async def create_quotation(req: QuotationRequest):
     doc["public_token"] = secrets.token_urlsafe(16)
     doc["created_by_name"] = "Sistema (web pública)"
     doc["created_by_id"] = None
+    # Fecha de vencimiento automática (config global o 10 días default)
+    vdays = await _default_valid_days()
+    doc["valid_until"] = (datetime.now(timezone.utc) + timedelta(days=vdays)).isoformat()
     doc["timeline"] = [{
         "event": "created",
         "label": "Cotización creada",
@@ -1019,6 +1022,10 @@ async def create_quotation_as_admin(request: Request):
     guests = int(body.get("guests") or 1)
     travel_date = body.get("travel_date") or ""
     message = body.get("message") or ""
+    valid_until_override = (body.get("valid_until") or "").strip()
+
+    vdays = await _default_valid_days()
+    computed_valid_until = (datetime.now(timezone.utc) + timedelta(days=vdays)).isoformat()
 
     doc = {
         "name": name, "email": email, "phone": phone,
@@ -1031,6 +1038,7 @@ async def create_quotation_as_admin(request: Request):
         "id": str(uuid.uuid4()),
         "public_token": secrets.token_urlsafe(16),
         "is_member": False,
+        "valid_until": valid_until_override or computed_valid_until,
         "timeline": [{
             "event": "created",
             "label": f"Cotización creada por {user.get('name','Admin')}",
@@ -1093,7 +1101,8 @@ async def update_quotation(quotation_id: str, request: Request):
     ALLOWED = {
         "status", "travel_date", "guests", "unit_price", "member_unit_price", "total",
         "discount", "extras", "internal_notes", "customer_notes", "package_id",
-        "package_title", "package_country", "package_duration_days", "response", "response_html"
+        "package_title", "package_country", "package_duration_days", "response", "response_html",
+        "valid_until",
     }
     updates = {k: v for k, v in body.items() if k in ALLOWED}
     if "package_id" in updates and updates["package_id"]:
@@ -1376,6 +1385,40 @@ async def set_whatsapp_config(req: WhatsAppConfig, request: Request):
     user = await require_role("super_admin", "admin")(request)
     await db.config.update_one({"key": "whatsapp"}, {"$set": {"key": "whatsapp", "phone": req.phone}}, upsert=True)
     return {"message": "Configuración actualizada", "phone": req.phone}
+
+# ── Quotation Settings (payment WhatsApp + default validity days) ──
+
+class QuotationSettings(BaseModel):
+    payment_whatsapp: str = ""
+    default_valid_days: int = 10
+
+@api_router.get("/config/quotation-settings")
+async def get_quotation_settings():
+    cfg = await db.config.find_one({"key": "quotation_settings"})
+    if cfg:
+        return {
+            "payment_whatsapp": cfg.get("payment_whatsapp", ""),
+            "default_valid_days": int(cfg.get("default_valid_days", 10) or 10),
+        }
+    return {"payment_whatsapp": "", "default_valid_days": 10}
+
+@api_router.put("/config/quotation-settings")
+async def set_quotation_settings(req: QuotationSettings, request: Request):
+    await require_role("super_admin", "admin")(request)
+    days = max(1, int(req.default_valid_days or 10))
+    await db.config.update_one(
+        {"key": "quotation_settings"},
+        {"$set": {"key": "quotation_settings", "payment_whatsapp": (req.payment_whatsapp or "").strip(), "default_valid_days": days}},
+        upsert=True,
+    )
+    return {"message": "Configuración de cotizaciones actualizada", "payment_whatsapp": req.payment_whatsapp, "default_valid_days": days}
+
+async def _default_valid_days() -> int:
+    cfg = await db.config.find_one({"key": "quotation_settings"})
+    try:
+        return max(1, int((cfg or {}).get("default_valid_days", 10) or 10))
+    except Exception:
+        return 10
 
 # ── File Upload ──
 
