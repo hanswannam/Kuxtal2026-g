@@ -22,7 +22,7 @@ export default function ImageWithFallback({ src, alt = '', className = '', fallb
         <img
           src={fallback}
           alt={alt || 'Kuxtal Travels'}
-          className="w-1/5 max-w-[120px] h-auto object-contain opacity-90"
+          className="w-2/5 max-w-[220px] h-auto object-contain opacity-90"
           loading="lazy"
         />
       </div>
