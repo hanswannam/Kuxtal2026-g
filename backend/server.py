@@ -2829,6 +2829,319 @@ async def seed_commerce_data():
 
 app.include_router(api_router)
 
+# ─────────────────────── Bulk Import helpers moved above include_router ───────────────────────
+
+import io as _io
+import csv as _csv
+from openpyxl import Workbook as _Workbook, load_workbook as _load_workbook
+from openpyxl.styles import Font as _Font, PatternFill as _PatternFill, Alignment as _Alignment
+
+# Columns for the Members template (key, label, required, example)
+MEMBER_TEMPLATE_COLS = [
+    ("contract_number", "Número de contrato*", True, "KT-0100"),
+    ("name", "Nombre completo*", True, "Juan Pérez López"),
+    ("dpi", "DPI*", True, "1234567890101"),
+    ("email", "Email", False, "juan@ejemplo.com"),
+    ("phone", "Teléfono", False, "+50255551234"),
+    ("service_years", "Años de servicio", False, 5),
+    ("membership_start", "Inicio membresía (AAAA-MM-DD)", False, "2024-01-15"),
+    ("membership_end", "Fin membresía (AAAA-MM-DD)", False, "2029-01-15"),
+    ("family_members_allowed", "Familiares permitidos", False, 3),
+    ("investment_amount", "Monto inversión Q", False, 45000),
+    ("investment_plan", "Plan de inversión", False, "5 años"),
+    ("status", "Estado (active/inactive)", False, "active"),
+    ("contract_date", "Fecha contrato", False, "2024-01-15"),
+    ("age", "Edad", False, 38),
+    ("marital_status", "Estado civil", False, "Casado"),
+    ("nationality", "Nacionalidad", False, "Guatemalteca"),
+    ("profession", "Profesión", False, "Ingeniero"),
+    ("address", "Dirección", False, "5a av 10-25 zona 10"),
+    ("coowner_name", "Copropietario - Nombre", False, "Ana López"),
+    ("coowner_nationality", "Copropietario - Nacionalidad", False, "Guatemalteca"),
+    ("coowner_profession", "Copropietario - Profesión", False, "Médico"),
+    ("coowner_phone", "Copropietario - Teléfono", False, "+50255551235"),
+    ("coowner_email", "Copropietario - Email", False, "ana@ejemplo.com"),
+    ("vigencia", "Vigencia", False, ""),
+    ("cuotas", "Cuotas", False, ""),
+    ("bank", "Banco", False, ""),
+    ("termination_date", "Fecha terminación", False, ""),
+    ("tc", "TC", False, ""),
+    ("nit", "NIT", False, ""),
+    ("billing_name", "Nombre facturación", False, ""),
+    ("observations", "Observaciones", False, ""),
+]
+
+PACKAGE_TEMPLATE_COLS = [
+    ("title", "Título*", True, "Aventura en Tikal 3 días"),
+    ("short_description", "Descripción corta", False, "Explora las ruinas mayas"),
+    ("description", "Descripción completa*", True, "Una aventura única en el corazón de la selva..."),
+    ("country", "País*", True, "Guatemala"),
+    ("price", "Precio público Q*", True, 2500),
+    ("member_price", "Precio socio Q", False, 1800),
+    ("duration_days", "Duración (días)*", True, 3),
+    ("category", "Categoría (paquete/alojamiento/experiencia)", False, "paquete"),
+    ("includes", "Incluye (separado por |)", False, "Hospedaje|Desayunos|Transporte|Guía"),
+    ("accommodation_type", "Tipo hospedaje", False, "hotel"),
+    ("difficulty", "Dificultad (facil/moderado/dificil)", False, "moderado"),
+    ("min_group", "Grupo mínimo", False, 2),
+    ("max_group", "Grupo máximo", False, 15),
+    ("rating", "Rating", False, 4.8),
+    ("image_url", "URL imagen principal", False, "https://example.com/tikal.jpg"),
+    ("gallery", "Galería URLs (separado por |)", False, "https://ex.com/1.jpg|https://ex.com/2.jpg"),
+    ("featured", "Destacado (true/false)", False, "false"),
+    ("status", "Estado (active/inactive)", False, "active"),
+    ("visibility", "Visibilidad (public/internal)", False, "public"),
+    ("promo_start", "Promo inicio (AAAA-MM-DD)", False, ""),
+    ("promo_end", "Promo fin (AAAA-MM-DD)", False, ""),
+]
+
+def _build_template_xlsx(title: str, columns) -> bytes:
+    wb = _Workbook()
+    ws = wb.active
+    ws.title = title[:31]
+    header_fill = _PatternFill(start_color="1B325F", end_color="1B325F", fill_type="solid")
+    header_font = _Font(color="FFFFFF", bold=True, size=11)
+    required_font = _Font(color="FFFFFF", bold=True, size=11, italic=True)
+    for idx, (_, label, required, _ex) in enumerate(columns, start=1):
+        cell = ws.cell(row=1, column=idx, value=label)
+        cell.fill = header_fill
+        cell.font = required_font if required else header_font
+        cell.alignment = _Alignment(horizontal="center", vertical="center", wrap_text=True)
+        ws.column_dimensions[cell.column_letter].width = max(16, min(40, len(str(label)) + 2))
+    # Example row
+    for idx, (_, _lb, _r, ex) in enumerate(columns, start=1):
+        ws.cell(row=2, column=idx, value=ex)
+    ws.row_dimensions[1].height = 32
+    # Freeze header
+    ws.freeze_panes = "A2"
+    # Instructions sheet
+    info = wb.create_sheet("Instrucciones")
+    info.append(["Cómo llenar la plantilla"])
+    info.append([""])
+    info.append(["1. Las columnas con asterisco (*) son obligatorias."])
+    info.append(["2. No cambies el orden ni el nombre de las columnas de la cabecera."])
+    info.append(["3. Borra la fila de ejemplo (fila 2) antes de llenar tus datos reales."])
+    info.append(["4. Para campos que aceptan listas (ej. Incluye, Galería), separa los valores con el carácter |"])
+    info.append(["5. Las fechas deben escribirse en formato AAAA-MM-DD (ej. 2024-01-15)."])
+    info.append(["6. Al subir el archivo, el sistema te mostrará una vista previa antes de importar."])
+    for cell in info["1:1"]:
+        cell.font = _Font(bold=True, size=13, color="1B325F")
+    info.column_dimensions["A"].width = 90
+    buf = _io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return buf.getvalue()
+
+def _parse_uploaded_rows(file_bytes: bytes, filename: str, columns):
+    """Parse CSV/XLSX and map the header labels to field keys. Returns list[dict]."""
+    # Build a label->key map (accept both the label and the raw key)
+    label_to_key = {}
+    for key, label, _r, _ex in columns:
+        label_to_key[label.strip().lower()] = key
+        label_to_key[label.replace("*", "").strip().lower()] = key
+        label_to_key[key.lower()] = key
+    rows = []
+    fn = (filename or "").lower()
+    if fn.endswith(".csv"):
+        text = file_bytes.decode("utf-8-sig", errors="ignore")
+        reader = _csv.reader(_io.StringIO(text))
+        data = list(reader)
+        if not data:
+            return []
+        header = [h.strip().lower() for h in data[0]]
+        for raw in data[1:]:
+            if not any((v or "").strip() for v in raw):
+                continue
+            row = {}
+            for i, value in enumerate(raw):
+                if i >= len(header):
+                    break
+                key = label_to_key.get(header[i])
+                if key is not None:
+                    row[key] = (value or "").strip()
+            rows.append(row)
+    else:
+        wb = _load_workbook(_io.BytesIO(file_bytes), read_only=True, data_only=True)
+        ws = wb.active
+        header_row = None
+        for row in ws.iter_rows(values_only=True):
+            header_row = [(str(h).strip().lower() if h is not None else "") for h in row]
+            break
+        if header_row is None:
+            return []
+        for raw in ws.iter_rows(min_row=2, values_only=True):
+            if not any((v is not None and str(v).strip() != "") for v in raw):
+                continue
+            row = {}
+            for i, value in enumerate(raw):
+                if i >= len(header_row):
+                    break
+                key = label_to_key.get(header_row[i])
+                if key is not None:
+                    row[key] = value
+            rows.append(row)
+    return rows
+
+def _coerce(val, typ):
+    if val is None or val == "":
+        return None
+    try:
+        if typ is int:
+            return int(float(str(val).replace(",", "")))
+        if typ is float:
+            return float(str(val).replace(",", ""))
+        if typ is bool:
+            return str(val).strip().lower() in ("1", "true", "yes", "si", "sí", "y")
+        if typ is list:
+            return [s.strip() for s in str(val).split("|") if s.strip()]
+        return str(val).strip()
+    except Exception:
+        return None
+
+@app.get("/api/admin/members/template")
+async def members_template(request: Request):
+    await require_role("super_admin", "admin")(request)
+    data = _build_template_xlsx("Socios", MEMBER_TEMPLATE_COLS)
+    return Response(
+        content=data,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": 'attachment; filename="plantilla_socios.xlsx"'},
+    )
+
+@app.get("/api/admin/packages/template")
+async def packages_template(request: Request):
+    await require_role("super_admin", "admin")(request)
+    data = _build_template_xlsx("Paquetes", PACKAGE_TEMPLATE_COLS)
+    return Response(
+        content=data,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": 'attachment; filename="plantilla_paquetes.xlsx"'},
+    )
+
+@app.post("/api/admin/members/bulk-import")
+async def members_bulk_import(request: Request, file: UploadFile = File(...), dry_run: bool = Query(False)):
+    user = await require_role("super_admin", "admin")(request)
+    content = await file.read()
+    try:
+        rows = _parse_uploaded_rows(content, file.filename or "", MEMBER_TEMPLATE_COLS)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"No se pudo leer el archivo: {e}")
+
+    created, errors, preview = [], [], []
+    num_fields = {"service_years": int, "age": int, "family_members_allowed": int, "investment_amount": float}
+    existing_contracts = set()
+    existing_dpis = set()
+    if not dry_run:
+        # Pull only to avoid heavy concurrent duplicates inside the batch
+        async for m in db.members.find({}, {"contract_number": 1, "dpi": 1}):
+            if m.get("contract_number"):
+                existing_contracts.add(m["contract_number"])
+            if m.get("dpi"):
+                existing_dpis.add(m["dpi"])
+    else:
+        async for m in db.members.find({}, {"contract_number": 1, "dpi": 1}):
+            if m.get("contract_number"):
+                existing_contracts.add(m["contract_number"])
+
+    for idx, row in enumerate(rows, start=2):  # row 1 is header
+        contract = str(row.get("contract_number") or "").strip()
+        name = str(row.get("name") or "").strip()
+        dpi = str(row.get("dpi") or "").strip()
+        if not contract or not name or not dpi:
+            errors.append({"row": idx, "error": "Faltan campos obligatorios (contract_number, name, dpi)"})
+            continue
+        if contract in existing_contracts:
+            errors.append({"row": idx, "contract_number": contract, "error": "El número de contrato ya existe"})
+            continue
+        doc = {"contract_number": contract, "name": name, "dpi": dpi, "status": "active"}
+        for key, _lb, _r, _ex in MEMBER_TEMPLATE_COLS:
+            if key in ("contract_number", "name", "dpi"):
+                continue
+            val = row.get(key)
+            if val is None or val == "":
+                continue
+            if key in num_fields:
+                coerced = _coerce(val, num_fields[key])
+                if coerced is not None:
+                    doc[key] = coerced
+            else:
+                doc[key] = str(val).strip() if not isinstance(val, (int, float)) else val
+        preview.append({"row": idx, **doc})
+        existing_contracts.add(contract)
+        if not dry_run:
+            doc["created_at"] = datetime.now(timezone.utc).isoformat()
+            doc["created_by"] = user["_id"]
+            try:
+                result = await db.members.insert_one(doc)
+                new_id = str(result.inserted_id)
+                # Auto-create user login (same logic as single-member create)
+                member_email = f"{contract}@kuxtal.member"
+                if not await db.users.find_one({"email": member_email}):
+                    await db.users.insert_one({
+                        "email": member_email,
+                        "password_hash": hash_password(dpi),
+                        "name": name,
+                        "role": "member",
+                        "member_id": new_id,
+                        "is_family_member": False,
+                        "created_at": datetime.now(timezone.utc).isoformat(),
+                    })
+                created.append({"row": idx, "id": new_id, "contract_number": contract})
+            except Exception as e:
+                errors.append({"row": idx, "contract_number": contract, "error": str(e)})
+    return {"total_rows": len(rows), "valid": len(preview), "errors": errors, "created": created if not dry_run else [], "preview": preview if dry_run else []}
+
+@app.post("/api/admin/packages/bulk-import")
+async def packages_bulk_import(request: Request, file: UploadFile = File(...), dry_run: bool = Query(False)):
+    user = await require_role("super_admin", "admin")(request)
+    content = await file.read()
+    try:
+        rows = _parse_uploaded_rows(content, file.filename or "", PACKAGE_TEMPLATE_COLS)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"No se pudo leer el archivo: {e}")
+
+    created, errors, preview = [], [], []
+    num_fields = {"price": float, "member_price": float, "duration_days": int, "min_group": int, "max_group": int, "rating": float}
+    list_fields = {"includes", "gallery"}
+    bool_fields = {"featured"}
+
+    for idx, row in enumerate(rows, start=2):
+        title = str(row.get("title") or "").strip()
+        desc = str(row.get("description") or "").strip()
+        country = str(row.get("country") or "").strip()
+        price_v = row.get("price")
+        dur_v = row.get("duration_days")
+        if not title or not desc or not country or price_v in (None, "") or dur_v in (None, ""):
+            errors.append({"row": idx, "error": "Faltan obligatorios (title, description, country, price, duration_days)"})
+            continue
+        doc = {"title": title, "description": desc, "country": country, "category": "paquete", "status": "active", "visibility": "public", "rating": 4.8}
+        for key, _lb, _r, _ex in PACKAGE_TEMPLATE_COLS:
+            val = row.get(key)
+            if val is None or val == "":
+                continue
+            if key in num_fields:
+                coerced = _coerce(val, num_fields[key])
+                if coerced is not None:
+                    doc[key] = coerced
+            elif key in list_fields:
+                coerced = _coerce(val, list)
+                if coerced is not None:
+                    doc[key] = coerced
+            elif key in bool_fields:
+                doc[key] = _coerce(val, bool) or False
+            else:
+                doc[key] = str(val).strip() if not isinstance(val, (int, float)) else val
+        preview.append({"row": idx, **doc})
+        if not dry_run:
+            doc["created_at"] = datetime.now(timezone.utc).isoformat()
+            doc["created_by"] = user["_id"]
+            try:
+                result = await db.packages.insert_one(doc)
+                created.append({"row": idx, "id": str(result.inserted_id), "title": title})
+            except Exception as e:
+                errors.append({"row": idx, "title": title, "error": str(e)})
+    return {"total_rows": len(rows), "valid": len(preview), "errors": errors, "created": created if not dry_run else [], "preview": preview if dry_run else []}
+
 # Build allowed origins from env
 _cors_origins = []
 _frontend_url = os.environ.get("FRONTEND_URL", "")

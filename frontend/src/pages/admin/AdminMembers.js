@@ -4,9 +4,10 @@ import { Input } from '../../components/ui/input';
 import { Textarea } from '../../components/ui/textarea';
 import { Label } from '../../components/ui/label';
 import { Badge } from '../../components/ui/badge';
-import { Plus, Edit, Gift, Search, X } from 'lucide-react';
+import { Plus, Edit, Gift, Search, X, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { DeleteWithCode } from '../../components/DeleteWithCode';
+import BulkImportModal from '../../components/BulkImportModal';
 import api from '../../lib/api';
 
 const EMPTY_FORM = {
@@ -18,7 +19,7 @@ const EMPTY_FORM = {
   vigencia: '', cuotas: '', bank: '', termination_date: '', tc: '', nit: '', billing_name: '', observations: '',
 };
 
-export function AdminMembers({ members, memberForm, setMemberForm, showMemberForm, setShowMemberForm, editingMember, setEditingMember, saveMember, editMember, deleteMember }) {
+export function AdminMembers({ members, memberForm, setMemberForm, showMemberForm, setShowMemberForm, editingMember, setEditingMember, saveMember, editMember, deleteMember, reloadData }) {
   const set = (k, v) => setMemberForm({ ...memberForm, [k]: v });
 
   // Búsqueda / filtros
@@ -43,6 +44,7 @@ export function AdminMembers({ members, memberForm, setMemberForm, showMemberFor
   const [allRegalias, setAllRegalias] = useState([]);
   const [selectedRegaliaIds, setSelectedRegaliaIds] = useState([]);
   const [savingRegalias, setSavingRegalias] = useState(false);
+  const [showBulkImport, setShowBulkImport] = useState(false);
 
   useEffect(() => {
     if (!showMemberForm) return;
@@ -87,13 +89,23 @@ export function AdminMembers({ members, memberForm, setMemberForm, showMemberFor
     <div className="animate-fade-in">
       <div className="flex flex-col sm:flex-row gap-3 justify-between sm:items-center mb-4">
         <h2 className="font-heading text-lg font-semibold">Socios ({filteredMembers.length}{filteredMembers.length !== members.length ? ` de ${members.length}` : ''})</h2>
-        <Button
-          onClick={() => { setShowMemberForm(true); setEditingMember(null); setMemberForm(EMPTY_FORM); }}
-          className="rounded-full"
-          data-testid="add-member-btn"
-        >
-          <Plus className="w-4 h-4 mr-2" /> Nuevo Socio
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => setShowBulkImport(true)}
+            variant="outline"
+            className="rounded-full"
+            data-testid="bulk-import-members-btn"
+          >
+            <Upload className="w-4 h-4 mr-2" /> Importar Excel
+          </Button>
+          <Button
+            onClick={() => { setShowMemberForm(true); setEditingMember(null); setMemberForm(EMPTY_FORM); }}
+            className="rounded-full"
+            data-testid="add-member-btn"
+          >
+            <Plus className="w-4 h-4 mr-2" /> Nuevo Socio
+          </Button>
+        </div>
       </div>
 
       <div className="bg-white rounded-2xl border border-border p-3 mb-4 flex flex-col sm:flex-row gap-2" data-testid="members-filters">
@@ -330,6 +342,17 @@ export function AdminMembers({ members, memberForm, setMemberForm, showMemberFor
           </div>
         </div>
       )}
+
+      <BulkImportModal
+        open={showBulkImport}
+        onClose={() => setShowBulkImport(false)}
+        title="Importar socios desde Excel"
+        entityLabel="socios"
+        templateEndpoint="/admin/members/template"
+        importEndpoint="/admin/members/bulk-import"
+        templateFilename="plantilla_socios.xlsx"
+        onImported={() => { reloadData && reloadData(); }}
+      />
     </div>
   );
 }

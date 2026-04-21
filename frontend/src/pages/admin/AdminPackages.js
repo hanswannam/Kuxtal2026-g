@@ -4,9 +4,10 @@ import { Input } from '../../components/ui/input';
 import { Textarea } from '../../components/ui/textarea';
 import { Label } from '../../components/ui/label';
 import { Badge } from '../../components/ui/badge';
-import { Plus, Edit, X, Upload, Package, Search, AlertCircle } from 'lucide-react';
+import { Plus, Edit, X, Upload, Package, Search, AlertCircle, FileSpreadsheet } from 'lucide-react';
 import { toast } from 'sonner';
 import { DeleteWithCode } from '../../components/DeleteWithCode';
+import BulkImportModal from '../../components/BulkImportModal';
 import api from '../../lib/api';
 
 const DEACTIVATION_PRESETS = [
@@ -27,6 +28,7 @@ export function AdminPackages({ packages, packageForm, setPackageForm, showPacka
   const [togglingId, setTogglingId] = useState(null);
   const [deactivateTarget, setDeactivateTarget] = useState(null); // package being deactivated; modal open when set
   const [deactivationReason, setDeactivationReason] = useState('');
+  const [showBulkImport, setShowBulkImport] = useState(false);
 
   const countries = useMemo(() => Array.from(new Set(packages.map(p => p.country).filter(Boolean))).sort(), [packages]);
 
@@ -90,9 +92,14 @@ export function AdminPackages({ packages, packageForm, setPackageForm, showPacka
     <div className="animate-fade-in">
       <div className="flex flex-col sm:flex-row gap-3 justify-between sm:items-center mb-4">
         <h2 className="font-heading text-lg font-semibold">Paquetes ({filtered.length}{filtered.length !== packages.length ? ` de ${packages.length}` : ''})</h2>
-        <Button onClick={() => { setShowPackageForm(true); setEditingPackage(null); setPackageForm({ title: '', description: '', short_description: '', country: '', price: 0, member_price: 0, duration_days: 1, category: 'paquete', includes: [], rating: 4.8, image_url: '', gallery: [], featured: false, status: 'active', promo_start: '', promo_end: '', visibility: 'public' }); }} className="rounded-full" data-testid="add-package-btn">
-          <Plus className="w-4 h-4 mr-2" /> Nuevo Paquete
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => setShowBulkImport(true)} variant="outline" className="rounded-full" data-testid="bulk-import-packages-btn">
+            <FileSpreadsheet className="w-4 h-4 mr-2" /> Importar Excel
+          </Button>
+          <Button onClick={() => { setShowPackageForm(true); setEditingPackage(null); setPackageForm({ title: '', description: '', short_description: '', country: '', price: 0, member_price: 0, duration_days: 1, category: 'paquete', includes: [], rating: 4.8, image_url: '', gallery: [], featured: false, status: 'active', promo_start: '', promo_end: '', visibility: 'public' }); }} className="rounded-full" data-testid="add-package-btn">
+            <Plus className="w-4 h-4 mr-2" /> Nuevo Paquete
+          </Button>
+        </div>
       </div>
 
       <div className="bg-white rounded-2xl border border-border p-3 mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2" data-testid="pkg-filters">
@@ -318,6 +325,17 @@ export function AdminPackages({ packages, packageForm, setPackageForm, showPacka
           </div>
         </div>
       )}
+
+      <BulkImportModal
+        open={showBulkImport}
+        onClose={() => setShowBulkImport(false)}
+        title="Importar paquetes desde Excel"
+        entityLabel="paquetes"
+        templateEndpoint="/admin/packages/template"
+        importEndpoint="/admin/packages/bulk-import"
+        templateFilename="plantilla_paquetes.xlsx"
+        onImported={() => { reloadPackages && reloadPackages(); }}
+      />
     </div>
   );
 }
