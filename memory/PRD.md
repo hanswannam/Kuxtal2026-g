@@ -51,6 +51,11 @@ Sistema CRM para club vacacional con web publica estilo Expedia, programa Kuxtal
   - El form de edición de AdminCommerces ahora incluye TODOS los campos que se capturan en el wizard de creación: dirección, Google Maps URL, Waze URL, video YouTube, galería de fotos (con remove), redes sociales (Facebook, Instagram, TikTok, Twitter), estado activo/inactivo.
   - AdminDashboard inicializa `commerceForm` con todos los campos por defecto (evita undefined al crear).
   - Test ids: cf-address, cf-maps, cf-waze, cf-facebook, cf-instagram, cf-tiktok, cf-twitter, cf-youtube, cf-photos-grid, cf-photo-remove-{i}, cf-status.
+- Indicador de completitud de perfiles de comercio (2026-02, iter 28):
+  - Helper `computeProfile(c)` calcula % basado en 15 campos canónicos (name, description, category, logo, benefit, phone, email, location, address, maps, website, FB, IG, photos, validation_code).
+  - En cada tarjeta: barra de progreso con color por tono (rojo <50 / ámbar <80 / azul <100 / verde =100) + "falta: X, Y, Z..." con tooltip completo.
+  - Header muestra resumen: `N completos · N incompletos · N < 50%` (chips clickeables que aplican el filtro).
+  - Filtro adicional `commerce-filter-completeness` con opciones Todos/Completos/Incompletos/Bajos.
 - Package Visibility (2026-02, iter 21): campo `visibility` = public|internal. Endpoints públicos filtran visibility=internal. Admin management usa ?include_internal=true. AdminPackages con filtro Todos/Público/Interno + radio en form.
 - Quotations tracking & filters (2026-02, iter 21): created_at, created_by_id, created_by_name ('Sistema (web pública)' para web pública, nombre del admin para POST /quotations/admin). GET /api/quotations soporta created_by, date_from, date_to. UI con quot-date-from/to, quot-filter-creator, quot-clear-filters, meta muestra '· por <creador>'.
 - Code Quality: Component refactoring, lazy loading, ErrorBoundary, SEO OG tags, 30+ MongoDB indexes

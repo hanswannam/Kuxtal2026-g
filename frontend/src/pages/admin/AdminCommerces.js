@@ -4,10 +4,48 @@ import { Input } from '../../components/ui/input';
 import { Textarea } from '../../components/ui/textarea';
 import { Label } from '../../components/ui/label';
 import { Badge } from '../../components/ui/badge';
-import { Plus, Edit, Upload, Search, X, Store, MapPin, Facebook, Instagram, Twitter, Youtube, Trash2 } from 'lucide-react';
+import { Plus, Edit, Upload, Search, X, Store, MapPin, Facebook, Instagram, Twitter, Youtube, Trash2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { DeleteWithCode } from '../../components/DeleteWithCode';
 import api from '../../lib/api';
+
+// Canonical profile-completion fields (label + value check). Changing this list changes the % calculation.
+const PROFILE_FIELDS = [
+  { key: 'name', label: 'Nombre' },
+  { key: 'description', label: 'Descripción' },
+  { key: 'category', label: 'Categoría' },
+  { key: 'logo_url', label: 'Logo' },
+  { key: 'benefit_description', label: 'Beneficio socios' },
+  { key: 'phone', label: 'Teléfono' },
+  { key: 'email', label: 'Email' },
+  { key: 'location', label: 'Ubicación' },
+  { key: 'address', label: 'Dirección' },
+  { key: 'google_maps_url', label: 'Google Maps' },
+  { key: 'website', label: 'Sitio web' },
+  { key: 'social_facebook', label: 'Facebook' },
+  { key: 'social_instagram', label: 'Instagram' },
+  { key: 'photos', label: 'Fotos', isArray: true },
+  { key: 'validation_code', label: 'Código validación' },
+];
+
+function computeProfile(commerce) {
+  let filled = 0;
+  const missing = [];
+  for (const f of PROFILE_FIELDS) {
+    const v = commerce?.[f.key];
+    const ok = f.isArray ? Array.isArray(v) && v.length > 0 : typeof v === 'string' ? v.trim().length > 0 : !!v;
+    if (ok) filled += 1; else missing.push(f.label);
+  }
+  const pct = Math.round((filled / PROFILE_FIELDS.length) * 100);
+  return { pct, missing };
+}
+
+function profileTone(pct) {
+  if (pct >= 100) return { bar: 'bg-emerald-500', bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' };
+  if (pct >= 80) return { bar: 'bg-sky-500', bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-200' };
+  if (pct >= 50) return { bar: 'bg-amber-500', bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' };
+  return { bar: 'bg-red-500', bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' };
+}
 
 export function AdminCommerces({ commerces, commerceForm, setCommerceForm, showCommerceForm, setShowCommerceForm, commerceCategories, saveCommerce, deleteCommerce, handleImageUpload, uploading }) {
   const [q, setQ] = useState('');
@@ -19,17 +57,34 @@ export function AdminCommerces({ commerces, commerceForm, setCommerceForm, showC
 
   const locations = useMemo(() => Array.from(new Set(commerces.map(c => c.location).filter(Boolean))).sort(), [commerces]);
   const [locationFilter, setLocationFilter] = useState('');
+  const [completenessFilter, setCompletenessFilter] = useState('');
 
   const norm = (s) => (s || '').toString().toLowerCase();
   const filtered = commerces.filter(c => {
     if (catFilter && c.category !== catFilter) return false;
     if (locationFilter && c.location !== locationFilter) return false;
+    if (completenessFilter) {
+      const { pct } = computeProfile(c);
+      if (completenessFilter === 'complete' && pct < 100) return false;
+      if (completenessFilter === 'incomplete' && pct >= 100) return false;
+      if (completenessFilter === 'low' && pct >= 50) return false;
+    }
     if (q.trim()) {
       const n = norm(q);
       if (!norm(c.name).includes(n) && !norm(c.description).includes(n) && !norm(c.location).includes(n) && !norm(c.validation_code).includes(n)) return false;
     }
     return true;
   });
+
+  const completeness = useMemo(() => {
+    let complete = 0, low = 0;
+    commerces.forEach(c => {
+      const { pct } = computeProfile(c);
+      if (pct >= 100) complete += 1;
+      if (pct < 50) low += 1;
+    });
+    return { complete, low, total: commerces.length };
+  }, [commerces]);
 
   const addNewCategory = async () => {
     const name = newCategory.trim();
@@ -48,13 +103,30 @@ export function AdminCommerces({ commerces, commerceForm, setCommerceForm, showC
   return (
     <div className="animate-fade-in">
       <div className="flex flex-col sm:flex-row gap-3 justify-between sm:items-center mb-4">
-        <h2 className="font-heading text-lg font-semibold">Comercios ({filtered.length}{filtered.length !== commerces.length ? ` de ${commerces.length}` : ''})</h2>
+        <div>
+          <h2 className="font-heading text-lg font-semibold">Comercios ({filtered.length}{filtered.length !== commerces.length ? ` de ${commerces.length}` : ''})</h2>
+          {completeness.total > 0 && (
+            <div className="flex gap-1.5 mt-1.5 flex-wrap" data-testid="commerce-completeness-stats">
+              <button type="button" onClick={() => setCompletenessFilter(completenessFilter === 'complete' ? '' : 'complete')} className={`text-[11px] px-2 py-0.5 rounded-full border transition ${completenessFilter === 'complete' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'}`}>
+                {completeness.complete} completos
+              </button>
+              <button type="button" onClick={() => setCompletenessFilter(completenessFilter === 'incomplete' ? '' : 'incomplete')} className={`text-[11px] px-2 py-0.5 rounded-full border transition ${completenessFilter === 'incomplete' ? 'bg-amber-600 text-white border-amber-600' : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'}`}>
+                {completeness.total - completeness.complete} incompletos
+              </button>
+              {completeness.low > 0 && (
+                <button type="button" onClick={() => setCompletenessFilter(completenessFilter === 'low' ? '' : 'low')} className={`text-[11px] px-2 py-0.5 rounded-full border transition ${completenessFilter === 'low' ? 'bg-red-600 text-white border-red-600' : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'}`}>
+                  {completeness.low} &lt; 50%
+                </button>
+              )}
+            </div>
+          )}
+        </div>
         <Button onClick={() => window.location.href = '/admin/new-commerce'} className="rounded-full bg-primary hover:bg-primary/90 shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5" data-testid="add-commerce-btn">
           <Plus className="w-4 h-4 mr-2" /> Nuevo Comercio
         </Button>
       </div>
 
-      <div className="bg-white rounded-2xl border border-border p-3 mb-4 grid grid-cols-1 sm:grid-cols-3 gap-2" data-testid="commerce-filters">
+      <div className="bg-white rounded-2xl border border-border p-3 mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2" data-testid="commerce-filters">
         <div className="relative">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar por nombre, ubicación..." className="pl-9 rounded-xl" data-testid="commerce-search" />
@@ -68,6 +140,12 @@ export function AdminCommerces({ commerces, commerceForm, setCommerceForm, showC
           <option value="">Todas las ubicaciones</option>
           {locations.map(l => <option key={l} value={l}>{l}</option>)}
         </select>
+        <select value={completenessFilter} onChange={e => setCompletenessFilter(e.target.value)} className="h-10 rounded-xl border border-input px-3 text-sm bg-white" data-testid="commerce-filter-completeness">
+          <option value="">Todos los perfiles</option>
+          <option value="complete">Perfil 100% completo</option>
+          <option value="incomplete">Perfiles incompletos</option>
+          <option value="low">Perfiles bajos (&lt; 50%)</option>
+        </select>
       </div>
 
       {filtered.length === 0 ? (
@@ -77,7 +155,10 @@ export function AdminCommerces({ commerces, commerceForm, setCommerceForm, showC
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((c, i) => (
+          {filtered.map((c, i) => {
+            const { pct, missing } = computeProfile(c);
+            const tone = profileTone(pct);
+            return (
             <div key={c._id} className="bg-white rounded-2xl p-5 border border-border hover:shadow-md transition-all" data-testid={`admin-commerce-${i}`}>
               <div className="flex items-start justify-between mb-2">
                 <div>
@@ -91,12 +172,31 @@ export function AdminCommerces({ commerces, commerceForm, setCommerceForm, showC
               </div>
               <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{c.description}</p>
               <p className="text-xs text-muted-foreground">{c.location}</p>
+              <div className="mt-3" data-testid={`commerce-completeness-${i}`}>
+                <div className="flex items-center justify-between mb-1">
+                  <span className={`text-[11px] font-semibold ${tone.text}`}>Perfil {pct}%</span>
+                  {missing.length > 0 && (
+                    <span className="text-[10px] text-muted-foreground line-clamp-1 max-w-[70%] text-right" title={`Faltan: ${missing.join(', ')}`}>
+                      falta: {missing.slice(0, 3).join(', ')}{missing.length > 3 ? '…' : ''}
+                    </span>
+                  )}
+                </div>
+                <div className="h-1.5 bg-secondary/60 rounded-full overflow-hidden">
+                  <div className={`h-full ${tone.bar} transition-all`} style={{ width: `${pct}%` }} />
+                </div>
+                {pct < 50 && (
+                  <div className="mt-2 flex items-center gap-1 text-[11px] text-red-600">
+                    <AlertCircle className="w-3 h-3" /> Perfil muy incompleto — reduce conversión
+                  </div>
+                )}
+              </div>
               <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
                 <span className="text-xs font-mono font-bold text-primary">{c.validation_code}</span>
                 <span className="text-[10px] text-muted-foreground select-all">ID: {c._id}</span>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
