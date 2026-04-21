@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Button } from '../components/ui/button';
@@ -7,7 +7,7 @@ import { Textarea } from '../components/ui/textarea';
 import { Label } from '../components/ui/label';
 import {
   Store, ArrowRight, ArrowLeft, Check, Upload, MapPin, Phone, Mail,
-  Globe, Gift, Facebook, Instagram, Youtube, Image, Sparkles
+  Globe, Gift, Facebook, Instagram, Youtube, Image, Sparkles, Plus, Tag
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../lib/api';
@@ -15,7 +15,7 @@ import api from '../lib/api';
 const API = process.env.REACT_APP_BACKEND_URL;
 const ax = api;
 
-const CATEGORIES = [
+const DEFAULT_CATEGORIES = [
   'Restaurantes', 'Mascotas', 'Hospitales', 'Servicios',
   'Belleza', 'Deportes', 'Tecnología', 'Educación',
   'Moda Mujer', 'Moda Hombre', 'Hogar', 'Entretenimiento'
@@ -44,6 +44,38 @@ export default function CommerceWizard() {
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
+  const [showNewCatInput, setShowNewCatInput] = useState(false);
+  const [newCatName, setNewCatName] = useState('');
+  const [creatingCat, setCreatingCat] = useState(false);
+
+  useEffect(() => {
+    api.get('/commerce/categories').then(r => {
+      if (Array.isArray(r.data) && r.data.length) {
+        // Merge defaults with backend categories, keep unique order
+        const merged = Array.from(new Set([...DEFAULT_CATEGORIES, ...r.data]));
+        setCategories(merged);
+      }
+    }).catch(() => {});
+  }, []);
+
+  const createCategory = async () => {
+    const name = newCatName.trim();
+    if (!name) return;
+    setCreatingCat(true);
+    try {
+      await api.post('/commerce/categories', { name });
+      setCategories(prev => prev.includes(name) ? prev : [...prev, name]);
+      setForm(f => ({ ...f, category: name }));
+      setNewCatName('');
+      setShowNewCatInput(false);
+      toast.success(`Categoría "${name}" creada`);
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Error al crear categoría');
+    }
+    setCreatingCat(false);
+  };
+
   const [form, setForm] = useState({
     name: '', category: 'Restaurantes', description: '', benefit_description: '',
     logo_url: '', photos: [], youtube_video: '',
@@ -122,16 +154,51 @@ export default function CommerceWizard() {
               <div>
                 <Label className="text-sm font-medium mb-3 block">Categoría</Label>
                 <div className="grid grid-cols-3 gap-2">
-                  {CATEGORIES.map(cat => (
-                    <button key={cat} onClick={() => setForm({...form, category: cat})}
+                  {categories.map(cat => (
+                    <button type="button" key={cat} onClick={() => setForm({...form, category: cat})}
                       className={`flex flex-col items-center gap-1 p-3 rounded-xl border transition-all text-xs font-medium ${
                         form.category === cat ? 'border-primary bg-accent text-primary scale-[1.02] shadow-sm' : 'border-border hover:border-primary/30'
                       }`} data-testid={`wiz-cat-${cat}`}>
-                      <span className="text-xl">{CATEGORY_ICONS[cat]}</span>
+                      <span className="text-xl">{CATEGORY_ICONS[cat] || '🏷️'}</span>
                       <span className="leading-tight text-center">{cat}</span>
                     </button>
                   ))}
+                  <button
+                    type="button"
+                    onClick={() => setShowNewCatInput(true)}
+                    className="flex flex-col items-center gap-1 p-3 rounded-xl border border-dashed border-primary/40 text-primary hover:bg-primary/5 transition-all text-xs font-medium"
+                    data-testid="wiz-new-category-btn"
+                  >
+                    <Plus className="w-5 h-5" />
+                    <span className="leading-tight text-center">Nueva categoría</span>
+                  </button>
                 </div>
+
+                {showNewCatInput && (
+                  <div className="mt-3 bg-secondary/40 border border-border rounded-xl p-3" data-testid="wiz-new-category-block">
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Tag className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          autoFocus
+                          value={newCatName}
+                          onChange={e => setNewCatName(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); createCategory(); } }}
+                          placeholder="Ej: Farmacia, Spa, Librería"
+                          className="pl-9 rounded-xl"
+                          data-testid="wiz-new-category-input"
+                        />
+                      </div>
+                      <Button type="button" onClick={createCategory} disabled={!newCatName.trim() || creatingCat} className="rounded-xl" data-testid="wiz-new-category-save">
+                        {creatingCat ? 'Guardando...' : 'Crear'}
+                      </Button>
+                      <Button type="button" variant="outline" onClick={() => { setShowNewCatInput(false); setNewCatName(''); }} className="rounded-xl">
+                        Cancelar
+                      </Button>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-2">La categoría quedará disponible para futuros comercios.</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -279,7 +346,7 @@ export default function CommerceWizard() {
           {step === 8 && (
             <div className="space-y-4">
               <div className="flex items-center gap-4 p-4 bg-accent/50 rounded-xl">
-                {form.logo_url ? <img src={form.logo_url} alt="" className="w-16 h-16 rounded-xl object-cover" /> : <div className="w-16 h-16 rounded-xl bg-secondary flex items-center justify-center text-2xl">{CATEGORY_ICONS[form.category]}</div>}
+                {form.logo_url ? <img src={form.logo_url} alt="" className="w-16 h-16 rounded-xl object-cover" /> : <div className="w-16 h-16 rounded-xl bg-secondary flex items-center justify-center text-2xl">{CATEGORY_ICONS[form.category] || '🏷️'}</div>}
                 <div>
                   <h3 className="font-heading text-lg font-bold">{form.name}</h3>
                   <span className="text-xs text-muted-foreground">{form.category}</span>
