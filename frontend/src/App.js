@@ -1,7 +1,7 @@
-import React, { lazy, Suspense } from "react";
+import React, { lazy, Suspense, useEffect } from "react";
 import "@/index.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { Toaster } from "sonner";
+import { Toaster, toast } from "sonner";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { ErrorBoundary } from "./components/ErrorBoundary";
@@ -34,25 +34,39 @@ function PageLoader() {
   );
 }
 
-// Register service worker for PWA. Auto-reload on new version to avoid stale bundles.
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').then((reg) => {
-      reg.addEventListener('updatefound', () => {
-        const nw = reg.installing;
-        if (!nw) return;
-        nw.addEventListener('statechange', () => {
-          if (nw.state === 'activated' && navigator.serviceWorker.controller) {
-            // A new SW took control after initial load -> reload once to get fresh chunks
-            window.location.reload();
-          }
-        });
+// Register service worker for PWA. Toast the user when a new version is available.
+function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.register('/sw.js').then((reg) => {
+    const promptReload = () => {
+      toast('Nueva versión disponible', {
+        description: 'Actualiza para obtener las últimas mejoras.',
+        duration: Infinity,
+        action: {
+          label: 'Recargar',
+          onClick: () => window.location.reload(),
+        },
       });
-    }).catch(() => {});
-  });
+    };
+    // If a waiting worker already exists when we register, prompt immediately
+    if (reg.waiting && navigator.serviceWorker.controller) promptReload();
+    reg.addEventListener('updatefound', () => {
+      const nw = reg.installing;
+      if (!nw) return;
+      nw.addEventListener('statechange', () => {
+        if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+          promptReload();
+        }
+      });
+    });
+  }).catch(() => {});
 }
 
 function App() {
+  useEffect(() => {
+    if (document.readyState === 'complete') registerServiceWorker();
+    else window.addEventListener('load', registerServiceWorker, { once: true });
+  }, []);
   return (
     <BrowserRouter>
       <AuthProvider>
