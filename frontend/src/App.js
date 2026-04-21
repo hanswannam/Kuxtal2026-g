@@ -8,6 +8,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import Navbar from "./components/Navbar";
 import WhatsAppWidget from "./components/WhatsAppWidget";
 import InstallPrompt from "./components/InstallPrompt";
+import PWAReinstallBanner from "./components/PWAReinstallBanner";
 import { Loader2 } from "lucide-react";
 
 // Eager: critical path pages
@@ -114,6 +115,7 @@ function App() {
                   </Routes>
                   <WhatsAppWidget />
                   <InstallPrompt />
+                  <PWAReinstallBanner />
                 </>
               } />
             </Routes>
