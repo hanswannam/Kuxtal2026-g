@@ -219,6 +219,8 @@ class PackageCreate(BaseModel):
     # Promoción (opcional): fechas de inicio/fin para mostrar contador regresivo
     promo_start: Optional[str] = ""
     promo_end: Optional[str] = ""
+    # Razón de desactivación (visible al admin cuando status=inactive)
+    deactivation_reason: Optional[str] = ""
 
 class QuotationRequest(BaseModel):
     package_id: Optional[str] = ""
@@ -638,8 +640,25 @@ async def toggle_package_status(package_id: str, request: Request):
     if not pkg:
         raise HTTPException(status_code=404, detail="Paquete no encontrado")
     new_status = "inactive" if pkg.get("status") == "active" else "active"
-    await db.packages.update_one({"_id": ObjectId(package_id)}, {"$set": {"status": new_status, "updated_at": datetime.now(timezone.utc).isoformat()}})
-    return {"message": f"Paquete {'activado' if new_status == 'active' else 'desactivado'}", "status": new_status}
+    # Optional reason from body
+    reason = ""
+    try:
+        body = await request.json()
+        reason = (body or {}).get("reason", "") or ""
+    except Exception:
+        reason = ""
+    update = {"status": new_status, "updated_at": datetime.now(timezone.utc).isoformat()}
+    if new_status == "inactive":
+        update["deactivation_reason"] = (reason or "").strip()
+    else:
+        # Reactivated: clear the reason
+        update["deactivation_reason"] = ""
+    await db.packages.update_one({"_id": ObjectId(package_id)}, {"$set": update})
+    return {
+        "message": f"Paquete {'activado' if new_status == 'active' else 'desactivado'}",
+        "status": new_status,
+        "deactivation_reason": update["deactivation_reason"],
+    }
 
 @api_router.delete("/packages/{package_id}")
 async def delete_package(package_id: str, request: Request):

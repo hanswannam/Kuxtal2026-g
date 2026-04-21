@@ -4,10 +4,18 @@ import { Input } from '../../components/ui/input';
 import { Textarea } from '../../components/ui/textarea';
 import { Label } from '../../components/ui/label';
 import { Badge } from '../../components/ui/badge';
-import { Plus, Edit, X, Upload, Package, Search } from 'lucide-react';
+import { Plus, Edit, X, Upload, Package, Search, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { DeleteWithCode } from '../../components/DeleteWithCode';
 import api from '../../lib/api';
+
+const DEACTIVATION_PRESETS = [
+  'Temporada cerrada',
+  'Agotado / sin disponibilidad',
+  'Pendiente de actualizar precio',
+  'Proveedor no confirma',
+  'Pausa temporal',
+];
 
 export function AdminPackages({ packages, packageForm, setPackageForm, showPackageForm, setShowPackageForm, editingPackage, setEditingPackage, savePackage, editPkg, deletePkg, includesInput, setIncludesInput, addInclude, removeInclude, handleImageUpload, uploading, reloadPackages }) {
   const [q, setQ] = useState('');
@@ -17,6 +25,8 @@ export function AdminPackages({ packages, packageForm, setPackageForm, showPacka
   const [visibilityFilter, setVisibilityFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [togglingId, setTogglingId] = useState(null);
+  const [deactivateTarget, setDeactivateTarget] = useState(null); // package being deactivated; modal open when set
+  const [deactivationReason, setDeactivationReason] = useState('');
 
   const countries = useMemo(() => Array.from(new Set(packages.map(p => p.country).filter(Boolean))).sort(), [packages]);
 
@@ -40,10 +50,35 @@ export function AdminPackages({ packages, packageForm, setPackageForm, showPacka
   });
 
   const toggleStatus = async (p) => {
+    const isActive = (p.status || 'active') === 'active';
+    if (isActive) {
+      // Opening modal to capture the reason
+      setDeactivateTarget(p);
+      setDeactivationReason('');
+      return;
+    }
+    // Reactivation: no reason needed
     setTogglingId(p._id);
     try {
       await api.put(`/packages/${p._id}/toggle-status`);
-      toast.success(p.status === 'active' ? 'Paquete desactivado' : 'Paquete activado');
+      toast.success('Paquete activado');
+      if (reloadPackages) await reloadPackages();
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Error al cambiar estado');
+    }
+    setTogglingId(null);
+  };
+
+  const confirmDeactivate = async () => {
+    if (!deactivateTarget) return;
+    const reason = deactivationReason.trim();
+    if (!reason) { toast.error('Ingresa o elige un motivo de desactivación'); return; }
+    setTogglingId(deactivateTarget._id);
+    try {
+      await api.put(`/packages/${deactivateTarget._id}/toggle-status`, { reason });
+      toast.success('Paquete desactivado');
+      setDeactivateTarget(null);
+      setDeactivationReason('');
       if (reloadPackages) await reloadPackages();
     } catch (e) {
       toast.error(e.response?.data?.detail || 'Error al cambiar estado');
@@ -115,7 +150,13 @@ export function AdminPackages({ packages, packageForm, setPackageForm, showPacka
                 {p.visibility === 'internal' && <Badge className="rounded-full text-xs bg-amber-100 text-amber-700 border-amber-300">🔒 Solo cotiz.</Badge>}
               </div>
               <h3 className="font-semibold mb-1 line-clamp-1">{p.title}</h3>
-              <p className="text-sm text-muted-foreground mb-3">{p.country} &middot; {p.duration_days} días</p>
+              <p className="text-sm text-muted-foreground mb-2">{p.country} &middot; {p.duration_days} días</p>
+              {!isActive && p.deactivation_reason && (
+                <div className="flex items-start gap-1.5 text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-lg px-2 py-1.5 mb-2" data-testid={`pkg-reason-${i}`}>
+                  <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
+                  <span className="line-clamp-2">{p.deactivation_reason}</span>
+                </div>
+              )}
               <div className="flex items-center justify-between mb-3">
                 <span className="font-bold text-primary">Q.{p.price?.toLocaleString()}</span>
                 <button
@@ -229,6 +270,51 @@ export function AdminPackages({ packages, packageForm, setPackageForm, showPacka
                 <Button type="submit" className="flex-1 rounded-xl bg-primary hover:bg-primary/90" data-testid="pf-submit">Guardar</Button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {deactivateTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in" data-testid="deactivate-modal">
+          <div className="bg-white rounded-2xl w-full max-w-md p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 rounded-full bg-red-50 text-red-600 flex items-center justify-center"><AlertCircle className="w-5 h-5" /></div>
+                <div>
+                  <h3 className="font-heading text-lg font-semibold">Desactivar paquete</h3>
+                  <p className="text-xs text-muted-foreground">{deactivateTarget.title}</p>
+                </div>
+              </div>
+              <Button variant="ghost" onClick={() => setDeactivateTarget(null)}><X className="w-4 h-4" /></Button>
+            </div>
+            <p className="text-sm text-muted-foreground mb-3">¿Por qué se desactiva? El motivo quedará visible en la tarjeta para el resto del equipo.</p>
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {DEACTIVATION_PRESETS.map(preset => (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => setDeactivationReason(preset)}
+                  className={`text-[11px] px-2.5 py-1 rounded-full border transition ${deactivationReason === preset ? 'bg-primary text-white border-primary' : 'bg-secondary text-foreground border-border hover:border-primary/40'}`}
+                  data-testid={`reason-preset-${preset.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}
+                >
+                  {preset}
+                </button>
+              ))}
+            </div>
+            <Textarea
+              value={deactivationReason}
+              onChange={e => setDeactivationReason(e.target.value)}
+              placeholder="Escribe un motivo personalizado o elige uno arriba..."
+              className="rounded-xl"
+              rows={3}
+              data-testid="deactivation-reason-input"
+            />
+            <div className="flex gap-3 pt-4">
+              <Button variant="outline" onClick={() => setDeactivateTarget(null)} className="flex-1 rounded-xl">Cancelar</Button>
+              <Button onClick={confirmDeactivate} disabled={togglingId === deactivateTarget._id || !deactivationReason.trim()} className="flex-1 rounded-xl bg-red-600 hover:bg-red-700 text-white" data-testid="confirm-deactivate-btn">
+                {togglingId === deactivateTarget._id ? 'Desactivando...' : 'Desactivar'}
+              </Button>
+            </div>
           </div>
         </div>
       )}
