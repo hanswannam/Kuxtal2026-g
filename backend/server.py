@@ -94,8 +94,8 @@ def require_role(*roles, permission: str = None):
         user = await get_current_user(request)
         if user.get("role") not in roles:
             raise HTTPException(status_code=403, detail="Acceso denegado")
-        # Per-module permission enforcement for admin role (super_admin bypass)
-        if permission and user.get("role") == "admin":
+        # Per-module permission enforcement for non-super_admin roles (super_admin bypass)
+        if permission and user.get("role") != "super_admin":
             perms = user.get("permissions") or {}
             if not perms.get(permission):
                 raise HTTPException(status_code=403, detail=f"No tienes permiso para '{permission}'")

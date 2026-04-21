@@ -105,6 +105,16 @@ Sistema CRM para club vacacional con web publica estilo Expedia, programa Kuxtal
   - Nuevo endpoint `GET /api/admin/audit/user-changes?target_user_id=&admin_id=&action=&limit=`.
   - AdminUsers.js: botón Historial (History) por fila abre `AuditHistoryModal` con lista timeline (badges coloridos por tipo, fecha local, admin ejecutor+IP, diff visual con before/after tachado/verde para profile/permissions).
   - Índices MongoDB en target_user_id / admin_id / timestamp.
+- Enforcement RBAC por módulo (2026-02, iter 23):
+  - `require_role(*roles, permission="X")` extendido: super_admin bypass, cualquier otro rol requiere `user.permissions[X]==True` o retorna 403 "No tienes permiso para X".
+  - 40 endpoints protegidos (POST/PUT/DELETE): members, clients, packages, commerce, categories, clubs, regalias, quotations admin, announcements, push/send, referrals, vacation-requests, config/*, admin/commerce approve/reject.
+  - Backfill: admin principal es super_admin (bypass). Admins nuevos arrancan con defaults `{dashboard, quotations, clients, members}`.
+  - Protecciones extra toggle-active: admin normal no puede togglear super_admin ni al ADMIN_EMAIL principal; nadie puede desactivarse a sí mismo (anti-lockout).
+  - Login `/api/auth/login` ahora incluye `permissions` en response (antes causaba que módulos no aparecieran hasta refrescar).
+- UI Security polish (2026-02, iter 35):
+  - Credenciales de prueba removidas de LoginPage.
+  - `PWAReinstallBanner.js`: banner amber en Android + standalone que explica cómo reinstalar la app cuando Google Play Protect bloquea WebAPKs viejos. Descartable con localStorage versionado (`WEBAPK_STALE_BEFORE`).
+  - Fix permisos UI: `AdminDashboard.hasPerm()` sin fallback permisivo — admin sin permissions configurados solo ve Dashboard.
 - Package Visibility (2026-02, iter 21): campo `visibility` = public|internal. Endpoints públicos filtran visibility=internal. Admin management usa ?include_internal=true. AdminPackages con filtro Todos/Público/Interno + radio en form.
 - Quotations tracking & filters (2026-02, iter 21): created_at, created_by_id, created_by_name ('Sistema (web pública)' para web pública, nombre del admin para POST /quotations/admin). GET /api/quotations soporta created_by, date_from, date_to. UI con quot-date-from/to, quot-filter-creator, quot-clear-filters, meta muestra '· por <creador>'.
 - Code Quality: Component refactoring, lazy loading, ErrorBoundary, SEO OG tags, 30+ MongoDB indexes
