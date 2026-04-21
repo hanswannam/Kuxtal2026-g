@@ -14,10 +14,27 @@ export function AdminSettings({
 }) {
   const [pricing, setPricing] = useState({ public_markup_percent: 30, member_markup_percent: 15 });
   const [savingPricing, setSavingPricing] = useState(false);
+  const [recalcCount, setRecalcCount] = useState({ total: 0, with_agency_price: 0, without_agency_price: 0 });
+  const [recalcing, setRecalcing] = useState(false);
+  const [showRecalcConfirm, setShowRecalcConfirm] = useState(false);
 
   useEffect(() => {
     api.get('/config/pricing-settings').then(r => setPricing(r.data)).catch(() => {});
+    api.get('/admin/packages/recalculatable-count').then(r => setRecalcCount(r.data)).catch(() => {});
   }, []);
+
+  const runRecalculate = async () => {
+    setRecalcing(true);
+    try {
+      const r = await api.post('/admin/packages/recalculate-prices');
+      toast.success(`Recalculados ${r.data.updated} paquetes`);
+      setShowRecalcConfirm(false);
+      api.get('/admin/packages/recalculatable-count').then(r => setRecalcCount(r.data)).catch(() => {});
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'No se pudo recalcular');
+    }
+    setRecalcing(false);
+  };
 
   const savePricing = async () => {
     setSavingPricing(true);
@@ -116,8 +133,49 @@ export function AdminSettings({
           <Button onClick={savePricing} disabled={savingPricing} className="w-full rounded-xl bg-primary hover:bg-primary/90" data-testid="save-pricing-btn">
             {savingPricing ? 'Guardando...' : 'Guardar porcentajes'}
           </Button>
+
+          <div className="pt-3 border-t border-border">
+            <p className="text-[11px] text-muted-foreground mb-2">
+              {recalcCount.with_agency_price} paquete(s) tienen precio de agencia y pueden recalcularse.
+              {recalcCount.without_agency_price > 0 && ` ${recalcCount.without_agency_price} sin precio de agencia serán ignorados.`}
+            </p>
+            <Button
+              type="button"
+              onClick={() => setShowRecalcConfirm(true)}
+              disabled={recalcCount.with_agency_price === 0}
+              variant="outline"
+              className="w-full rounded-xl border-primary/40 text-primary hover:bg-primary/5"
+              data-testid="open-recalc-btn"
+            >
+              Recalcular todos los paquetes con los markups actuales
+            </Button>
+          </div>
         </div>
       </div>
+
+      {showRecalcConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in" data-testid="recalc-confirm-modal">
+          <div className="bg-white rounded-2xl w-full max-w-md p-6">
+            <h3 className="font-heading text-lg font-semibold mb-2">¿Recalcular precios?</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Se actualizarán <strong>{recalcCount.with_agency_price} paquete(s)</strong> aplicando:
+            </p>
+            <ul className="text-sm space-y-1 bg-secondary/40 rounded-xl p-3 mb-4">
+              <li>Precio público = agencia × (1 + <strong>{pricing.public_markup_percent}%</strong>)</li>
+              <li>Precio socio = agencia × (1 + <strong>{pricing.member_markup_percent}%</strong>)</li>
+            </ul>
+            <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-2 mb-4">
+              ⚠️ Los precios sin precio de agencia (costo) no serán modificados.
+            </p>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowRecalcConfirm(false)} className="flex-1 rounded-xl" data-testid="recalc-cancel-btn">Cancelar</Button>
+              <Button onClick={runRecalculate} disabled={recalcing} className="flex-1 rounded-xl bg-primary hover:bg-primary/90 text-white" data-testid="recalc-confirm-btn">
+                {recalcing ? 'Recalculando...' : `Recalcular ${recalcCount.with_agency_price}`}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <a href="/chat" className="block">
         <div className="bg-white rounded-2xl p-6 border border-border hover:border-primary/30 transition-colors">

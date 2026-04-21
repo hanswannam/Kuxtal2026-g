@@ -1479,6 +1479,38 @@ async def set_pricing_settings(req: PricingSettings, request: Request):
     )
     return {"message": "Porcentajes de markup actualizados", "public_markup_percent": req.public_markup_percent, "member_markup_percent": req.member_markup_percent}
 
+@api_router.get("/admin/packages/recalculatable-count")
+async def packages_recalculatable_count(request: Request):
+    await require_role("super_admin", "admin")(request)
+    count = await db.packages.count_documents({"agency_price": {"$gt": 0}})
+    total = await db.packages.count_documents({})
+    return {"total": total, "with_agency_price": count, "without_agency_price": total - count}
+
+@api_router.post("/admin/packages/recalculate-prices")
+async def recalculate_package_prices(request: Request):
+    user = await require_role("super_admin", "admin")(request)
+    cfg = await db.config.find_one({"key": "pricing_settings"}) or {}
+    public_pct = float(cfg.get("public_markup_percent", 30) or 0)
+    member_pct = float(cfg.get("member_markup_percent", 15) or 0)
+    updated = 0
+    skipped = 0
+    async for pkg in db.packages.find({"agency_price": {"$gt": 0}}):
+        agency = float(pkg.get("agency_price") or 0)
+        if agency <= 0:
+            skipped += 1
+            continue
+        new_price = round(agency * (1 + public_pct / 100))
+        new_member = round(agency * (1 + member_pct / 100))
+        await db.packages.update_one({"_id": pkg["_id"]}, {"$set": {"price": new_price, "member_price": new_member, "updated_at": datetime.now(timezone.utc).isoformat()}})
+        updated += 1
+    return {
+        "message": f"Se recalcularon {updated} paquetes",
+        "updated": updated,
+        "skipped_without_agency_price": skipped,
+        "public_markup_percent": public_pct,
+        "member_markup_percent": member_pct,
+    }
+
 async def _default_valid_days() -> int:
     cfg = await db.config.find_one({"key": "quotation_settings"})
     try:
