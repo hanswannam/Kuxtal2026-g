@@ -347,7 +347,7 @@ async def admin_login(req: LoginRequest, response: Response):
     refresh_token = create_refresh_token(user_id)
     response.set_cookie(key="access_token", value=access_token, httponly=True, secure=COOKIE_SECURE, samesite="none" if COOKIE_SECURE else "lax", max_age=86400, path="/")
     response.set_cookie(key="refresh_token", value=refresh_token, httponly=True, secure=COOKIE_SECURE, samesite="none" if COOKIE_SECURE else "lax", max_age=604800, path="/")
-    return {"id": user_id, "name": user.get("name", ""), "email": user["email"], "role": user["role"], "token": access_token}
+    return {"id": user_id, "name": user.get("name", ""), "email": user["email"], "role": user["role"], "permissions": user.get("permissions"), "token": access_token}
 
 @api_router.post("/auth/member-login")
 async def member_login(req: MemberLoginRequest, response: Response):
