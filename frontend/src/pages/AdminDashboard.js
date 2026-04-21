@@ -225,9 +225,13 @@ export default function AdminDashboard() {
     { id: 'users', label: 'Usuarios', icon: Users },
     { id: 'settings', label: 'Config', icon: Settings },
   ];
-  // Apply per-user permissions (super_admin gets everything)
+  // Apply per-user permissions. super_admin ve todo; admin requiere permiso explícito (Dashboard siempre visible)
   const perms = user?.permissions || {};
-  const hasPerm = (key) => user?.role === 'super_admin' || !user?.permissions || Object.keys(perms).length === 0 || !!perms[key];
+  const hasPerm = (key) => {
+    if (user?.role === 'super_admin') return true;
+    if (key === 'dashboard') return true;
+    return !!perms[key];
+  };
   const tabs = allTabs.filter(t => hasPerm(t.id));
 
   return (
