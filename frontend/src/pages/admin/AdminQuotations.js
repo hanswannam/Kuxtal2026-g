@@ -8,6 +8,7 @@ import { Send, Phone, Edit2, Eye, MessageCircle, Search, X, Plus, Minus, Clipboa
 import { toast } from 'sonner';
 import api from '../../lib/api';
 import { QuotationPreviewModal } from './QuotationPreview';
+import { PackageSearchSelect, CustomerPicker } from './QuotationHelpers';
 
 const STATUS_META = {
   pending:   { label: 'Pendiente',   class: 'bg-amber-50 text-amber-700 border-amber-200' },
@@ -25,6 +26,7 @@ export function AdminQuotations({ quotations: initialQuotations }) {
   const [memberFilter, setMemberFilter] = useState('');
   const [editing, setEditing] = useState(null);
   const [previewing, setPreviewing] = useState(null);
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => { setQuotations(initialQuotations); }, [initialQuotations]);
 
@@ -50,6 +52,9 @@ export function AdminQuotations({ quotations: initialQuotations }) {
     <div className="animate-fade-in" data-testid="admin-quotations">
       <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between mb-4">
         <h2 className="font-heading text-lg font-semibold">Cotizaciones ({filtered.length}{filtered.length !== quotations.length ? ` de ${quotations.length}` : ''})</h2>
+        <Button onClick={() => setCreating(true)} className="rounded-full" data-testid="new-quot-btn">
+          <Plus className="w-4 h-4 mr-2" /> Nueva Cotización
+        </Button>
       </div>
 
       <div className="bg-white rounded-2xl border border-border p-3 mb-4 grid grid-cols-1 sm:grid-cols-3 gap-2" data-testid="quot-filters">
@@ -91,6 +96,10 @@ export function AdminQuotations({ quotations: initialQuotations }) {
 
       {previewing && (
         <QuotationPreviewModal quot={previewing} onClose={() => setPreviewing(null)} onChange={reload} />
+      )}
+
+      {creating && (
+        <NewQuotationModal onClose={() => setCreating(false)} onCreated={async () => { await reload(); setCreating(false); }} />
       )}
     </div>
   );
@@ -187,8 +196,16 @@ function QuotationEditor({ quot, onClose, onSaved }) {
   };
   const removeExtra = (idx) => setForm(f => ({ ...f, extras: f.extras.filter((_, i) => i !== idx) }));
 
-  const applyPkg = (pkgId) => {
-    const pkg = packages.find(p => p._id === pkgId);
+  const applyPkg = async (pkgId) => {
+    if (!pkgId) return setForm(f => ({ ...f, package_id: '' }));
+    // Prefer locally loaded packages; otherwise fetch
+    let pkg = packages.find(p => p._id === pkgId);
+    if (!pkg) {
+      try {
+        const r = await api.get(`/packages/${pkgId}`);
+        pkg = r.data;
+      } catch { /* ignore */ }
+    }
     if (!pkg) return setForm(f => ({ ...f, package_id: pkgId }));
     setForm(f => ({ ...f, package_id: pkgId, unit_price: pkg.price || 0, member_unit_price: pkg.member_price || 0 }));
   };
@@ -235,10 +252,7 @@ function QuotationEditor({ quot, onClose, onSaved }) {
           <div className="space-y-3">
             <div>
               <Label className="text-xs">Paquete</Label>
-              <select value={form.package_id} onChange={e => applyPkg(e.target.value)} className="w-full mt-1 h-10 rounded-xl border border-input px-3 text-sm" data-testid="ed-package">
-                <option value="">— Sin paquete vinculado —</option>
-                {packages.map(p => <option key={p._id} value={p._id}>{p.title} ({p.country})</option>)}
-              </select>
+              <PackageSearchSelect value={form.package_id} onChange={applyPkg} testId="ed-package" />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -337,3 +351,92 @@ function QuotationEditor({ quot, onClose, onSaved }) {
     </div>
   );
 }
+
+function NewQuotationModal({ onClose, onCreated }) {
+  const [customer, setCustomer] = useState({ type: 'new', name: '', email: '', phone: '' });
+  const [packageId, setPackageId] = useState('');
+  const [guests, setGuests] = useState(2);
+  const [travelDate, setTravelDate] = useState('');
+  const [message, setMessage] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    // Validate
+    if (customer.type === 'new' && !customer.name.trim()) {
+      toast.error('Ingresa el nombre del cliente');
+      return;
+    }
+    if (customer.type === 'member' && !customer.member_id) {
+      toast.error('Selecciona un socio');
+      return;
+    }
+    if (customer.type === 'client' && !customer.client_id) {
+      toast.error('Selecciona un cliente');
+      return;
+    }
+    setSaving(true);
+    try {
+      const payload = {
+        member_id: customer.type === 'member' ? customer.member_id : '',
+        client_id: customer.type === 'client' ? customer.client_id : '',
+        name: customer.name || '',
+        email: customer.email || '',
+        phone: customer.phone || '',
+        package_id: packageId,
+        guests,
+        travel_date: travelDate,
+        message,
+      };
+      await api.post('/quotations/admin', payload);
+      toast.success('Cotización creada');
+      onCreated();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Error al crear');
+    }
+    setSaving(false);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in" data-testid="new-quot-modal">
+      <div className="bg-white rounded-2xl w-full max-w-2xl p-6 max-h-[92vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-heading text-xl font-semibold">Nueva Cotización</h3>
+          <Button variant="ghost" onClick={onClose}><X className="w-4 h-4" /></Button>
+        </div>
+
+        <form onSubmit={submit} className="space-y-4">
+          <div>
+            <Label className="text-xs font-semibold uppercase tracking-wide">Cliente</Label>
+            <div className="mt-2">
+              <CustomerPicker value={customer} onChange={setCustomer} />
+            </div>
+          </div>
+
+          <div>
+            <Label className="text-xs font-semibold uppercase tracking-wide">Paquete</Label>
+            <PackageSearchSelect value={packageId} onChange={setPackageId} testId="newq-pkg" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label className="text-xs">Pax</Label><Input type="number" min="1" value={guests} onChange={e => setGuests(parseInt(e.target.value) || 1)} className="rounded-xl mt-1" data-testid="newq-guests" /></div>
+            <div><Label className="text-xs">Fecha de viaje</Label><Input type="date" value={travelDate} onChange={e => setTravelDate(e.target.value)} className="rounded-xl mt-1" data-testid="newq-date" /></div>
+          </div>
+
+          <div>
+            <Label className="text-xs">Mensaje / notas</Label>
+            <Textarea value={message} onChange={e => setMessage(e.target.value)} rows={3} className="rounded-xl mt-1" placeholder="Información adicional sobre la cotización" data-testid="newq-message" />
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <Button type="button" variant="outline" onClick={onClose} className="flex-1 rounded-xl">Cancelar</Button>
+            <Button type="submit" disabled={saving} className="flex-1 rounded-xl bg-primary" data-testid="newq-submit">
+              {saving ? 'Creando...' : 'Crear Cotización'}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+

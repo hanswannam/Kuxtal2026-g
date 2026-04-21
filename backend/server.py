@@ -245,6 +245,13 @@ class VacationRequestCreate(BaseModel):
 class WhatsAppConfig(BaseModel):
     phone: str
 
+class ClientCreate(BaseModel):
+    name: str
+    email: Optional[str] = ""
+    phone: Optional[str] = ""
+    dpi: Optional[str] = ""
+    notes: Optional[str] = ""
+
 # ── Commerce Models ──
 
 COMMERCE_CATEGORIES = [
@@ -533,6 +540,14 @@ async def create_package(req: PackageCreate, request: Request):
     doc["created_by"] = user["_id"]
     result = await db.packages.insert_one(doc)
     doc["_id"] = str(result.inserted_id)
+    # Broadcast to members & all: new package available
+    await _broadcast_news(
+        title="Nuevo paquete disponible",
+        message=f"{doc.get('title','')} - {doc.get('country','')}. ¡Descubrelo ahora!",
+        link=f"/trip/{doc['_id']}",
+        image_url=doc.get("image_url", ""),
+        target="all",
+    )
     return doc
 
 @api_router.put("/packages/{package_id}")
@@ -856,6 +871,10 @@ async def create_quotation(req: QuotationRequest):
         doc["contract_number"] = member.get("contract_number", "")
     else:
         doc["is_member"] = False
+        # Auto-register as client for the agency's CRM
+        client_id = await _upsert_client(req.name, req.email, req.phone)
+        if client_id:
+            doc["client_id"] = client_id
     # Snapshot package info if a package was requested
     if req.package_id:
         try:
@@ -891,6 +910,81 @@ async def list_quotations(request: Request):
             quotations.append(serialize_doc(q))
         return quotations
     return []
+
+@api_router.post("/quotations/admin")
+async def create_quotation_as_admin(request: Request):
+    """Admin creates a quotation for an existing socio, existing client, or a new client."""
+    user = await require_role("super_admin", "admin")(request)
+    body = await request.json()
+    name = (body.get("name") or "").strip()
+    email = (body.get("email") or "").strip()
+    phone = (body.get("phone") or "").strip()
+    member_id = body.get("member_id") or ""
+    client_id = body.get("client_id") or ""
+    package_id = body.get("package_id") or ""
+    guests = int(body.get("guests") or 1)
+    travel_date = body.get("travel_date") or ""
+    message = body.get("message") or ""
+
+    doc = {
+        "name": name, "email": email, "phone": phone,
+        "guests": guests, "travel_date": travel_date, "message": message,
+        "package_id": package_id,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "status": "in_review",
+        "id": str(uuid.uuid4()),
+        "public_token": secrets.token_urlsafe(16),
+        "is_member": False,
+        "timeline": [{
+            "event": "created",
+            "label": f"Cotización creada por {user.get('name','Admin')}",
+            "at": datetime.now(timezone.utc).isoformat(),
+            "by": user.get("name", "Admin"),
+        }],
+    }
+
+    # Resolve member or client
+    if member_id:
+        member = await db.members.find_one({"_id": ObjectId(member_id)})
+        if member:
+            doc["is_member"] = True
+            doc["member_id"] = str(member["_id"])
+            doc["member_name"] = member.get("name", "")
+            doc["contract_number"] = member.get("contract_number", "")
+            if not doc["name"]: doc["name"] = member.get("name", "")
+            if not doc["email"]: doc["email"] = member.get("email", "")
+            if not doc["phone"]: doc["phone"] = member.get("phone", "")
+    elif client_id:
+        client = await db.clients.find_one({"_id": ObjectId(client_id)})
+        if client:
+            doc["client_id"] = str(client["_id"])
+            if not doc["name"]: doc["name"] = client.get("name", "")
+            if not doc["email"]: doc["email"] = client.get("email", "")
+            if not doc["phone"]: doc["phone"] = client.get("phone", "")
+    else:
+        # No member or client selected: auto-register a new client with the provided data
+        new_id = await _upsert_client(doc["name"], doc["email"], doc["phone"])
+        if new_id:
+            doc["client_id"] = new_id
+
+    # Package snapshot
+    if package_id:
+        try:
+            pkg = await db.packages.find_one({"_id": ObjectId(package_id)})
+            if pkg:
+                doc["package_title"] = pkg.get("title", "")
+                doc["package_country"] = pkg.get("country", "")
+                doc["package_duration_days"] = pkg.get("duration_days", 0)
+                doc["unit_price"] = float(pkg.get("price", 0) or 0)
+                doc["member_unit_price"] = float(pkg.get("member_price", 0) or 0)
+                applied_price = doc["member_unit_price"] if (doc["is_member"] and doc["member_unit_price"] > 0) else doc["unit_price"]
+                doc["total"] = round(applied_price * guests, 2)
+        except Exception:
+            pass
+
+    result = await db.quotations.insert_one(doc)
+    doc["_id"] = str(result.inserted_id)
+    return serialize_doc(doc)
 
 @api_router.put("/quotations/{quotation_id}")
 async def update_quotation(quotation_id: str, request: Request):
@@ -1011,7 +1105,93 @@ async def public_quotation_decision(token: str, request: Request):
             "at": datetime.now(timezone.utc).isoformat(),
          }}}
     )
+    # Notify admins via push (non-blocking)
+    try:
+        emoji = "✅" if decision == "approved" else "❌"
+        await _send_push_raw(
+            title=f"{emoji} Cotización {status_label.lower()}",
+            message=f"{q.get('name','Cliente')} {('aceptó' if decision == 'approved' else 'rechazó')} la cotización {q.get('package_title') or ''}".strip(),
+            link="/admin",
+        )
+    except Exception:
+        pass
     return {"status": decision}
+
+async def _upsert_client(name: str, email: str = "", phone: str = "") -> Optional[str]:
+    """Create a client record if not already present (matched by email, then phone). Returns client_id string."""
+    name = (name or "").strip()
+    email = (email or "").strip().lower()
+    phone = (phone or "").strip()
+    if not name:
+        return None
+    existing = None
+    if email:
+        existing = await db.clients.find_one({"email": email})
+    if not existing and phone:
+        existing = await db.clients.find_one({"phone": phone})
+    if existing:
+        return str(existing["_id"])
+    doc = {
+        "name": name, "email": email, "phone": phone, "dpi": "", "notes": "",
+        "source": "quotation",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    result = await db.clients.insert_one(doc)
+    return str(result.inserted_id)
+
+@api_router.get("/clients")
+async def list_clients(request: Request, search: Optional[str] = None):
+    await require_role("super_admin", "admin")(request)
+    query = {}
+    if search:
+        s = search.strip()
+        query = {"$or": [
+            {"name": {"$regex": s, "$options": "i"}},
+            {"email": {"$regex": s, "$options": "i"}},
+            {"phone": {"$regex": s, "$options": "i"}},
+            {"dpi": {"$regex": s, "$options": "i"}},
+        ]}
+    results = []
+    async for c in db.clients.find(query).sort("created_at", -1).limit(500):
+        results.append(serialize_doc(c))
+    return results
+
+@api_router.post("/clients")
+async def create_client(req: ClientCreate, request: Request):
+    await require_role("super_admin", "admin")(request)
+    email = (req.email or "").strip().lower()
+    phone = (req.phone or "").strip()
+    # De-dup check
+    if email:
+        existing = await db.clients.find_one({"email": email})
+        if existing:
+            raise HTTPException(status_code=400, detail=f"Ya existe un cliente con ese email ({existing.get('name')})")
+    doc = req.model_dump()
+    doc["email"] = email
+    doc["phone"] = phone
+    doc["source"] = "manual"
+    doc["created_at"] = datetime.now(timezone.utc).isoformat()
+    result = await db.clients.insert_one(doc)
+    doc["_id"] = str(result.inserted_id)
+    return serialize_doc(doc)
+
+@api_router.put("/clients/{client_id}")
+async def update_client(client_id: str, req: ClientCreate, request: Request):
+    await require_role("super_admin", "admin")(request)
+    updates = req.model_dump()
+    updates["email"] = (updates.get("email") or "").strip().lower()
+    updates["phone"] = (updates.get("phone") or "").strip()
+    updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db.clients.update_one({"_id": ObjectId(client_id)}, {"$set": updates})
+    c = await db.clients.find_one({"_id": ObjectId(client_id)})
+    return serialize_doc(c)
+
+@api_router.delete("/clients/{client_id}")
+async def delete_client(client_id: str, request: Request):
+    await require_role("super_admin", "admin")(request)
+    await verify_delete_code(request)
+    await db.clients.delete_one({"_id": ObjectId(client_id)})
+    return {"message": "Cliente eliminado"}
 
 # ── Announcements ──
 
@@ -1279,6 +1459,14 @@ async def create_commerce(req: CommerceCreate, request: Request):
             })
         except Exception:
             pass
+    # Broadcast to members: new commerce benefit
+    await _broadcast_news(
+        title="Nuevo comercio afiliado",
+        message=f"{doc.get('name','')} - {doc.get('benefit_description') or doc.get('category','')}. ¡Disfruta tus beneficios!",
+        link=f"/commerce/{doc['_id']}",
+        image_url=doc.get("logo_url", ""),
+        target="all",
+    )
     return doc
 
 @api_router.put("/commerce/{commerce_id}")
@@ -1628,13 +1816,23 @@ async def send_push(request: Request):
     message = body.get("message", "")
     link = body.get("link", "/")
     image_url = body.get("image_url", "")
+    sent_count, failed_count = await _send_push_raw(title, message, link, image_url)
+    notification = {
+        "title": title, "message": message, "link": link, "image_url": image_url,
+        "sent_by": user["_id"],
+        "sent_at": datetime.now(timezone.utc).isoformat(),
+        "recipients_count": sent_count, "failed_count": failed_count,
+    }
+    await db.push_notifications.insert_one(notification)
+    return {"message": f"Notificacion enviada a {sent_count} suscriptores ({failed_count} fallaron)", "count": sent_count}
+
+async def _send_push_raw(title: str, message: str, link: str = "/", image_url: str = "") -> tuple[int, int]:
+    """Core push sender. Returns (sent_count, failed_count). Used by both the admin endpoint and automatic triggers."""
     subs = await db.push_subscriptions.find().to_list(10000)
     sent_count = 0
     failed_count = 0
     stale_ids = []
     payload = json_module.dumps({"title": title, "body": message, "message": message, "url": link, "link": link, "image": image_url})
-
-    # Send in batches of 50
     batch_size = 50
     for i in range(0, len(subs), batch_size):
         batch = subs[i:i + batch_size]
@@ -1661,23 +1859,25 @@ async def send_push(request: Request):
                 except Exception:
                     if attempt == retries - 1:
                         failed_count += 1
-
-    # Cleanup stale subscriptions in bulk
     if stale_ids:
         await db.push_subscriptions.delete_many({"_id": {"$in": stale_ids}})
+    return sent_count, failed_count
 
-    notification = {
-        "title": title,
-        "message": message,
-        "link": link,
-        "image_url": image_url,
-        "sent_by": user["_id"],
-        "sent_at": datetime.now(timezone.utc).isoformat(),
-        "recipients_count": sent_count,
-        "failed_count": failed_count
-    }
-    await db.push_notifications.insert_one(notification)
-    return {"message": f"Notificacion enviada a {sent_count} suscriptores ({failed_count} fallaron)", "count": sent_count}
+async def _broadcast_news(title: str, message: str, link: str = "/", image_url: str = "", target: str = "all"):
+    """Send push + create announcement in one call. Non-blocking (errors are logged)."""
+    try:
+        # Register as announcement so it shows in member/admin Anuncios tab
+        ann = {
+            "title": title, "content": message, "image_url": image_url, "link": link,
+            "target": target, "status": "active",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_by": "system",
+        }
+        await db.announcements.insert_one(ann)
+        # Then fire push (best-effort)
+        await _send_push_raw(title, message, link, image_url)
+    except Exception as e:
+        logger.warning(f"Broadcast news failed for '{title}': {e}")
 
 @api_router.get("/push/history")
 async def push_history(request: Request):
@@ -1788,6 +1988,14 @@ async def create_club(request: Request):
     }
     result = await db.vacation_clubs.insert_one(club)
     club["_id"] = str(result.inserted_id)
+    # Broadcast to members: new club available
+    await _broadcast_news(
+        title="Nuevo club vacacional",
+        message=f"{club['name']}. Descubre sus beneficios.",
+        link="/member",
+        image_url=club.get("logo_url", ""),
+        target="members",
+    )
     return club
 
 @api_router.get("/clubs")

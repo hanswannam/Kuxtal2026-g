@@ -4,7 +4,7 @@ import { Badge } from '../components/ui/badge';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import {
   LayoutDashboard, Users, Package, FileText, Bell, MessageSquare, Settings,
-  Send, Store, TrendingUp, Gift, Loader2, Sparkles, Award, Building2, Tag
+  Send, Store, TrendingUp, Gift, Loader2, Sparkles, Award, Building2, Tag, UserPlus
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../lib/api';
@@ -25,6 +25,7 @@ const AdminImport = lazy(() => import('./admin/AdminImport').then(m => ({ defaul
 const AdminRegalias = lazy(() => import('./admin/AdminRegalias').then(m => ({ default: m.AdminRegalias })));
 const AdminClubs = lazy(() => import('./admin/AdminClubs').then(m => ({ default: m.AdminClubs })));
 const AdminCommerceCategories = lazy(() => import('./admin/AdminCommerceCategories').then(m => ({ default: m.AdminCommerceCategories })));
+const AdminClients = lazy(() => import('./admin/AdminClients').then(m => ({ default: m.AdminClients })));
 
 function TabLoader() {
   return (
@@ -195,6 +196,7 @@ export default function AdminDashboard() {
     { id: 'import', label: 'Importar', icon: Sparkles },
     { id: 'analytics', label: 'Analytics', icon: TrendingUp },
     { id: 'members', label: 'Socios', icon: Users },
+    { id: 'clients', label: 'Clientes', icon: UserPlus },
     { id: 'packages', label: 'Paquetes', icon: Package },
     { id: 'commerce', label: 'Comercios', icon: Store },
     { id: 'categories', label: 'Categorías', icon: Tag },
@@ -239,6 +241,7 @@ export default function AdminDashboard() {
           {tab === 'import' && <AdminImport onPackageCreated={loadData} />}
           {tab === 'analytics' && <AdminAnalytics analytics={analytics} stats={stats} />}
           {tab === 'members' && <AdminMembers members={members} memberForm={memberForm} setMemberForm={setMemberForm} showMemberForm={showMemberForm} setShowMemberForm={setShowMemberForm} editingMember={editingMember} setEditingMember={setEditingMember} saveMember={saveMember} editMember={editMember} deleteMember={deleteMember} />}
+          {tab === 'clients' && <AdminClients />}
           {tab === 'packages' && <AdminPackages packages={packages} packageForm={packageForm} setPackageForm={setPackageForm} showPackageForm={showPackageForm} setShowPackageForm={setShowPackageForm} editingPackage={editingPackage} setEditingPackage={setEditingPackage} savePackage={savePackage} editPkg={editPkg} deletePkg={deletePkg} includesInput={includesInput} setIncludesInput={setIncludesInput} addInclude={addInclude} removeInclude={removeInclude} handleImageUpload={handleImageUpload} uploading={uploading} />}
           {tab === 'quotations' && <AdminQuotations quotations={quotations} />}
           {tab === 'referrals' && <AdminReferrals referrals={referrals} loadData={loadData} />}

@@ -91,6 +91,7 @@ function buildWhatsAppMessage(q, publicUrl) {
 }
 
 export function QuotationCardPreview({ quot }) {
+  const KUXTAL_LOGO = "https://customer-assets.emergentagent.com/job_vacation-club-portal/artifacts/ikgtmopq_logo%20kuxtal.avif";
   const total = Number(quot.total) || 0;
   const baseUnit = quot.is_member && Number(quot.member_unit_price) > 0 ? Number(quot.member_unit_price) : Number(quot.unit_price) || 0;
   const extras = quot.extras || [];
@@ -102,12 +103,15 @@ export function QuotationCardPreview({ quot }) {
     <div className="bg-white rounded-2xl overflow-hidden shadow-lg border border-border max-w-xl mx-auto" data-testid="quot-preview-card">
       {/* Header con branding */}
       <div className="bg-primary text-white p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-[10px] tracking-[0.25em] uppercase text-white/70 font-semibold">Kuxtal Travels</p>
-            <h2 className="font-heading text-2xl font-bold mt-1">Cotización de Viaje</h2>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <img src={KUXTAL_LOGO} alt="Kuxtal Travels" className="h-12 w-12 rounded-lg bg-white p-1 object-contain shrink-0" />
+            <div className="min-w-0">
+              <p className="text-[10px] tracking-[0.25em] uppercase text-white/70 font-semibold">Kuxtal Travels</p>
+              <h2 className="font-heading text-xl font-bold mt-0.5 leading-tight">Cotización de Viaje</h2>
+            </div>
           </div>
-          <div className="text-right">
+          <div className="text-right shrink-0">
             <p className="text-[10px] text-white/60 uppercase">N°</p>
             <p className="text-xs font-mono">{quot._id?.slice(-8)}</p>
           </div>
