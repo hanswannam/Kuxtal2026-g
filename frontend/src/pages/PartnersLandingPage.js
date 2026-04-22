@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   ArrowRight, CheckCircle2, Eye, Users, ShieldCheck, Handshake, Megaphone, Globe,
   Target, Sparkles, Smartphone, RefreshCw, Shield, Briefcase, FileText, ClipboardCheck,
-  PenLine, Rocket, Mail, MessageCircle, Star,
+  PenLine, Rocket, MessageCircle, Star,
 } from 'lucide-react';
 
 const CLUB_LOGO = "https://customer-assets.emergentagent.com/job_vacation-club-portal/artifacts/fa7v4ni5_Kuxtal%20Club%20%281%29.png";
@@ -403,12 +403,9 @@ export default function PartnersLandingPage() {
             </div>
           </Reveal>
           <Reveal delay={400}>
-            <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-6 text-sm text-white/60">
-              <a href="mailto:info@kuxtaltravelgt.com" className="inline-flex items-center gap-2 hover:text-[#EDD584] transition-colors">
-                <Mail className="w-4 h-4" /> info@kuxtaltravelgt.com
-              </a>
-              <a href="https://wa.me/50200000000" className="inline-flex items-center gap-2 hover:text-[#EDD584] transition-colors">
-                <MessageCircle className="w-4 h-4" /> WhatsApp directo
+            <div className="mt-12 flex items-center justify-center text-sm text-white/60">
+              <a href="https://wa.me/50247470143" className="inline-flex items-center gap-2 hover:text-[#EDD584] transition-colors">
+                <MessageCircle className="w-4 h-4" /> WhatsApp: +502 4747 0143
               </a>
             </div>
           </Reveal>
