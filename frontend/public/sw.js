@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kuxtal-v5';
+const CACHE_NAME = 'kuxtal-v6';
 const STATIC_ASSETS = ['/', '/manifest.json', '/apple-touch-icon.png', '/icons/icon-192.png', '/icons/icon-512.png'];
 const API_CACHE = 'kuxtal-api-v1';
 
