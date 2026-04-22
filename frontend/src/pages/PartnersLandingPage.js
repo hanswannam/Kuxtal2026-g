@@ -3,10 +3,11 @@ import { Link } from 'react-router-dom';
 import {
   ArrowRight, CheckCircle2, Eye, Users, ShieldCheck, Handshake, Megaphone, Globe,
   Target, Sparkles, Smartphone, RefreshCw, Shield, Briefcase, FileText, ClipboardCheck,
-  PenLine, Rocket, MessageCircle, Star,
+  PenLine, Rocket, MessageCircle, Star, Volume2, VolumeX, Play,
 } from 'lucide-react';
 
 const CLUB_LOGO = "https://customer-assets.emergentagent.com/job_vacation-club-portal/artifacts/fa7v4ni5_Kuxtal%20Club%20%281%29.png";
+const HERO_VIDEO = "https://customer-assets.emergentagent.com/job_vacation-club-portal/artifacts/ra2ak55c_Kuxtal_Club_Promotional_Video_Creation.mp4";
 
 // Kuxtal Club palette
 // - Crimson: #C8263E (primary accent)
@@ -84,6 +85,31 @@ const CATEGORIES = [
 ];
 
 export default function PartnersLandingPage() {
+  const videoRef = useRef(null);
+  const [muted, setMuted] = useState(true);
+  const [started, setStarted] = useState(false);
+
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    const tryPlay = async () => {
+      try {
+        v.muted = true;
+        await v.play();
+        setStarted(true);
+      } catch (_) { /* user must tap */ }
+    };
+    tryPlay();
+  }, []);
+
+  const toggleMute = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.muted = !v.muted;
+    setMuted(v.muted);
+    if (v.paused) v.play().catch(() => {});
+  };
+
   return (
     <div className="min-h-screen bg-[#0B1115] text-white selection:bg-[#EDD584] selection:text-[#0B1115]">
       {/* Decorative noise texture via inline SVG */}
@@ -106,6 +132,57 @@ export default function PartnersLandingPage() {
           </div>
         </div>
       </header>
+
+      {/* PROMO VIDEO */}
+      <section className="relative bg-black overflow-hidden">
+        <div className="relative max-w-7xl mx-auto">
+          <div className="relative aspect-video w-full bg-black">
+            <video
+              ref={videoRef}
+              src={HERO_VIDEO}
+              className="absolute inset-0 w-full h-full object-cover"
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="auto"
+              controls={false}
+              data-testid="hero-video"
+            />
+            {/* Cinematic gradient overlays (don't hide main content) */}
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0B1115] via-transparent to-transparent" />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-transparent" />
+
+            {/* Mute / Unmute */}
+            <button
+              onClick={toggleMute}
+              className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 w-12 h-12 rounded-full bg-black/50 hover:bg-black/70 border border-[#EDD584]/30 backdrop-blur-md text-[#EDD584] flex items-center justify-center shadow-lg transition-all hover:scale-105"
+              aria-label={muted ? 'Activar sonido' : 'Silenciar'}
+              data-testid="video-mute-toggle"
+            >
+              {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+            </button>
+
+            {/* Subtle prompt on first interaction if autoplay blocked */}
+            {!started && (
+              <button
+                onClick={() => {
+                  const v = videoRef.current; if (!v) return;
+                  v.muted = false; setMuted(false);
+                  v.play().then(() => setStarted(true)).catch(() => {});
+                }}
+                className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm group"
+                data-testid="video-play-prompt"
+              >
+                <span className="flex items-center gap-3 px-8 py-4 rounded-full bg-gradient-to-br from-[#C8263E] to-[#8B1A2C] border border-[#EDD584]/30 text-white font-bold shadow-2xl group-hover:scale-105 transition-transform">
+                  <Play className="w-5 h-5 fill-current" /> Reproducir video
+                </span>
+              </button>
+            )}
+          </div>
+        </div>
+        <div className="h-px bg-gradient-to-r from-transparent via-[#EDD584]/30 to-transparent" />
+      </section>
 
       {/* HERO */}
       <section className="relative overflow-hidden">
