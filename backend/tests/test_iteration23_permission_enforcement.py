@@ -19,11 +19,17 @@ BASE_URL = os.environ.get(
     "https://vacation-club-portal.preview.emergentagent.com",
 ).rstrip("/")
 
-SUPER_ADMIN_EMAIL = "admin@kuxtaltravels.com"
-SUPER_ADMIN_PASSWORD = "KuxtalAdmin2024!"
-LIMITED_ADMIN_EMAIL = "testadmin@kuxtaltravels.com"
-LIMITED_ADMIN_PASSWORD = "TestAdmin123!"
-DELETE_CODE = "BORRAR YA"
+SUPER_ADMIN_EMAIL = os.environ.get("TEST_ADMIN_EMAIL", "admin@kuxtaltravels.com")
+SUPER_ADMIN_PASSWORD = os.environ.get("TEST_ADMIN_PASSWORD", "")
+LIMITED_ADMIN_EMAIL = os.environ.get("TEST_LIMITED_ADMIN_EMAIL", "testadmin@kuxtaltravels.com")
+LIMITED_ADMIN_PASSWORD = os.environ.get("TEST_LIMITED_ADMIN_PASSWORD", "")
+DELETE_CODE = os.environ.get("DELETE_SECRET", "BORRAR YA")
+
+if not SUPER_ADMIN_PASSWORD or not LIMITED_ADMIN_PASSWORD:
+    pytest.skip(
+        "TEST_ADMIN_PASSWORD and TEST_LIMITED_ADMIN_PASSWORD must be set in env to run these tests",
+        allow_module_level=True,
+    )
 
 NONEXISTENT_ID = "000000000000000000000000"  # valid-shape ObjectId that doesn't exist
 
@@ -68,12 +74,12 @@ class TestLoginPermissions:
         data = _login(LIMITED_ADMIN_EMAIL, LIMITED_ADMIN_PASSWORD)
         assert "permissions" in data
         perms = data["permissions"] or {}
-        assert perms.get("dashboard") is True, f"dashboard should be True, got {perms}"
-        assert perms.get("members") is True, f"members should be True, got {perms}"
+        assert perms.get("dashboard") == True, f"dashboard should be True, got {perms}"
+        assert perms.get("members") == True, f"members should be True, got {perms}"
         for k in ("packages", "quotations", "clients", "commerce", "categories",
                   "clubs", "regalias", "referrals", "settings", "announcements",
                   "requests", "push"):
-            assert perms.get(k) is False, f"perm '{k}' should be False for testadmin, got {perms.get(k)}"
+            assert perms.get(k) == False, f"perm '{k}' should be False for testadmin, got {perms.get(k)}"
 
 
 # ── 2. 403 for limited admin on disallowed module endpoints ──

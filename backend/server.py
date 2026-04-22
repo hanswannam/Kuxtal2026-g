@@ -426,7 +426,7 @@ async def logout(response: Response):
 
 @api_router.get("/members")
 async def list_members(request: Request, search: Optional[str] = None, status: Optional[str] = None):
-    user = await require_role("super_admin", "admin")(request)
+    await require_role("super_admin", "admin")(request)
     query = {}
     if status:
         query["status"] = status
@@ -475,7 +475,7 @@ async def create_member(req: MemberCreate, request: Request):
 
 @api_router.put("/members/{member_id}")
 async def update_member(member_id: str, req: MemberCreate, request: Request):
-    user = await require_role("super_admin", "admin", permission="members")(request)
+    await require_role("super_admin", "admin", permission="members")(request)
     prev = await db.members.find_one({"_id": ObjectId(member_id)})
     if not prev:
         raise HTTPException(status_code=404, detail="Socio no encontrado")
@@ -519,7 +519,7 @@ async def update_member(member_id: str, req: MemberCreate, request: Request):
 
 @api_router.delete("/members/{member_id}")
 async def delete_member(member_id: str, request: Request):
-    user = await require_role("super_admin", "admin", permission="members")(request)
+    await require_role("super_admin", "admin", permission="members")(request)
     await verify_delete_code(request)
     result = await db.members.delete_one({"_id": ObjectId(member_id)})
     if result.deleted_count == 0:
@@ -635,7 +635,7 @@ async def create_package(req: PackageCreate, request: Request):
 
 @api_router.put("/packages/{package_id}")
 async def update_package(package_id: str, req: PackageCreate, request: Request):
-    user = await require_role("super_admin", "admin", permission="packages")(request)
+    await require_role("super_admin", "admin", permission="packages")(request)
     update_data = req.model_dump()
     update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
     await db.packages.update_one({"_id": ObjectId(package_id)}, {"$set": update_data})
@@ -671,7 +671,7 @@ async def toggle_package_status(package_id: str, request: Request):
 
 @api_router.delete("/packages/{package_id}")
 async def delete_package(package_id: str, request: Request):
-    user = await require_role("super_admin", "admin", permission="packages")(request)
+    await require_role("super_admin", "admin", permission="packages")(request)
     await verify_delete_code(request)
     result = await db.packages.delete_one({"_id": ObjectId(package_id)})
     if result.deleted_count == 0:
@@ -829,131 +829,180 @@ Notas:
 @api_router.post("/packages/import-from-drive")
 async def import_package_from_drive(request: Request):
     """Import a package from a Google Drive shared link using AI extraction."""
-    user = await require_role("super_admin", "admin", permission="packages")(request)
+    await require_role("super_admin", "admin", permission="packages")(request)
     body = await request.json()
     drive_url = body.get("drive_url", "").strip()
 
-    if not drive_url:
-        raise HTTPException(status_code=400, detail="URL de Google Drive requerida")
-
-    file_id = extract_gdrive_file_id(drive_url)
-    if not file_id:
-        raise HTTPException(status_code=400, detail="No se pudo extraer el ID del archivo de Google Drive. Verifica que el enlace sea correcto.")
-
-    # Download file
-    tmp_dir = tempfile.mkdtemp()
-    tmp_path = os.path.join(tmp_dir, f"gdrive_{file_id}")
+    file_id = _validate_and_extract_drive_id(drive_url)
+    tmp_dir, tmp_path = _download_drive_file_to_tmp(file_id)
     try:
-        content_type = download_gdrive_file(file_id, tmp_path)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Error al descargar archivo: asegurate de que el enlace sea publico/compartido. {str(e)}")
+        content_type = _safe_download(file_id, tmp_path)
+        mime = detect_mime_type(tmp_path, content_type)
+        llm_key = _get_llm_key()
 
-    mime = detect_mime_type(tmp_path, content_type)
-    llm_key = os.environ.get("EMERGENT_LLM_KEY")
-    if not llm_key:
-        raise HTTPException(status_code=500, detail="LLM key no configurada")
+        response_text = await _ai_extract_package_from_file(llm_key, tmp_path, mime, file_id)
+        package_data = _parse_ai_package_json(response_text)
+        _apply_package_defaults(package_data)
+        extracted_gallery = _collect_gallery_from_source(tmp_path, mime)
 
-    try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
-
-        chat = LlmChat(
-            api_key=llm_key,
-            session_id=f"import-{file_id}-{uuid.uuid4().hex[:8]}",
-            system_message=PACKAGE_EXTRACTION_PROMPT
-        ).with_model("gemini", "gemini-2.5-flash")
-
-        # For images and PDFs, use Gemini file attachment
-        if mime.startswith('image/') or mime == 'application/pdf':
-            file_content = FileContentWithMimeType(file_path=tmp_path, mime_type=mime)
-            msg = UserMessage(
-                text="Analiza este documento y extrae la informacion del paquete turistico. Responde solo con JSON.",
-                file_contents=[file_content]
-            )
-            response_text = await chat.send_message(msg)
-        else:
-            # For Word/Excel, extract text first then send to LLM
-            if 'word' in mime or 'document' in mime:
-                extracted_text = extract_text_from_docx(tmp_path)
-            elif 'sheet' in mime or 'excel' in mime:
-                extracted_text = extract_text_from_xlsx(tmp_path)
-            else:
-                # Try PDF as fallback
-                try:
-                    extracted_text = extract_text_from_pdf(tmp_path)
-                except Exception:
-                    extracted_text = ""
-
-            if not extracted_text.strip():
-                raise HTTPException(status_code=400, detail="No se pudo extraer texto del documento")
-
-            msg = UserMessage(text=f"Analiza el siguiente contenido de un documento de tour/viaje y extrae la informacion del paquete turistico. Responde solo con JSON.\n\n---\n{extracted_text}")
-            response_text = await chat.send_message(msg)
-
-        # Parse JSON from response
-        json_text = response_text.strip()
-        if json_text.startswith("```"):
-            json_text = json_text.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
-        package_data = json_module.loads(json_text)
-
-        # Ensure required fields
-        package_data.setdefault("title", "Paquete Importado")
-        package_data.setdefault("description", "")
-        package_data.setdefault("short_description", "")
-        package_data.setdefault("country", "")
-        package_data.setdefault("price", 0)
-        package_data.setdefault("member_price", 0)
-        package_data.setdefault("duration_days", 1)
-        package_data.setdefault("category", "paquete")
-        package_data.setdefault("includes", [])
-        package_data.setdefault("itinerary", [])
-        package_data.setdefault("accommodation_type", "")
-        package_data.setdefault("difficulty", "")
-        package_data.setdefault("min_group", 1)
-        package_data.setdefault("max_group", 20)
-        package_data.setdefault("rating", 4.8)
-        package_data.setdefault("featured", False)
-        package_data["price"] = float(package_data.get("price", 0) or 0)
-        package_data["member_price"] = float(package_data.get("member_price", 0) or 0)
-        package_data["duration_days"] = int(package_data.get("duration_days", 1) or 1)
-
-        # Extract images from PDF and upload to gallery
-        extracted_gallery = []
-        if mime == 'application/pdf':
-            try:
-                extracted_gallery = extract_images_from_pdf(tmp_path)
-                if extracted_gallery:
-                    logger.info(f"Extracted {len(extracted_gallery)} images from PDF")
-            except Exception as img_err:
-                logger.warning(f"Image extraction from PDF failed: {img_err}")
-
-        # For image files, the source itself becomes the gallery
-        if mime.startswith('image/'):
-            try:
-                with open(tmp_path, 'rb') as f:
-                    img_bytes = f.read()
-                ext = mime.split('/')[-1]
-                if ext == 'jpeg':
-                    ext = 'jpg'
-                storage_path = f"{APP_NAME}/gallery/{uuid.uuid4().hex}.{ext}"
-                put_object(storage_path, img_bytes, mime)
-                extracted_gallery = [f"/api/files/{storage_path}"]
-            except Exception as img_err:
-                logger.warning(f"Image upload failed: {img_err}")
-
-        return {"extracted": package_data, "source_file_id": file_id, "mime_type": mime, "extracted_gallery": extracted_gallery}
-
+        return {
+            "extracted": package_data,
+            "source_file_id": file_id,
+            "mime_type": mime,
+            "extracted_gallery": extracted_gallery,
+        }
+    except HTTPException:
+        raise
     except json_module.JSONDecodeError:
         raise HTTPException(status_code=422, detail="El AI no pudo extraer datos estructurados del documento. Intenta con otro archivo.")
     except Exception as e:
         logger.error(f"Import error: {e}")
         raise HTTPException(status_code=500, detail=f"Error al procesar documento: {str(e)}")
     finally:
-        # Cleanup temp files
+        _cleanup_tmp(tmp_dir, tmp_path)
+
+
+# ── import_package_from_drive helpers ──
+
+def _validate_and_extract_drive_id(drive_url: str) -> str:
+    if not drive_url:
+        raise HTTPException(status_code=400, detail="URL de Google Drive requerida")
+    file_id = extract_gdrive_file_id(drive_url)
+    if not file_id:
+        raise HTTPException(status_code=400, detail="No se pudo extraer el ID del archivo de Google Drive. Verifica que el enlace sea correcto.")
+    return file_id
+
+
+def _download_drive_file_to_tmp(file_id: str):
+    tmp_dir = tempfile.mkdtemp()
+    tmp_path = os.path.join(tmp_dir, f"gdrive_{file_id}")
+    return tmp_dir, tmp_path
+
+
+def _safe_download(file_id: str, tmp_path: str) -> str:
+    try:
+        return download_gdrive_file(file_id, tmp_path)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error al descargar archivo: asegurate de que el enlace sea publico/compartido. {str(e)}")
+
+
+def _get_llm_key() -> str:
+    llm_key = os.environ.get("EMERGENT_LLM_KEY")
+    if not llm_key:
+        raise HTTPException(status_code=500, detail="LLM key no configurada")
+    return llm_key
+
+
+def _extract_text_for_mime(tmp_path: str, mime: str) -> str:
+    if "word" in mime or "document" in mime:
+        return extract_text_from_docx(tmp_path)
+    if "sheet" in mime or "excel" in mime:
+        return extract_text_from_xlsx(tmp_path)
+    try:
+        return extract_text_from_pdf(tmp_path)
+    except Exception:
+        return ""
+
+
+async def _ai_extract_package_from_file(llm_key: str, tmp_path: str, mime: str, file_id: str) -> str:
+    from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType
+
+    chat = LlmChat(
+        api_key=llm_key,
+        session_id=f"import-{file_id}-{uuid.uuid4().hex[:8]}",
+        system_message=PACKAGE_EXTRACTION_PROMPT,
+    ).with_model("gemini", "gemini-2.5-flash")
+
+    if mime.startswith("image/") or mime == "application/pdf":
+        msg = UserMessage(
+            text="Analiza este documento y extrae la informacion del paquete turistico. Responde solo con JSON.",
+            file_contents=[FileContentWithMimeType(file_path=tmp_path, mime_type=mime)],
+        )
+        return await chat.send_message(msg)
+
+    extracted_text = _extract_text_for_mime(tmp_path, mime)
+    if not extracted_text.strip():
+        raise HTTPException(status_code=400, detail="No se pudo extraer texto del documento")
+    msg = UserMessage(
+        text=(
+            "Analiza el siguiente contenido de un documento de tour/viaje y extrae la informacion "
+            f"del paquete turistico. Responde solo con JSON.\n\n---\n{extracted_text}"
+        )
+    )
+    return await chat.send_message(msg)
+
+
+def _parse_ai_package_json(response_text: str) -> dict:
+    json_text = response_text.strip()
+    if json_text.startswith("```"):
+        json_text = json_text.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+    return json_module.loads(json_text)
+
+
+_PACKAGE_DEFAULTS = {
+    "title": "Paquete Importado",
+    "description": "",
+    "short_description": "",
+    "country": "",
+    "price": 0,
+    "member_price": 0,
+    "duration_days": 1,
+    "category": "paquete",
+    "includes": [],
+    "itinerary": [],
+    "accommodation_type": "",
+    "difficulty": "",
+    "min_group": 1,
+    "max_group": 20,
+    "rating": 4.8,
+    "featured": False,
+}
+
+
+def _apply_package_defaults(package_data: dict) -> None:
+    for key, default in _PACKAGE_DEFAULTS.items():
+        package_data.setdefault(key, default)
+    package_data["price"] = float(package_data.get("price", 0) or 0)
+    package_data["member_price"] = float(package_data.get("member_price", 0) or 0)
+    package_data["duration_days"] = int(package_data.get("duration_days", 1) or 1)
+
+
+def _upload_image_as_gallery(tmp_path: str, mime: str) -> list:
+    try:
+        with open(tmp_path, "rb") as f:
+            img_bytes = f.read()
+        ext = mime.split("/")[-1]
+        if ext == "jpeg":
+            ext = "jpg"
+        storage_path = f"{APP_NAME}/gallery/{uuid.uuid4().hex}.{ext}"
+        put_object(storage_path, img_bytes, mime)
+        return [f"/api/files/{storage_path}"]
+    except Exception as img_err:
+        logger.warning(f"Image upload failed: {img_err}")
+        return []
+
+
+def _collect_gallery_from_source(tmp_path: str, mime: str) -> list:
+    if mime == "application/pdf":
         try:
-            os.remove(tmp_path)
-            os.rmdir(tmp_dir)
-        except Exception:
-            pass
+            gallery = extract_images_from_pdf(tmp_path)
+            if gallery:
+                logger.info(f"Extracted {len(gallery)} images from PDF")
+                return gallery
+        except Exception as img_err:
+            logger.warning(f"Image extraction from PDF failed: {img_err}")
+        return []
+    if mime.startswith("image/"):
+        return _upload_image_as_gallery(tmp_path, mime)
+    return []
+
+
+def _cleanup_tmp(tmp_dir: str, tmp_path: str) -> None:
+    try:
+        os.remove(tmp_path)
+        os.rmdir(tmp_dir)
+    except Exception:
+        pass
 
 # ── Quotations ──
 
@@ -1054,12 +1103,18 @@ async def create_quotation_as_admin(request: Request):
     """Admin creates a quotation for an existing socio, existing client, or a new client."""
     user = await require_role("super_admin", "admin", permission="quotations")(request)
     body = await request.json()
+    doc = await _build_admin_quotation_doc(body, user)
+    await _attach_contact_from_source(doc, body)
+    await _attach_package_snapshot(doc, body.get("package_id") or "", int(body.get("guests") or 1))
+    result = await db.quotations.insert_one(doc)
+    doc["_id"] = str(result.inserted_id)
+    return serialize_doc(doc)
+
+
+async def _build_admin_quotation_doc(body: dict, user: dict) -> dict:
     name = (body.get("name") or "").strip()
     email = (body.get("email") or "").strip()
     phone = (body.get("phone") or "").strip()
-    member_id = body.get("member_id") or ""
-    client_id = body.get("client_id") or ""
-    package_id = body.get("package_id") or ""
     guests = int(body.get("guests") or 1)
     travel_date = body.get("travel_date") or ""
     message = body.get("message") or ""
@@ -1067,13 +1122,15 @@ async def create_quotation_as_admin(request: Request):
 
     vdays = await _default_valid_days()
     computed_valid_until = (datetime.now(timezone.utc) + timedelta(days=vdays)).isoformat()
+    now_iso = datetime.now(timezone.utc).isoformat()
+    admin_name = user.get("name", "Admin")
 
-    doc = {
+    return {
         "name": name, "email": email, "phone": phone,
         "guests": guests, "travel_date": travel_date, "message": message,
-        "package_id": package_id,
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "created_by_name": user.get("name", "Admin"),
+        "package_id": body.get("package_id") or "",
+        "created_at": now_iso,
+        "created_by_name": admin_name,
         "created_by_id": user.get("_id"),
         "status": "in_review",
         "id": str(uuid.uuid4()),
@@ -1082,13 +1139,25 @@ async def create_quotation_as_admin(request: Request):
         "valid_until": valid_until_override or computed_valid_until,
         "timeline": [{
             "event": "created",
-            "label": f"Cotización creada por {user.get('name','Admin')}",
-            "at": datetime.now(timezone.utc).isoformat(),
-            "by": user.get("name", "Admin"),
+            "label": f"Cotización creada por {admin_name}",
+            "at": now_iso,
+            "by": admin_name,
         }],
     }
 
-    # Resolve member or client
+
+def _fill_missing_contact(doc: dict, source: dict) -> None:
+    if not doc["name"]:
+        doc["name"] = source.get("name", "")
+    if not doc["email"]:
+        doc["email"] = source.get("email", "")
+    if not doc["phone"]:
+        doc["phone"] = source.get("phone", "")
+
+
+async def _attach_contact_from_source(doc: dict, body: dict) -> None:
+    member_id = body.get("member_id") or ""
+    client_id = body.get("client_id") or ""
     if member_id:
         member = await db.members.find_one({"_id": ObjectId(member_id)})
         if member:
@@ -1096,40 +1165,36 @@ async def create_quotation_as_admin(request: Request):
             doc["member_id"] = str(member["_id"])
             doc["member_name"] = member.get("name", "")
             doc["contract_number"] = member.get("contract_number", "")
-            if not doc["name"]: doc["name"] = member.get("name", "")
-            if not doc["email"]: doc["email"] = member.get("email", "")
-            if not doc["phone"]: doc["phone"] = member.get("phone", "")
-    elif client_id:
+            _fill_missing_contact(doc, member)
+        return
+    if client_id:
         client = await db.clients.find_one({"_id": ObjectId(client_id)})
         if client:
             doc["client_id"] = str(client["_id"])
-            if not doc["name"]: doc["name"] = client.get("name", "")
-            if not doc["email"]: doc["email"] = client.get("email", "")
-            if not doc["phone"]: doc["phone"] = client.get("phone", "")
-    else:
-        # No member or client selected: auto-register a new client with the provided data
-        new_id = await _upsert_client(doc["name"], doc["email"], doc["phone"])
-        if new_id:
-            doc["client_id"] = new_id
+            _fill_missing_contact(doc, client)
+        return
+    # No member or client selected: auto-register a new client with the provided data
+    new_id = await _upsert_client(doc["name"], doc["email"], doc["phone"])
+    if new_id:
+        doc["client_id"] = new_id
 
-    # Package snapshot
-    if package_id:
-        try:
-            pkg = await db.packages.find_one({"_id": ObjectId(package_id)})
-            if pkg:
-                doc["package_title"] = pkg.get("title", "")
-                doc["package_country"] = pkg.get("country", "")
-                doc["package_duration_days"] = pkg.get("duration_days", 0)
-                doc["unit_price"] = float(pkg.get("price", 0) or 0)
-                doc["member_unit_price"] = float(pkg.get("member_price", 0) or 0)
-                applied_price = doc["member_unit_price"] if (doc["is_member"] and doc["member_unit_price"] > 0) else doc["unit_price"]
-                doc["total"] = round(applied_price * guests, 2)
-        except Exception:
-            pass
 
-    result = await db.quotations.insert_one(doc)
-    doc["_id"] = str(result.inserted_id)
-    return serialize_doc(doc)
+async def _attach_package_snapshot(doc: dict, package_id: str, guests: int) -> None:
+    if not package_id:
+        return
+    try:
+        pkg = await db.packages.find_one({"_id": ObjectId(package_id)})
+    except Exception:
+        return
+    if not pkg:
+        return
+    doc["package_title"] = pkg.get("title", "")
+    doc["package_country"] = pkg.get("country", "")
+    doc["package_duration_days"] = pkg.get("duration_days", 0)
+    doc["unit_price"] = float(pkg.get("price", 0) or 0)
+    doc["member_unit_price"] = float(pkg.get("member_price", 0) or 0)
+    applied_price = doc["member_unit_price"] if (doc["is_member"] and doc["member_unit_price"] > 0) else doc["unit_price"]
+    doc["total"] = round(applied_price * guests, 2)
 
 @api_router.put("/quotations/{quotation_id}")
 async def update_quotation(quotation_id: str, request: Request):
@@ -1363,7 +1428,7 @@ async def create_announcement(req: AnnouncementCreate, request: Request):
 
 @api_router.delete("/announcements/{ann_id}")
 async def delete_announcement(ann_id: str, request: Request):
-    user = await require_role("super_admin", "admin", permission="announcements")(request)
+    await require_role("super_admin", "admin", permission="announcements")(request)
     await verify_delete_code(request)
     await db.announcements.update_one({"_id": ObjectId(ann_id)}, {"$set": {"status": "inactive"}})
     return {"message": "Anuncio eliminado"}
@@ -1407,7 +1472,7 @@ async def add_message(req_id: str, request: Request):
 
 @api_router.put("/vacation-requests/{req_id}/status")
 async def update_request_status(req_id: str, request: Request):
-    user = await require_role("super_admin", "admin", permission="requests")(request)
+    await require_role("super_admin", "admin", permission="requests")(request)
     body = await request.json()
     await db.vacation_requests.update_one({"_id": ObjectId(req_id)}, {"$set": {"status": body.get("status", "pending")}})
     return {"message": "Estado actualizado"}
@@ -1423,7 +1488,7 @@ async def get_whatsapp_config():
 
 @api_router.put("/config/whatsapp")
 async def set_whatsapp_config(req: WhatsAppConfig, request: Request):
-    user = await require_role("super_admin", "admin", permission="settings")(request)
+    await require_role("super_admin", "admin", permission="settings")(request)
     await db.config.update_one({"key": "whatsapp"}, {"$set": {"key": "whatsapp", "phone": req.phone}}, upsert=True)
     return {"message": "Configuración actualizada", "phone": req.phone}
 
@@ -1493,7 +1558,7 @@ async def packages_recalculatable_count(request: Request):
 
 @api_router.post("/admin/packages/recalculate-prices")
 async def recalculate_package_prices(request: Request):
-    user = await require_role("super_admin", "admin", permission="packages")(request)
+    await require_role("super_admin", "admin", permission="packages")(request)
     cfg = await db.config.find_one({"key": "pricing_settings"}) or {}
     public_pct = float(cfg.get("public_markup_percent", 30) or 0)
     member_pct = float(cfg.get("member_markup_percent", 15) or 0)
@@ -1857,7 +1922,7 @@ async def update_commerce(commerce_id: str, req: CommerceCreate, request: Reques
 
 @api_router.delete("/commerce/{commerce_id}")
 async def delete_commerce(commerce_id: str, request: Request):
-    user = await require_role("super_admin", "admin", permission="commerce")(request)
+    await require_role("super_admin", "admin", permission="commerce")(request)
     await verify_delete_code(request)
     await db.commerce.update_one({"_id": ObjectId(commerce_id)}, {"$set": {"status": "inactive"}})
     return {"message": "Comercio eliminado"}
@@ -1867,7 +1932,7 @@ async def delete_commerce(commerce_id: str, request: Request):
 @api_router.get("/commerce/{commerce_id}/promotions")
 async def list_commerce_promotions(commerce_id: str):
     promos = []
-    now = datetime.now(timezone.utc).isoformat()
+    datetime.now(timezone.utc).isoformat()
     async for p in db.commerce_promotions.find({"commerce_id": commerce_id, "status": "active"}).sort("created_at", -1).limit(50):
         promos.append(serialize_doc(p))
     return promos
@@ -2256,7 +2321,7 @@ async def _broadcast_news(title: str, message: str, link: str = "/", image_url: 
 
 @api_router.get("/push/history")
 async def push_history(request: Request):
-    user = await require_role("super_admin", "admin")(request)
+    await require_role("super_admin", "admin")(request)
     notifs = []
     async for n in db.push_notifications.find().sort("sent_at", -1).limit(50):
         notifs.append(serialize_doc(n))
@@ -2308,7 +2373,7 @@ async def list_regalias(request: Request, member_id: Optional[str] = None, all: 
 @api_router.put("/members/{member_id}/regalias")
 async def assign_regalias_to_member(member_id: str, request: Request):
     """Bulk update which regalias belong to this socio. Body: { regalia_ids: [...] }."""
-    user = await require_role("super_admin", "admin", permission="members")(request)
+    await require_role("super_admin", "admin", permission="members")(request)
     body = await request.json()
     ids = body.get("regalia_ids", []) or []
     member = await db.members.find_one({"_id": ObjectId(member_id)})
@@ -2331,7 +2396,7 @@ async def assign_regalias_to_member(member_id: str, request: Request):
 
 @api_router.put("/regalias/{regalia_id}/toggle-used")
 async def toggle_regalia_used(regalia_id: str, request: Request):
-    user = await require_role("super_admin", "admin", permission="regalias")(request)
+    await require_role("super_admin", "admin", permission="regalias")(request)
     reg = await db.regalias.find_one({"_id": ObjectId(regalia_id)})
     if not reg:
         raise HTTPException(status_code=404, detail="Regalia no encontrada")
@@ -2341,7 +2406,7 @@ async def toggle_regalia_used(regalia_id: str, request: Request):
 
 @api_router.delete("/regalias/{regalia_id}")
 async def delete_regalia(regalia_id: str, request: Request):
-    user = await require_role("super_admin", "admin", permission="regalias")(request)
+    await require_role("super_admin", "admin", permission="regalias")(request)
     await verify_delete_code(request)
     await db.regalias.update_one({"_id": ObjectId(regalia_id)}, {"$set": {"status": "inactive"}})
     return {"message": "Regalia eliminada"}
@@ -2350,7 +2415,7 @@ async def delete_regalia(regalia_id: str, request: Request):
 
 @api_router.post("/clubs")
 async def create_club(request: Request):
-    user = await require_role("super_admin", "admin", permission="clubs")(request)
+    await require_role("super_admin", "admin", permission="clubs")(request)
     body = await request.json()
     club = {
         "name": body.get("name", ""),
@@ -2382,7 +2447,7 @@ async def list_clubs():
 
 @api_router.put("/clubs/{club_id}")
 async def update_club(club_id: str, request: Request):
-    user = await require_role("super_admin", "admin", permission="clubs")(request)
+    await require_role("super_admin", "admin", permission="clubs")(request)
     body = await request.json()
     update_data = {k: v for k, v in body.items() if k != "_id"}
     update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
@@ -2392,7 +2457,7 @@ async def update_club(club_id: str, request: Request):
 
 @api_router.delete("/clubs/{club_id}")
 async def delete_club(club_id: str, request: Request):
-    user = await require_role("super_admin", "admin", permission="clubs")(request)
+    await require_role("super_admin", "admin", permission="clubs")(request)
     await verify_delete_code(request)
     await db.vacation_clubs.update_one({"_id": ObjectId(club_id)}, {"$set": {"status": "inactive"}})
     return {"message": "Club eliminado"}
@@ -2504,7 +2569,7 @@ async def get_quotation_share(quotation_id: str, request: Request):
 
 @api_router.get("/stats")
 async def get_stats(request: Request):
-    user = await require_role("super_admin", "admin")(request)
+    await require_role("super_admin", "admin")(request)
     total_members = await db.members.count_documents({})
     active_members = await db.members.count_documents({"status": "active"})
     total_packages = await db.packages.count_documents({"status": "active"})
@@ -2527,7 +2592,7 @@ async def get_stats(request: Request):
 
 @api_router.get("/analytics")
 async def get_analytics(request: Request):
-    user = await require_role("super_admin", "admin")(request)
+    await require_role("super_admin", "admin")(request)
     now = datetime.now(timezone.utc)
     # Monthly member growth (last 6 months)
     member_growth = []
@@ -2621,7 +2686,7 @@ async def submit_referral(code: str, req: ReferralSubmit):
 
 @api_router.get("/referrals")
 async def list_referrals(request: Request):
-    user = await require_role("super_admin", "admin")(request)
+    await require_role("super_admin", "admin")(request)
     referrals = []
     async for r in db.referrals.find().sort("created_at", -1).limit(200):
         referrals.append(serialize_doc(r))
@@ -2629,7 +2694,7 @@ async def list_referrals(request: Request):
 
 @api_router.put("/referrals/{ref_id}/status")
 async def update_referral_status(ref_id: str, request: Request):
-    user = await require_role("super_admin", "admin", permission="referrals")(request)
+    await require_role("super_admin", "admin", permission="referrals")(request)
     body = await request.json()
     await db.referrals.update_one({"_id": ObjectId(ref_id)}, {"$set": {"status": body.get("status", "pending"), "updated_at": datetime.now(timezone.utc).isoformat()}})
     return {"message": "Estado actualizado"}
@@ -2714,7 +2779,7 @@ async def send_message(conv_id: str, req: ChatMessageCreate, request: Request):
 
 @api_router.put("/chat/conversations/{conv_id}/close")
 async def close_conversation(conv_id: str, request: Request):
-    user = await require_role("super_admin", "admin")(request)
+    await require_role("super_admin", "admin")(request)
     await db.chat_conversations.update_one({"_id": ObjectId(conv_id)}, {"$set": {"status": "closed", "updated_at": datetime.now(timezone.utc).isoformat()}})
     return {"message": "Conversación cerrada"}
 
@@ -2729,7 +2794,7 @@ async def list_countries():
 
 @api_router.get("/admin/users")
 async def list_admin_users(request: Request):
-    user = await require_role("super_admin")(request)
+    await require_role("super_admin")(request)
     users = []
     async for u in db.users.find({"role": {"$in": ["super_admin", "admin"]}}).sort("created_at", -1).limit(100):
         u_doc = serialize_doc(u)
@@ -2739,7 +2804,7 @@ async def list_admin_users(request: Request):
 
 @api_router.get("/admin/all-users")
 async def list_all_users(request: Request):
-    user = await require_role("super_admin", "admin")(request)
+    await require_role("super_admin", "admin")(request)
     users = []
     async for u in db.users.find().sort("created_at", -1).limit(500):
         u_doc = serialize_doc(u)
@@ -2809,7 +2874,7 @@ async def toggle_user_active(user_id: str, request: Request):
         if target.get("role") == "super_admin" or target.get("email") == main_admin_email:
             raise HTTPException(status_code=403, detail="No tienes permiso para cambiar el estado de este usuario")
     # Prohibir que un super_admin se desactive a sí mismo (lockout)
-    if str(user.get("_id")) == user_id and target.get("is_active", True) is True:
+    if str(user.get("_id")) == user_id and target.get("is_active", True):
         raise HTTPException(status_code=400, detail="No puedes desactivarte a ti mismo")
     new_status = not target.get("is_active", True)
     await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"is_active": new_status}})

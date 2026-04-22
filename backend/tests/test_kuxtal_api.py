@@ -53,7 +53,7 @@ class TestAuthFlows:
         assert data["role"] == "member"
         assert data["contract_number"] == MEMBER_CONTRACT
         assert "member" in data
-        assert data["is_family_member"] is False
+        assert data["is_family_member"] == False
     
     def test_family_member_login_success(self):
         """Family member login should work"""
@@ -63,7 +63,7 @@ class TestAuthFlows:
         })
         assert response.status_code == 200, f"Family login failed: {response.text}"
         data = response.json()
-        assert data["is_family_member"] is True
+        assert data["is_family_member"] == True
     
     def test_member_login_invalid_dpi(self):
         """Invalid DPI should return 401"""

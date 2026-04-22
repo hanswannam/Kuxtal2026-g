@@ -13,11 +13,17 @@ import pytest
 from datetime import datetime, timedelta, timezone
 
 BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "").rstrip("/")
-ADMIN_EMAIL = "admin@kuxtaltravels.com"
-ADMIN_PASSWORD = "KuxtalAdmin2024!"
-MEMBER_CONTRACT = "KT-001"
-MEMBER_DPI = "1234567890101"
-DELETE_SECRET = "BORRAR YA"
+ADMIN_EMAIL = os.environ.get("TEST_ADMIN_EMAIL", "admin@kuxtaltravels.com")
+ADMIN_PASSWORD = os.environ.get("TEST_ADMIN_PASSWORD", "")
+MEMBER_CONTRACT = os.environ.get("TEST_MEMBER_CONTRACT", "KT-001")
+MEMBER_DPI = os.environ.get("TEST_MEMBER_DPI", "")
+DELETE_SECRET = os.environ.get("DELETE_SECRET", "BORRAR YA")
+
+if not ADMIN_PASSWORD or not MEMBER_DPI:
+    pytest.skip(
+        "TEST_ADMIN_PASSWORD and TEST_MEMBER_DPI must be set in env to run these tests",
+        allow_module_level=True,
+    )
 
 
 @pytest.fixture(scope="module")
@@ -92,7 +98,7 @@ class TestPermissionsMatrix:
         assert r.status_code == 200, r.text
         created = r.json()
         user_id = created["id"]
-        assert created["permissions"].get("quotations") is True
+        assert created["permissions"].get("quotations") == True
         assert created["role"] == "admin"
 
         # Update permissions using the existing endpoint
@@ -103,8 +109,8 @@ class TestPermissionsMatrix:
         )
         assert r2.status_code == 200, r2.text
         saved = r2.json().get("permissions", {})
-        assert saved.get("packages") is True
-        assert saved.get("quotations") is True
+        assert saved.get("packages") == True
+        assert saved.get("quotations") == True
 
         # Verify persisted via list endpoint
         r3 = requests.get(f"{BASE_URL}/api/admin/users", headers=admin_headers)
@@ -112,8 +118,8 @@ class TestPermissionsMatrix:
         found = next((u for u in r3.json() if u.get("email") == email), None)
         assert found is not None
         perms = found.get("permissions", {})
-        assert perms.get("packages") is True
-        assert perms.get("quotations") is True
+        assert perms.get("packages") == True
+        assert perms.get("quotations") == True
 
         # Cleanup: delete the created admin
         from urllib.parse import quote

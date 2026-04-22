@@ -93,11 +93,11 @@ class TestLoginResponse:
         assert data["role"] == "admin"
         perms = data.get("permissions")
         assert isinstance(perms, dict), f"limited admin permissions must be dict, got {type(perms)}"
-        assert perms.get("dashboard") is True
-        assert perms.get("members") is True
+        assert perms.get("dashboard") == True
+        assert perms.get("members") == True
         # Should NOT have other perms enabled
-        assert perms.get("users") is not True
-        assert perms.get("packages") is not True
+        assert perms.get("users") != True
+        assert perms.get("packages") != True
 
     def test_auth_me_regression(self):
         r = requests.get(f"{API}/auth/me", headers=auth(state["super_token"]), timeout=15)
@@ -124,7 +124,7 @@ class TestAdminUsersCRUD:
         assert data["email"] == payload["email"].lower()
         assert data["role"] == "admin"
         # default perms for admin role: dashboard, quotations, clients (per code)
-        assert data.get("permissions", {}).get("dashboard") is True
+        assert data.get("permissions", {}).get("dashboard") == True
         state["created_user_id"] = data["id"]
 
     def test_create_user_duplicate_email_rejected(self):
@@ -278,7 +278,7 @@ class TestPermissions:
         assert r.status_code == 200
         data = r.json()
         assert "hacked_key" not in data["permissions"]
-        assert data["permissions"].get("dashboard") is True
+        assert data["permissions"].get("dashboard") == True
 
     def test_update_permissions_forbidden_for_limited_admin(self):
         uid = state["created_user_id"]
