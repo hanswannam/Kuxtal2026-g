@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -42,9 +42,12 @@ const STEPS = [
 
 export default function CommerceWizard() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isPublicFlow = location.pathname.startsWith('/partners');
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [submittedName, setSubmittedName] = useState('');
   const [categories, setCategories] = useState(DEFAULT_CATEGORIES.map(n => ({ name: n, icon: CATEGORY_ICONS[n] || '🏷️', system: true })));
   const [showNewCatInput, setShowNewCatInput] = useState(false);
   const [newCatName, setNewCatName] = useState('');
@@ -110,14 +113,44 @@ export default function CommerceWizard() {
   const submit = async () => {
     setSaving(true);
     try {
-      const { data } = await ax.post('/commerce', form);
-      toast.success(`Comercio "${form.name}" creado correctamente`);
-      navigate('/admin');
+      await ax.post('/commerce', form);
+      toast.success(`Comercio "${form.name}" enviado correctamente`);
+      if (isPublicFlow) {
+        setSubmittedName(form.name);
+      } else {
+        navigate('/admin');
+      }
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Error al crear comercio');
     }
     setSaving(false);
   };
+
+  if (submittedName) {
+    return (
+      <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-6">
+        <div className="bg-white rounded-3xl shadow-xl border border-slate-200 max-w-lg w-full p-10 text-center">
+          <div className="w-20 h-20 rounded-full bg-[#8BC540]/15 flex items-center justify-center mx-auto mb-6">
+            <Check className="w-10 h-10 text-[#8BC540]" />
+          </div>
+          <h2 className="font-heading text-3xl font-bold text-[#1B325F] mb-3">¡Solicitud enviada!</h2>
+          <p className="text-slate-600 leading-relaxed">
+            Gracias por querer sumar <strong>{submittedName}</strong> a Kuxtal Club.
+            Nuestro equipo revisará la información y te contactaremos a la brevedad
+            para formalizar la alianza.
+          </p>
+          <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button onClick={() => navigate('/partners')} className="px-5 py-3 rounded-full border border-slate-300 text-slate-700 font-semibold hover:bg-slate-50 transition-colors">
+              Volver al inicio
+            </button>
+            <button onClick={() => window.location.href = 'https://kuxtaltravelgt.com/benefits'} className="px-5 py-3 rounded-full bg-[#1B325F] text-white font-semibold hover:bg-[#152950] transition-colors">
+              Ver comercios
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const progress = ((step + 1) / STEPS.length) * 100;
 

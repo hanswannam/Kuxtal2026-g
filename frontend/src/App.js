@@ -26,6 +26,7 @@ const CommercePortal = lazy(() => import("./pages/CommercePortal"));
 const ReferralPage = lazy(() => import("./pages/ReferralPage"));
 const ChatPage = lazy(() => import("./pages/ChatPage"));
 const CommerceWizard = lazy(() => import("./pages/CommerceWizard"));
+const PartnersLandingPage = lazy(() => import("./pages/PartnersLandingPage"));
 const CouponValidatePage = lazy(() => import("./pages/CouponValidatePage"));
 const PublicQuotationPage = lazy(() => import("./pages/PublicQuotationPage"));
 
@@ -78,6 +79,8 @@ function App() {
           <Suspense fallback={<PageLoader />}>
             <Routes>
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/partners" element={<PartnersLandingPage />} />
+              <Route path="/partners/afiliar" element={<CommerceWizard />} />
               <Route path="/*" element={
                 <>
                   <Navbar />
