@@ -1659,8 +1659,11 @@ async def list_commerce(category: Optional[str] = None, search: Optional[str] = 
             is_admin = False
     if is_admin and status:
         query = {"status": status}
-    else:
+    elif is_admin:
+        # Admin default view: active approved (any is_active state — toggle visible en UI)
         query = {"status": "active"}
+    else:
+        query = {"status": "active", "is_active": {"$ne": False}}
     if category:
         query["category"] = category
     if search:
@@ -1696,6 +1699,8 @@ async def create_commerce(req: CommerceCreate, request: Request):
     doc["created_by"] = created_by
     # Only super_admin/admin can create an already-active commerce. Everyone else goes to pending.
     doc["status"] = doc.get("status") if is_admin and doc.get("status") else ("active" if is_admin else "pending")
+    # New commerces ALWAYS start in "off" state (switch apagado); admin or the commerce owner must turn it on
+    doc["is_active"] = False
     if not doc["validation_code"]:
         doc["validation_code"] = str(uuid.uuid4())[:8].upper()
     result = await db.commerce.insert_one(doc)
@@ -1716,8 +1721,8 @@ async def create_commerce(req: CommerceCreate, request: Request):
             })
         except Exception:
             pass
-    # Only broadcast "new commerce" to members once the commerce is active (direct admin creation).
-    if doc["status"] == "active":
+    # Only broadcast "new commerce" to members once the commerce is active AND on (not for initial create since is_active=False).
+    if doc["status"] == "active" and doc.get("is_active"):
         await _broadcast_news(
             title="Nuevo comercio afiliado",
             message=f"{doc.get('name','')} - {doc.get('benefit_description') or doc.get('category','')}. ¡Disfruta tus beneficios!",
@@ -1764,6 +1769,47 @@ async def reject_commerce(commerce_id: str, request: Request):
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Comercio no encontrado")
     return {"message": "Comercio rechazado", "status": "rejected"}
+
+@api_router.put("/commerce/{commerce_id}/toggle-active")
+async def toggle_commerce_active(commerce_id: str, request: Request):
+    """Turn commerce listing ON/OFF. Allowed for super_admin, admin with commerce permission, or the commerce owner."""
+    current = await get_current_user(request)
+    target = await db.commerce.find_one({"_id": ObjectId(commerce_id)})
+    if not target:
+        raise HTTPException(status_code=404, detail="Comercio no encontrado")
+    role = current.get("role")
+    is_owner = role == "commerce" and current.get("commerce_id") == commerce_id
+    if role == "super_admin":
+        allowed = True
+    elif role == "admin":
+        perms = current.get("permissions") or {}
+        allowed = bool(perms.get("commerce"))
+    elif is_owner:
+        allowed = True
+    else:
+        allowed = False
+    if not allowed:
+        raise HTTPException(status_code=403, detail="No tienes permiso para cambiar el estado de este comercio")
+    new_active = not target.get("is_active", False)
+    updates = {"is_active": new_active, "updated_at": datetime.now(timezone.utc).isoformat()}
+    await db.commerce.update_one({"_id": ObjectId(commerce_id)}, {"$set": updates})
+    # Broadcast news the first time it's turned on (if approved) and wasn't on before
+    if new_active and target.get("status") == "active" and not target.get("first_activated_at"):
+        await db.commerce.update_one(
+            {"_id": ObjectId(commerce_id)},
+            {"$set": {"first_activated_at": datetime.now(timezone.utc).isoformat()}},
+        )
+        try:
+            await _broadcast_news(
+                title="Nuevo comercio afiliado",
+                message=f"{target.get('name','')} - {target.get('benefit_description') or target.get('category','')}. ¡Disfruta tus beneficios!",
+                link=f"/commerce/{commerce_id}",
+                image_url=target.get("logo_url", ""),
+                target="all",
+            )
+        except Exception as e:
+            logger.warning(f"broadcast failed: {e}")
+    return {"message": f"Comercio {'activado' if new_active else 'desactivado'}", "is_active": new_active}
 
 # ── Social links (footer) ──
 

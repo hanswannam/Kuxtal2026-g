@@ -249,13 +249,34 @@ export function AdminCommerces({ commerces, commerceForm, setCommerceForm, showC
             const { pct, missing } = computeProfile(c);
             const tone = profileTone(pct);
             return (
-            <div key={c._id} className="bg-white rounded-2xl p-5 border border-border hover:shadow-md transition-all" data-testid={`admin-commerce-${i}`}>
+            <div key={c._id} className={`bg-white rounded-2xl p-5 border transition-all ${c.is_active === false ? 'border-border opacity-75 hover:opacity-100' : 'border-border hover:shadow-md'}`} data-testid={`admin-commerce-${i}`}>
               <div className="flex items-start justify-between mb-2">
-                <div>
-                  <h3 className="font-semibold">{c.name}</h3>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold truncate">{c.name}</h3>
+                    {c.is_active === false && (
+                      <Badge variant="outline" className="rounded-full text-[10px] bg-red-50 text-red-700 border-red-200 shrink-0">Apagado</Badge>
+                    )}
+                  </div>
                   <Badge variant="secondary" className="rounded-full text-xs mt-1">{c.category}</Badge>
                 </div>
-                <div className="flex gap-1">
+                <div className="flex gap-1 items-start">
+                  <button
+                    onClick={async () => {
+                      try {
+                        await api.put(`/commerce/${c._id}/toggle-active`);
+                        toast.success(c.is_active === false ? 'Comercio encendido' : 'Comercio apagado');
+                        if (reloadCommerces) reloadCommerces();
+                      } catch (e) { toast.error(e.response?.data?.detail || 'Error al cambiar estado'); }
+                    }}
+                    role="switch"
+                    aria-checked={c.is_active !== false}
+                    title={c.is_active === false ? 'Encender (visible al público)' : 'Apagar (oculto al público)'}
+                    className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${c.is_active === false ? 'bg-muted' : 'bg-emerald-500'}`}
+                    data-testid={`toggle-commerce-${i}`}
+                  >
+                    <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${c.is_active === false ? 'translate-x-0.5' : 'translate-x-[1.4rem]'}`} />
+                  </button>
                   <Button size="sm" variant="ghost" onClick={() => { setCommerceForm({...c}); setShowCommerceForm(true); }} className="text-primary" data-testid={`edit-commerce-${i}`}><Edit className="w-3.5 h-3.5" /></Button>
                   <DeleteWithCode onConfirm={(code) => deleteCommerce(c._id, code)} />
                 </div>

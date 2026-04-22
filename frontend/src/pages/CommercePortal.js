@@ -72,7 +72,7 @@ export default function CommercePortal() {
       const formData = new FormData();
       formData.append('file', file);
       const { data } = await ax.post('/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-      callback(`${API}/api/files/${data.path}`);
+      callback(`/api/files/${data.path}`);
       toast.success('Imagen subida');
     } catch { toast.error('Error al subir imagen'); }
     setUploading(false);
