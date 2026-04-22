@@ -3,8 +3,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { Badge } from '../components/ui/badge';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import {
-  LayoutDashboard, Users, Package, FileText, Bell, MessageSquare, Settings,
-  Send, Store, TrendingUp, Gift, Loader2, Sparkles, Award, Building2, Tag, UserPlus
+  LayoutDashboard, Users, Package, FileText, Bell, Settings,
+  Send, Store, TrendingUp, Gift, Loader2, Award, Building2, Tag, UserPlus
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../lib/api';
@@ -16,14 +16,12 @@ const AdminPackages = lazy(() => import('./admin/AdminPackages').then(m => ({ de
 const AdminQuotations = lazy(() => import('./admin/AdminQuotations').then(m => ({ default: m.AdminQuotations })));
 const AdminReferrals = lazy(() => import('./admin/AdminReferrals').then(m => ({ default: m.AdminReferrals })));
 const AdminAnnouncements = lazy(() => import('./admin/AdminAnnouncements').then(m => ({ default: m.AdminAnnouncements })));
-const AdminRequests = lazy(() => import('./admin/AdminRequests').then(m => ({ default: m.AdminRequests })));
+const AdminRegalias = lazy(() => import('./admin/AdminRegalias').then(m => ({ default: m.AdminRegalias })));
+const AdminClubs = lazy(() => import('./admin/AdminClubs').then(m => ({ default: m.AdminClubs })));
 const AdminCommerces = lazy(() => import('./admin/AdminCommerces').then(m => ({ default: m.AdminCommerces })));
 const AdminPush = lazy(() => import('./admin/AdminPush').then(m => ({ default: m.AdminPush })));
 const AdminUsers = lazy(() => import('./admin/AdminUsers').then(m => ({ default: m.AdminUsers })));
 const AdminSettings = lazy(() => import('./admin/AdminSettings').then(m => ({ default: m.AdminSettings })));
-const AdminImport = lazy(() => import('./admin/AdminImport').then(m => ({ default: m.AdminImport })));
-const AdminRegalias = lazy(() => import('./admin/AdminRegalias').then(m => ({ default: m.AdminRegalias })));
-const AdminClubs = lazy(() => import('./admin/AdminClubs').then(m => ({ default: m.AdminClubs })));
 const AdminCommerceCategories = lazy(() => import('./admin/AdminCommerceCategories').then(m => ({ default: m.AdminCommerceCategories })));
 const AdminClients = lazy(() => import('./admin/AdminClients').then(m => ({ default: m.AdminClients })));
 
@@ -46,7 +44,6 @@ export default function AdminDashboard() {
   const [packages, setPackages] = useState([]);
   const [quotations, setQuotations] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
-  const [vacationReqs, setVacationReqs] = useState([]);
   const [whatsappPhone, setWhatsappPhone] = useState('');
   const [quotSettings, setQuotSettings] = useState({ payment_whatsapp: '', default_valid_days: 10 });
   const [commerces, setCommerces] = useState([]);
@@ -79,13 +76,13 @@ export default function AdminDashboard() {
 
   const loadData = useCallback(async () => {
     try {
-      const [s, m, p, q, a, v, w] = await Promise.all([
+      const [s, m, p, q, a, w] = await Promise.all([
         api.get('/stats'), api.get('/members'), api.get('/packages?include_internal=true'),
-        api.get('/quotations'), api.get('/announcements'), api.get('/vacation-requests'),
+        api.get('/quotations'), api.get('/announcements'),
         api.get('/config/whatsapp')
       ]);
       setStats(s.data); setMembers(m.data); setPackages(p.data);
-      setQuotations(q.data); setAnnouncements(a.data); setVacationReqs(v.data);
+      setQuotations(q.data); setAnnouncements(a.data);
       setWhatsappPhone(w.data.phone || '');
       api.get('/config/quotation-settings').then(r => setQuotSettings(r.data)).catch(() => {});
       api.get('/commerce').then(r => setCommerces(r.data)).catch(e => console.error('Failed to load commerce:', e));
@@ -200,16 +197,9 @@ export default function AdminDashboard() {
     setUploading(false);
   };
 
-  const updateReqStatus = async (id, status) => {
-    await api.put(`/vacation-requests/${id}/status`, { status });
-    toast.success('Estado actualizado');
-    loadData();
-  };
-
   const allTabs = [
     { id: 'quotations', label: 'Cotizaciones', icon: FileText },
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'import', label: 'Importar', icon: Sparkles },
     { id: 'analytics', label: 'Analytics', icon: TrendingUp },
     { id: 'members', label: 'Socios', icon: Users },
     { id: 'clients', label: 'Clientes', icon: UserPlus },
@@ -221,7 +211,6 @@ export default function AdminDashboard() {
     { id: 'referrals', label: 'Referidos', icon: Gift },
     { id: 'announcements', label: 'Anuncios', icon: Bell },
     { id: 'push', label: 'Push', icon: Send },
-    { id: 'requests', label: 'Solicitudes', icon: MessageSquare },
     { id: 'users', label: 'Usuarios', icon: Users },
     { id: 'settings', label: 'Config', icon: Settings },
   ];
@@ -283,7 +272,6 @@ export default function AdminDashboard() {
 
         <Suspense fallback={<TabLoader />}>
           {tab === 'dashboard' && <AdminOverview stats={stats} setTab={setTab} setShowMemberForm={setShowMemberForm} setEditingMember={setEditingMember} setShowPackageForm={setShowPackageForm} setEditingPackage={setEditingPackage} />}
-          {tab === 'import' && <AdminImport onPackageCreated={loadData} />}
           {tab === 'analytics' && <AdminAnalytics analytics={analytics} stats={stats} />}
           {tab === 'members' && <AdminMembers members={members} memberForm={memberForm} setMemberForm={setMemberForm} showMemberForm={showMemberForm} setShowMemberForm={setShowMemberForm} editingMember={editingMember} setEditingMember={setEditingMember} saveMember={saveMember} editMember={editMember} deleteMember={deleteMember} reloadData={loadData} />}
           {tab === 'clients' && <AdminClients />}
@@ -291,7 +279,6 @@ export default function AdminDashboard() {
           {tab === 'quotations' && <AdminQuotations quotations={quotations} />}
           {tab === 'referrals' && <AdminReferrals referrals={referrals} loadData={loadData} />}
           {tab === 'announcements' && <AdminAnnouncements announcements={announcements} announcementForm={announcementForm} setAnnouncementForm={setAnnouncementForm} showAnnouncementForm={showAnnouncementForm} setShowAnnouncementForm={setShowAnnouncementForm} saveAnnouncement={saveAnnouncement} deleteAnn={deleteAnn} />}
-          {tab === 'requests' && <AdminRequests vacationReqs={vacationReqs} updateReqStatus={updateReqStatus} />}
           {tab === 'commerce' && <AdminCommerces commerces={commerces} commerceForm={commerceForm} setCommerceForm={setCommerceForm} showCommerceForm={showCommerceForm} setShowCommerceForm={setShowCommerceForm} commerceCategories={commerceCategories} saveCommerce={saveCommerce} deleteCommerce={deleteCommerce} handleImageUpload={handleImageUpload} uploading={uploading} reloadCommerces={loadData} />}
           {tab === 'categories' && <AdminCommerceCategories />}
           {tab === 'clubs' && <AdminClubs handleImageUpload={handleImageUpload} uploading={uploading} />}

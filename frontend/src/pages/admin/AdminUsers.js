@@ -21,9 +21,7 @@ const FEATURE_LABELS = {
   analytics: 'Analytics',
   announcements: 'Anuncios',
   push: 'Notificaciones push',
-  import: 'Importar',
   referrals: 'Referidos',
-  requests: 'Solicitudes',
   users: 'Usuarios',
   settings: 'Configuración',
 };
