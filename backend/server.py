@@ -2301,7 +2301,7 @@ async def list_regalias(request: Request, member_id: Optional[str] = None, all: 
     if all and user["role"] in ["super_admin", "admin"]:
         query.pop("member_id", None)
     regalias = []
-    async for r in db.regalias.find(query).sort("created_at", -1):
+    async for r in db.regalias.find(query).sort("created_at", -1).limit(500):
         regalias.append(serialize_doc(r))
     return regalias
 
