@@ -4,13 +4,32 @@ import { Input } from '../../components/ui/input';
 import { Textarea } from '../../components/ui/textarea';
 import { Label } from '../../components/ui/label';
 import { Badge } from '../../components/ui/badge';
-import { Send } from 'lucide-react';
+import { Send, Sparkles } from 'lucide-react';
 
 export function AdminPush({ pushForm, setPushForm, sendPush, pushHistory }) {
+  const presetUpdate = () => {
+    setPushForm({
+      title: '🎉 Nueva versión disponible',
+      message: 'Actualizamos Kuxtal Travel con mejoras y correcciones. Abre la app para aplicar la actualización.',
+      link: '/',
+      image_url: '',
+    });
+  };
+
   return (
     <div className="space-y-6 animate-fade-in" data-testid="admin-push">
       <div className="max-w-md">
         <h2 className="font-heading text-lg font-semibold mb-4">Enviar Notificacion Push</h2>
+        <div className="mb-3 bg-primary/5 border border-primary/20 rounded-xl p-3 flex items-start gap-3">
+          <Sparkles className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+          <div className="flex-1">
+            <p className="text-xs font-semibold text-primary">¿Deployaste una versión nueva?</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Avísales a todos los usuarios que instalaron la app para que actualicen al instante.</p>
+            <button type="button" onClick={presetUpdate} className="mt-2 text-xs font-bold text-primary hover:underline" data-testid="push-preset-update">
+              Cargar plantilla "Nueva versión" →
+            </button>
+          </div>
+        </div>
         <form onSubmit={sendPush} className="bg-white rounded-2xl p-6 border border-border space-y-3">
           <div><Label className="text-xs">Título</Label><Input value={pushForm.title} onChange={e => setPushForm({...pushForm, title: e.target.value})} required placeholder="Kuxtal Travel" className="rounded-xl mt-1" data-testid="push-title" /></div>
           <div><Label className="text-xs">Mensaje</Label><Textarea value={pushForm.message} onChange={e => setPushForm({...pushForm, message: e.target.value})} required placeholder="Tu mensaje aqui..." className="rounded-xl mt-1" data-testid="push-message" /></div>

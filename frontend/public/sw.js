@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kuxtal-v6';
+const CACHE_NAME = 'kuxtal-v7';
 const STATIC_ASSETS = ['/', '/manifest.json', '/apple-touch-icon.png', '/icons/icon-192.png', '/icons/icon-512.png'];
 const API_CACHE = 'kuxtal-api-v1';
 
@@ -16,6 +16,13 @@ self.addEventListener('activate', (event) => {
     )
   );
   self.clients.claim();
+});
+
+// Listen for manual activation from UpdatePrompt
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('fetch', (event) => {

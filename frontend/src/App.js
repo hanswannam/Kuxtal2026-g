@@ -9,6 +9,7 @@ import Navbar from "./components/Navbar";
 import WhatsAppWidget from "./components/WhatsAppWidget";
 import InstallPrompt from "./components/InstallPrompt";
 import PWAReinstallBanner from "./components/PWAReinstallBanner";
+import UpdatePrompt from "./components/UpdatePrompt";
 import { Loader2 } from "lucide-react";
 
 // Eager: critical path pages
@@ -38,32 +39,10 @@ function PageLoader() {
   );
 }
 
-// Register service worker for PWA. Toast the user when a new version is available.
+// Register service worker for PWA. UpdatePrompt component handles version notifications.
 function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
-  navigator.serviceWorker.register('/sw.js').then((reg) => {
-    const promptReload = () => {
-      toast('Nueva versión disponible', {
-        description: 'Actualiza para obtener las últimas mejoras.',
-        duration: Infinity,
-        action: {
-          label: 'Recargar',
-          onClick: () => window.location.reload(),
-        },
-      });
-    };
-    // If a waiting worker already exists when we register, prompt immediately
-    if (reg.waiting && navigator.serviceWorker.controller) promptReload();
-    reg.addEventListener('updatefound', () => {
-      const nw = reg.installing;
-      if (!nw) return;
-      nw.addEventListener('statechange', () => {
-        if (nw.state === 'installed' && navigator.serviceWorker.controller) {
-          promptReload();
-        }
-      });
-    });
-  }).catch(() => {});
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
 }
 
 function App() {
@@ -119,6 +98,7 @@ function App() {
                   <WhatsAppWidget />
                   <InstallPrompt />
                   <PWAReinstallBanner />
+                  <UpdatePrompt />
                 </>
               } />
             </Routes>
