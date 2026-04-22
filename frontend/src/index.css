@@ -157,3 +157,158 @@ body:has(.fixed.inset-0.z-50) [data-testid="main-navbar"] {
   background: hsl(var(--muted-foreground) / 0.3);
   border-radius: 3px;
 }
+
+
+/* ============================================================
+   PREMIUM DARK THEME (Portal del Socio + Admin)
+   Golden member aesthetic: obsidian + champagne + marble
+   ============================================================ */
+.theme-premium-dark {
+  --pd-bg: #07070a;
+  --pd-surface: #13131a;
+  --pd-surface-2: #1a1a22;
+  --pd-surface-3: #252530;
+  --pd-border: rgba(212, 175, 90, 0.18);
+  --pd-border-strong: rgba(212, 175, 90, 0.35);
+  --pd-gold: #D4AF5A;
+  --pd-gold-soft: #E5C989;
+  --pd-gold-bright: #F5E6B8;
+  --pd-text: #F4EBD0;
+  --pd-text-muted: rgba(244, 235, 208, 0.65);
+  --pd-text-dim: rgba(244, 235, 208, 0.45);
+}
+
+/* Root canvas: deep obsidian with subtle gradient */
+.theme-premium-dark[class*="min-h-screen"],
+.theme-premium-dark .min-h-screen {
+  background: radial-gradient(ellipse at top, #1a1a24 0%, #07070a 60%) !important;
+  color: var(--pd-text);
+}
+.theme-premium-dark {
+  background: radial-gradient(ellipse at top, #1a1a24 0%, #07070a 60%);
+  color: var(--pd-text);
+}
+
+/* Typography tweaks */
+.theme-premium-dark h1,
+.theme-premium-dark h2,
+.theme-premium-dark h3,
+.theme-premium-dark .font-heading {
+  color: var(--pd-text);
+  letter-spacing: -0.01em;
+}
+.theme-premium-dark .text-muted-foreground {
+  color: var(--pd-text-muted) !important;
+}
+.theme-premium-dark .text-foreground {
+  color: var(--pd-text) !important;
+}
+
+/* Tabs: dark glass chips with gold active state */
+.theme-premium-dark .bg-white {
+  background: var(--pd-surface) !important;
+  color: var(--pd-text) !important;
+  border-color: var(--pd-border) !important;
+}
+.theme-premium-dark .bg-white\/15,
+.theme-premium-dark .bg-white\/20 {
+  background: rgba(212, 175, 90, 0.1) !important;
+}
+.theme-premium-dark .bg-secondary {
+  background: var(--pd-surface-2) !important;
+}
+.theme-premium-dark .bg-secondary\/20,
+.theme-premium-dark .bg-secondary\/30,
+.theme-premium-dark .bg-secondary\/50 {
+  background: rgba(26, 26, 34, 0.5) !important;
+}
+
+/* Cards get gold-tinted glass treatment */
+.theme-premium-dark .border-border {
+  border-color: var(--pd-border) !important;
+}
+.theme-premium-dark .border {
+  border-color: var(--pd-border);
+}
+.theme-premium-dark .hover\:border-primary\/30:hover {
+  border-color: var(--pd-border-strong) !important;
+}
+
+/* Primary color (buttons/accents) → champagne gold */
+.theme-premium-dark .bg-primary {
+  background: linear-gradient(135deg, var(--pd-gold) 0%, #B8944A 100%) !important;
+  color: #0a0a10 !important;
+}
+.theme-premium-dark .bg-primary:hover,
+.theme-premium-dark .hover\:bg-primary\/90:hover {
+  background: linear-gradient(135deg, var(--pd-gold-soft) 0%, var(--pd-gold) 100%) !important;
+}
+.theme-premium-dark .text-primary {
+  color: var(--pd-gold) !important;
+}
+.theme-premium-dark .bg-primary\/5,
+.theme-premium-dark .bg-primary\/10 {
+  background: rgba(212, 175, 90, 0.08) !important;
+}
+.theme-premium-dark .border-primary\/20,
+.theme-premium-dark .border-primary\/30 {
+  border-color: var(--pd-border-strong) !important;
+}
+
+/* Inputs, selects, textareas */
+.theme-premium-dark input,
+.theme-premium-dark select,
+.theme-premium-dark textarea {
+  background: var(--pd-surface-2) !important;
+  border-color: var(--pd-border) !important;
+  color: var(--pd-text) !important;
+}
+.theme-premium-dark input::placeholder,
+.theme-premium-dark textarea::placeholder {
+  color: var(--pd-text-dim) !important;
+}
+.theme-premium-dark input:focus,
+.theme-premium-dark select:focus,
+.theme-premium-dark textarea:focus {
+  border-color: var(--pd-gold) !important;
+  box-shadow: 0 0 0 3px rgba(212, 175, 90, 0.15) !important;
+}
+
+/* Badges adjust */
+.theme-premium-dark [class*="bg-muted"] {
+  background: rgba(212, 175, 90, 0.08) !important;
+  color: var(--pd-text) !important;
+}
+
+/* Tables */
+.theme-premium-dark table thead {
+  background: var(--pd-surface-2) !important;
+}
+.theme-premium-dark table td,
+.theme-premium-dark table th {
+  border-color: var(--pd-border) !important;
+  color: var(--pd-text) !important;
+}
+.theme-premium-dark table tbody tr:hover {
+  background: rgba(212, 175, 90, 0.04) !important;
+}
+
+/* Subtle gold divider accent on header borders */
+.theme-premium-dark .border-b {
+  border-bottom-color: var(--pd-border) !important;
+}
+
+/* Scrollbar gold */
+.theme-premium-dark ::-webkit-scrollbar-thumb {
+  background: rgba(212, 175, 90, 0.25);
+}
+
+/* Links / anchors */
+.theme-premium-dark a:not([class*="bg-"]) {
+  color: var(--pd-gold-soft);
+}
+
+/* Labels */
+.theme-premium-dark label {
+  color: var(--pd-text-muted);
+}
