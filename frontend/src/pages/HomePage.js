@@ -711,56 +711,68 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ══════ FOOTER ══════ */}
-      <footer className="relative bg-white border-t border-slate-100 pt-12 pb-8" data-testid="footer">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-10 mb-10">
+      {/* ══════ FOOTER (dark premium) ══════ */}
+      <footer className="relative pt-10 sm:pt-14 pb-20 sm:pb-10 overflow-hidden" style={{ background: `linear-gradient(180deg, ${NAVY_DEEP} 0%, #040f1c 100%)` }} data-testid="footer">
+        {/* Gold radial + dot grid */}
+        <div className="absolute inset-0 opacity-[0.1] pointer-events-none" style={{ backgroundImage: `radial-gradient(circle at 20% 30%, ${GOLD} 0, transparent 40%)` }} />
+        <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: `radial-gradient(circle at 1px 1px, ${GOLD} 1px, transparent 0)`, backgroundSize: '28px 28px' }} />
+        {/* Top gold hairline */}
+        <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}66, transparent)` }} />
 
-            {/* Brand column */}
-            <div>
-              <img src={LOGO_URL} alt="Kuxtal Travels" className="h-12 w-auto mb-4" />
-              <p className="text-sm leading-relaxed mb-5 max-w-xs" style={{ color: `${NAVY}99` }}>
-                Cada destino una historia. "Kuxtal" significa <em>vida</em> en maya.
-              </p>
-              {(socialLinks.facebook || socialLinks.instagram || socialLinks.tiktok || socialLinks.twitter || socialLinks.youtube || socialLinks.linkedin || socialLinks.whatsapp) && (
-                <div className="flex flex-wrap gap-2" data-testid="footer-socials">
-                  {socialLinks.facebook && <a href={socialLinks.facebook} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full flex items-center justify-center transition-colors hover:scale-110" style={{ background: `${NAVY}11`, color: NAVY }} aria-label="Facebook" data-testid="social-facebook"><Facebook className="w-4 h-4" /></a>}
-                  {socialLinks.instagram && <a href={socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full flex items-center justify-center transition-colors hover:scale-110" style={{ background: `${NAVY}11`, color: NAVY }} aria-label="Instagram" data-testid="social-instagram"><Instagram className="w-4 h-4" /></a>}
-                  {socialLinks.tiktok && <a href={socialLinks.tiktok} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-colors hover:scale-110" style={{ background: `${NAVY}11`, color: NAVY }} aria-label="TikTok" data-testid="social-tiktok">TT</a>}
-                  {socialLinks.twitter && <a href={socialLinks.twitter} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full flex items-center justify-center transition-colors hover:scale-110" style={{ background: `${NAVY}11`, color: NAVY }} aria-label="X" data-testid="social-twitter"><Twitter className="w-4 h-4" /></a>}
-                  {socialLinks.youtube && <a href={socialLinks.youtube} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full flex items-center justify-center transition-colors hover:scale-110" style={{ background: `${NAVY}11`, color: NAVY }} aria-label="YouTube" data-testid="social-youtube"><Youtube className="w-4 h-4" /></a>}
-                  {socialLinks.linkedin && <a href={socialLinks.linkedin} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full flex items-center justify-center transition-colors hover:scale-110" style={{ background: `${NAVY}11`, color: NAVY }} aria-label="LinkedIn" data-testid="social-linkedin"><Linkedin className="w-4 h-4" /></a>}
-                  {socialLinks.whatsapp && <a href={socialLinks.whatsapp.startsWith('http') ? socialLinks.whatsapp : `https://wa.me/${socialLinks.whatsapp.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full flex items-center justify-center transition-colors hover:scale-110" style={{ background: `${NAVY}11`, color: NAVY }} aria-label="WhatsApp" data-testid="social-whatsapp"><MessageCircle className="w-4 h-4" /></a>}
-                </div>
-              )}
-            </div>
+        <div className="relative max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
+          {/* Brand block — full width on mobile, on top */}
+          <div className="mb-8 sm:mb-10 text-center sm:text-left">
+            <img src={LOGO_URL} alt="Kuxtal Travels" className="h-11 sm:h-12 w-auto mb-3 mx-auto sm:mx-0 brightness-0 invert opacity-90" />
+            <p className="text-xs sm:text-sm leading-relaxed italic max-w-xs mx-auto sm:mx-0" style={{ color: `${CHAMPAGNE}99` }}>
+              "Kuxtal" significa <em>vida</em> en maya. Cada destino, una historia.
+            </p>
+            {(socialLinks.facebook || socialLinks.instagram || socialLinks.tiktok || socialLinks.twitter || socialLinks.youtube || socialLinks.linkedin || socialLinks.whatsapp) && (
+              <div className="flex flex-wrap justify-center sm:justify-start gap-2 mt-4" data-testid="footer-socials">
+                {socialLinks.facebook && <a href={socialLinks.facebook} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-110" style={{ background: `${GOLD}15`, border: `1px solid ${GOLD}33`, color: CHAMPAGNE }} aria-label="Facebook" data-testid="social-facebook"><Facebook className="w-4 h-4" /></a>}
+                {socialLinks.instagram && <a href={socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-110" style={{ background: `${GOLD}15`, border: `1px solid ${GOLD}33`, color: CHAMPAGNE }} aria-label="Instagram" data-testid="social-instagram"><Instagram className="w-4 h-4" /></a>}
+                {socialLinks.tiktok && <a href={socialLinks.tiktok} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all hover:scale-110" style={{ background: `${GOLD}15`, border: `1px solid ${GOLD}33`, color: CHAMPAGNE }} aria-label="TikTok" data-testid="social-tiktok">TT</a>}
+                {socialLinks.twitter && <a href={socialLinks.twitter} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-110" style={{ background: `${GOLD}15`, border: `1px solid ${GOLD}33`, color: CHAMPAGNE }} aria-label="X" data-testid="social-twitter"><Twitter className="w-4 h-4" /></a>}
+                {socialLinks.youtube && <a href={socialLinks.youtube} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-110" style={{ background: `${GOLD}15`, border: `1px solid ${GOLD}33`, color: CHAMPAGNE }} aria-label="YouTube" data-testid="social-youtube"><Youtube className="w-4 h-4" /></a>}
+                {socialLinks.linkedin && <a href={socialLinks.linkedin} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-110" style={{ background: `${GOLD}15`, border: `1px solid ${GOLD}33`, color: CHAMPAGNE }} aria-label="LinkedIn" data-testid="social-linkedin"><Linkedin className="w-4 h-4" /></a>}
+                {socialLinks.whatsapp && <a href={socialLinks.whatsapp.startsWith('http') ? socialLinks.whatsapp : `https://wa.me/${socialLinks.whatsapp.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:scale-110" style={{ background: `${GOLD}15`, border: `1px solid ${GOLD}33`, color: CHAMPAGNE }} aria-label="WhatsApp" data-testid="social-whatsapp"><MessageCircle className="w-4 h-4" /></a>}
+              </div>
+            )}
+          </div>
 
-            {/* Navigation */}
+          {/* Art-deco separator */}
+          <div className="flex items-center justify-center gap-2 mb-8">
+            <div className="h-px flex-1 max-w-[120px]" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}55)` }} />
+            <Sparkles className="w-3 h-3" style={{ color: GOLD }} />
+            <div className="h-px flex-1 max-w-[120px]" style={{ background: `linear-gradient(90deg, ${GOLD}55, transparent)` }} />
+          </div>
+
+          {/* Navigation + Contact — 2 cols on mobile, keep tight */}
+          <div className="grid grid-cols-2 gap-6 sm:gap-10 mb-8 sm:mb-10">
             <div>
-              <h4 className="font-heading font-bold text-xs uppercase tracking-[0.18em] mb-4" style={{ color: NAVY }}>Navegación</h4>
-              <div className="space-y-2.5 text-sm" style={{ color: `${NAVY}99` }}>
-                <Link to="/" className="block hover:text-slate-900 transition-colors">Inicio</Link>
-                <Link to="/search" className="block hover:text-slate-900 transition-colors">Viajes</Link>
-                <Link to="/benefits" className="block hover:text-slate-900 transition-colors">Kuxtal Club</Link>
-                <Link to="/partners" className="block hover:text-slate-900 transition-colors">Aliados</Link>
-                <Link to="/login" className="block hover:text-slate-900 transition-colors">Acceso socios</Link>
+              <h4 className="font-heading font-bold text-[10px] sm:text-xs uppercase tracking-[0.22em] mb-3 sm:mb-4" style={{ color: GOLD }}>Navegación</h4>
+              <div className="space-y-2 sm:space-y-2.5 text-sm" style={{ color: `${CHAMPAGNE}99` }}>
+                <Link to="/" className="block hover:text-white transition-colors">Inicio</Link>
+                <Link to="/search" className="block hover:text-white transition-colors">Viajes</Link>
+                <Link to="/benefits" className="block hover:text-white transition-colors">Kuxtal Club</Link>
+                <Link to="/partners" className="block hover:text-white transition-colors">Aliados</Link>
+                <Link to="/login" className="block hover:text-white transition-colors">Acceso socios</Link>
               </div>
             </div>
 
-            {/* Contact */}
             <div>
-              <h4 className="font-heading font-bold text-xs uppercase tracking-[0.18em] mb-4" style={{ color: NAVY }}>Contáctanos</h4>
-              <div className="space-y-2.5 text-sm" style={{ color: `${NAVY}99` }}>
+              <h4 className="font-heading font-bold text-[10px] sm:text-xs uppercase tracking-[0.22em] mb-3 sm:mb-4" style={{ color: GOLD }}>Contáctanos</h4>
+              <div className="space-y-2 sm:space-y-2.5 text-sm" style={{ color: `${CHAMPAGNE}99` }}>
                 <p className="flex items-start gap-2">
-                  <MapPin className="w-4 h-4 shrink-0 mt-0.5" style={{ color: LIME }} /> Guatemala, Centroamérica
+                  <MapPin className="w-4 h-4 shrink-0 mt-0.5" style={{ color: GOLD }} />
+                  <span>Guatemala, Centroamérica</span>
                 </p>
-                <a href="mailto:info@kuxtaltravelgt.com" className="flex items-start gap-2 hover:text-slate-900 transition-colors break-all">
-                  <svg className="w-4 h-4 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: LIME }}><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" /></svg>
-                  info@kuxtaltravelgt.com
+                <a href="mailto:info@kuxtaltravelgt.com" className="flex items-start gap-2 hover:text-white transition-colors break-all">
+                  <svg className="w-4 h-4 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: GOLD }}><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" /></svg>
+                  <span className="text-xs sm:text-sm">info@kuxtaltravelgt.com</span>
                 </a>
                 {socialLinks.whatsapp && (
-                  <a href={socialLinks.whatsapp.startsWith('http') ? socialLinks.whatsapp : `https://wa.me/${socialLinks.whatsapp.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="flex items-start gap-2 hover:text-slate-900 transition-colors">
-                    <MessageCircle className="w-4 h-4 shrink-0 mt-0.5" style={{ color: LIME }} /> WhatsApp
+                  <a href={socialLinks.whatsapp.startsWith('http') ? socialLinks.whatsapp : `https://wa.me/${socialLinks.whatsapp.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="flex items-start gap-2 hover:text-white transition-colors">
+                    <MessageCircle className="w-4 h-4 shrink-0 mt-0.5" style={{ color: GOLD }} /> WhatsApp
                   </a>
                 )}
               </div>
@@ -768,11 +780,11 @@ export default function HomePage() {
           </div>
 
           {/* Bottom bar */}
-          <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <p className="text-xs" style={{ color: `${NAVY}77` }}>
+          <div className="pt-5 sm:pt-6 border-t flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left" style={{ borderColor: `${GOLD}22` }}>
+            <p className="text-[11px] sm:text-xs" style={{ color: `${CHAMPAGNE}66` }}>
               &copy; {new Date().getFullYear()} Kuxtal Travels. Todos los derechos reservados.
             </p>
-            <p className="text-[11px] italic tracking-wide" style={{ color: `${NAVY}55` }}>
+            <p className="text-[10px] sm:text-[11px] italic tracking-wide" style={{ color: `${CHAMPAGNE}55`, fontFamily: '"Playfair Display", Georgia, serif' }}>
               Cada destino, una historia.
             </p>
           </div>

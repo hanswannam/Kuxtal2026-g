@@ -191,6 +191,16 @@ Sistema CRM para club vacacional con web publica estilo Expedia, programa Kuxtal
 - [ ] Backend refactoring: server.py ~2729 líneas — dividir en routers (auth/admin_users/packages/quotations/members/regalias/clubs/commerce)
 - [ ] Exponer FEATURE_KEYS en frontend desde GET /api/admin/feature-keys en lugar de duplicar lista en AdminUsers.js
 - [ ] DELETE endpoint para quotations (actualmente no existe, 2 quotations TEST quedaron en DB)
+- Footer dark premium (2026-02, iter 42):
+  - Footer migrado de blanco a dark navy premium (gradiente NAVY_DEEP→#040f1c) con radials dorados y dot-grid arabesco.
+  - Logo Kuxtal invertido a blanco (brightness-0 invert), tagline en italic con color champagne.
+  - Redes sociales con fondo dorado sutil y borde dorado (antes navy liso).
+  - Separador art-deco dorado (hairline + sparkle) entre brand y columnas.
+  - **Mobile**: layout compactado — brand centrado con redes, luego 2 columnas apretadas (Nav + Contacto) en lugar de 1 columna stack. Padding-bottom pb-20 para no quedar tapado por el botón chat flotante.
+  - Títulos de columnas en color dorado (antes navy).
+  - Íconos dorados (antes lime).
+  - Bottom bar con border dorado sutil y "Cada destino, una historia" en italic serif Playfair dorado.
+  - Transición del CTA final al footer ahora es suave (ambos navy dark) unificando toda la estética.
 - [ ] Backend refactoring: import_package_from_drive() complexity (break into smaller functions)
 - [ ] Frontend refactoring: CommercePortal.js (491 lines), ChatPage.js, HomePage.js
 - [ ] Fix pre-existing test files test_kuxtal_api.py / test_coupons.py (missing BASE_URL)
