@@ -170,6 +170,14 @@ Sistema CRM para club vacacional con web publica estilo Expedia, programa Kuxtal
 - Member: KT-001 / 1234567890101
 - Family: KT-001 / 9876543210101
 - Commerce: 69dd90c4b0e08b1f0a2eb0ab / FITLIF01
+- Perks section rediseño dark-gold (2026-02, iter 40):
+  - Sección "Disfruta más, pagando menos" migrada de fondo blanco/slate a estilo dark-gold premium matching Kuxtal Club y CTA final.
+  - Fondo gradiente navy_deep→navy→navy_deep con radials dorados y dot-grid arabesco.
+  - Cards con gradiente navy profundo (#0F1F33→#061220), bordes dorados sutiles, corner glow dorado en hover, y hairline dorada al top.
+  - Iconos dorados (antes lime) sobre fondo oscuro con inset dorado.
+  - Títulos en champagne con mini divisor art-deco (sparkle dorado).
+  - "más" y "menos" ahora en italic serif Playfair con gradiente dorado (antes lime verde) — consistencia total con el resto de titulares luxury.
+  - Mobile: grid **2x2 compacto** (antes 1 columna stack infinito), padding reducido, íconos w-11, títulos 11px, descripción 10px con line-clamp-3. Mucho más denso y escaneable.
 - Delete Secret: BORRAR YA
 
 ## Pending / Backlog

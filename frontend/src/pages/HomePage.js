@@ -414,47 +414,81 @@ export default function HomePage() {
         <div className="absolute bottom-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}66, transparent)` }} />
       </section>
 
-      {/* ══════ DISFRUTA MÁS, PAGANDO MENOS ══════ */}
-      <section className="py-20 sm:py-24 relative" style={{ background: 'linear-gradient(180deg, #FFFFFF 0%, #FAF8F3 100%)' }} data-testid="perks-section">
-        {/* Subtle gold marble */}
-        <div className="absolute inset-0 opacity-[0.04] pointer-events-none" style={{ backgroundImage: `radial-gradient(circle at 20% 20%, ${GOLD} 0, transparent 40%), radial-gradient(circle at 80% 80%, ${GOLD} 0, transparent 40%)` }} />
+      {/* ══════ DISFRUTA MÁS, PAGANDO MENOS (premium dark-gold) ══════ */}
+      <section className="relative py-16 sm:py-24 overflow-hidden" style={{ background: `linear-gradient(180deg, ${NAVY_DEEP} 0%, ${NAVY} 50%, ${NAVY_DEEP} 100%)` }} data-testid="perks-section">
+        {/* Gold radials */}
+        <div className="absolute inset-0 opacity-[0.1] pointer-events-none" style={{ backgroundImage: `radial-gradient(circle at 15% 30%, ${GOLD} 0, transparent 40%), radial-gradient(circle at 85% 70%, ${GOLD} 0, transparent 40%)` }} />
+        {/* Arabesque dots */}
+        <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: `radial-gradient(circle at 1px 1px, ${GOLD} 1px, transparent 0)`, backgroundSize: '30px 30px' }} />
+        {/* Top & bottom gold hairlines */}
+        <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}66, transparent)` }} />
+        <div className="absolute bottom-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}66, transparent)` }} />
+
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Eyebrow with art-deco separator */}
           <div className="flex items-center justify-center gap-2 sm:gap-3 mb-3 flex-wrap">
             <div className="h-px w-8 sm:w-10" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}aa)` }} />
             <Sparkles className="w-3 h-3" style={{ color: GOLD }} />
-            <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.22em] sm:tracking-[0.28em]" style={{ color: '#8B6F2E' }}>Beneficios exclusivos</p>
+            <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.22em] sm:tracking-[0.28em]" style={{ color: CHAMPAGNE }}>Beneficios exclusivos</p>
             <Sparkles className="w-3 h-3" style={{ color: GOLD }} />
             <div className="h-px w-8 sm:w-10" style={{ background: `linear-gradient(90deg, ${GOLD}aa, transparent)` }} />
           </div>
           <div className="text-center mb-10 sm:mb-14 px-2">
-            <h2 className="font-heading text-2xl xs:text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight" style={{ color: NAVY }}>
+            <h2 className="font-heading text-2xl xs:text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight text-white">
               Disfruta{' '}
-              <span className="italic" style={{ fontFamily: '"Playfair Display", Georgia, serif', color: LIME }}>
+              <span className="italic" style={{ fontFamily: '"Playfair Display", Georgia, serif', background: `linear-gradient(92deg, ${GOLD} 0%, #F5E6B8 50%, ${GOLD} 100%)`, WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>
                 más
               </span>
               , pagando{' '}
-              <span className="italic" style={{ fontFamily: '"Playfair Display", Georgia, serif', color: LIME }}>
+              <span className="italic" style={{ fontFamily: '"Playfair Display", Georgia, serif', background: `linear-gradient(92deg, ${GOLD} 0%, #F5E6B8 50%, ${GOLD} 100%)`, WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>
                 menos
               </span>
             </h2>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {PERKS.map((p) => (
+
+          {/* Mobile: 2x2 compact grid. Desktop: 4-up row. */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
+            {PERKS.map((p, i) => (
               <div
                 key={p.title}
-                className="group relative rounded-2xl p-6 bg-white border border-slate-100 hover:border-[color:var(--gold-border)] hover:shadow-[0_25px_50px_-20px_rgba(212,175,90,0.3)] transition-all hover:-translate-y-1 text-center overflow-hidden"
-                style={{ '--gold-border': `${GOLD}66` }}
+                className="group relative rounded-2xl overflow-hidden transition-all hover:-translate-y-1"
+                style={{
+                  background: `linear-gradient(145deg, #0F1F33 0%, #0A1828 60%, #061220 100%)`,
+                  border: `1px solid ${GOLD}22`,
+                  boxShadow: `0 10px 30px -15px rgba(0,0,0,0.6)`,
+                }}
                 data-testid={`perk-${p.title}`}
               >
-                <div className="absolute top-0 left-0 right-0 h-[2px] opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}, transparent)` }} />
-                <div className="w-14 h-14 mx-auto mb-4 rounded-2xl flex items-center justify-center transition-all group-hover:scale-110" style={{ background: `${LIME}18`, color: NAVY, boxShadow: `inset 0 0 0 1px ${LIME}33` }}>
-                  <p.icon className="w-7 h-7" strokeWidth={1.5} />
+                {/* Top gold hairline on hover */}
+                <div className="absolute top-0 left-0 right-0 h-[2px] opacity-40 group-hover:opacity-100 transition-opacity" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}, transparent)` }} />
+                {/* Corner gold glow */}
+                <div className="absolute top-0 right-0 w-24 h-24 rounded-bl-full pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: `radial-gradient(circle at top right, ${GOLD}33, transparent 70%)` }} />
+
+                <div className="relative p-4 sm:p-6 text-center">
+                  <div
+                    className="w-11 h-11 sm:w-14 sm:h-14 mx-auto mb-3 sm:mb-4 rounded-2xl flex items-center justify-center transition-all group-hover:scale-110"
+                    style={{
+                      background: `linear-gradient(135deg, ${GOLD}18 0%, ${GOLD}08 100%)`,
+                      border: `1px solid ${GOLD}44`,
+                      boxShadow: `inset 0 0 0 1px ${GOLD}11`,
+                    }}
+                  >
+                    <p.icon className="w-5 h-5 sm:w-7 sm:h-7" strokeWidth={1.5} style={{ color: GOLD }} />
+                  </div>
+                  <h3 className="font-heading font-bold text-[11px] sm:text-sm uppercase tracking-[0.1em] sm:tracking-wide mb-1.5 sm:mb-2 leading-tight" style={{ color: CHAMPAGNE }}>
+                    {p.title}
+                  </h3>
+                  {/* Mini gold divider */}
+                  <div className="flex items-center justify-center gap-1.5 mb-2 sm:mb-3">
+                    <div className="h-px w-4 sm:w-6" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}77)` }} />
+                    <Sparkles className="w-2 h-2" style={{ color: GOLD }} />
+                    <div className="h-px w-4 sm:w-6" style={{ background: `linear-gradient(90deg, ${GOLD}77, transparent)` }} />
+                  </div>
+                  <p className="text-[10px] sm:text-xs text-white/55 leading-relaxed line-clamp-3">{p.desc}</p>
                 </div>
-                <h3 className="font-heading font-bold text-sm uppercase tracking-wide mb-2" style={{ color: NAVY }}>
-                  {p.title}
-                </h3>
-                <p className="text-xs text-slate-500 leading-relaxed">{p.desc}</p>
+
+                {/* Bottom corner decoration */}
+                <div className="absolute bottom-0 left-0 w-16 h-16 rounded-tr-full pointer-events-none" style={{ background: `radial-gradient(circle at bottom left, ${GOLD}0F, transparent 70%)` }} />
               </div>
             ))}
           </div>
