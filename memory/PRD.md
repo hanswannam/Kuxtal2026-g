@@ -244,3 +244,12 @@ Sistema CRM para club vacacional con web publica estilo Expedia, programa Kuxtal
   - `server.py` bajó **3065 → 2618 líneas** (−447 en esta fase, **−1148 acumulado, −30.5% desde el inicio del refactor**).
   - Verificado end-to-end (11 pruebas): crear público con KT-001 auto-detectado, vista pública con viewed_at, list filtered (23 pending con el fix de fechas), update con status+timeline, nota manual, respond, public decision approve/push notification al admin, share con WhatsApp+mailto URLs, config GET/PUT, regresión packages OK.
   - Verificado end-to-end: list con filtros, get por id, create con auth, toggle-status con razón, delete con delete_code, 422 para body vacío, regresión auth OK.
+- Search band luxury redesign (2026-02, iter 47):
+  - Buscador migrado de fondo blanco/slate a **dark luxury navy+gold** coherente con el resto del sitio.
+  - Card: gradiente NAVY→NAVY_DEEP, radial dorado sutil, hairlines doradas arriba/abajo, border dorado.
+  - Tabs activos: **gradiente dorado metálico** (antes navy sólido) con shadow dorada.
+  - Inputs: fondo `black/30` traslúcido, border `GOLD/33`, íconos (MapPin, Calendar, Users, ChevronDown) en dorado, `color-scheme:dark` para el date picker nativo.
+  - Labels ("Destino", "Fecha", "Viajeros") en color dorado con tracking ampliado.
+  - Botón "Buscar": gradiente dorado metálico con shadow dorada (antes navy sólido).
+  - Chips "Destinos populares": dark glass (navy/80 + blur), border dorado, texto champagne, hover transiciona a fondo dorado translúcido. Ícono MapPin dorado.
+  - Resultado: transición perfecta hero→buscador→Kuxtal Club sin ruptura visual.

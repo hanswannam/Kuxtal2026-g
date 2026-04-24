@@ -184,22 +184,37 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ══════ SEARCH BAND (moved below hero) ══════ */}
-      <section className="relative bg-white border-b border-slate-100 -mt-6 sm:-mt-10 z-20" data-testid="search-band">
+      {/* ══════ SEARCH BAND (dark luxury) ══════ */}
+      <section className="relative -mt-6 sm:-mt-10 z-20" data-testid="search-band">
         <div className="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8">
-          <div className="relative rounded-2xl bg-white shadow-[0_20px_60px_-20px_rgba(13,43,69,0.25)] ring-1 ring-slate-100 overflow-hidden">
+          <div
+            className="relative rounded-[22px] overflow-hidden shadow-[0_25px_70px_-20px_rgba(0,0,0,0.7)]"
+            style={{
+              background: `linear-gradient(145deg, ${NAVY} 0%, ${NAVY_DEEP} 100%)`,
+              border: `1px solid ${GOLD}33`,
+            }}
+          >
+            {/* Subtle gold radial accent inside the card */}
+            <div className="absolute inset-0 opacity-[0.08] pointer-events-none" style={{ backgroundImage: `radial-gradient(circle at 85% 15%, ${GOLD} 0, transparent 45%)` }} />
+            {/* Top gold hairline */}
+            <div className="absolute top-0 left-6 right-6 h-px" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}aa, transparent)` }} />
+
             {/* Tabs */}
-            <div className="flex gap-0.5 px-2 sm:px-3 pt-2 sm:pt-3 overflow-x-auto scrollbar-hide" data-testid="search-tabs">
+            <div className="relative flex gap-1 px-2 sm:px-4 pt-3 sm:pt-4 overflow-x-auto scrollbar-hide" data-testid="search-tabs">
               {SEARCH_TABS.map(tab => (
                 <button
                   key={tab.id}
                   onClick={() => setSearchTab(tab.id)}
-                  className={`flex items-center gap-1.5 px-3 sm:px-5 py-2.5 rounded-t-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap ${
+                  className={`relative flex items-center gap-1.5 px-4 sm:px-5 py-2.5 rounded-t-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap`}
+                  style={
                     searchTab === tab.id
-                      ? 'text-white'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                  }`}
-                  style={searchTab === tab.id ? { background: NAVY } : {}}
+                      ? {
+                          background: `linear-gradient(135deg, #F5E6B8 0%, ${GOLD} 50%, #B8944A 100%)`,
+                          color: NAVY_DEEP,
+                          boxShadow: `0 6px 20px -6px rgba(212,175,90,0.55)`,
+                        }
+                      : { color: `${CHAMPAGNE}cc` }
+                  }
                   data-testid={`search-tab-${tab.id}`}
                 >
                   <tab.icon className="w-4 h-4" />
@@ -208,17 +223,18 @@ export default function HomePage() {
               ))}
             </div>
 
-            <form onSubmit={handleSearch} className="p-3 sm:p-4 pt-2" data-testid="hero-search-form">
+            <form onSubmit={handleSearch} className="relative p-3 sm:p-5 pt-3" data-testid="hero-search-form">
               <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                 <div className="flex-[2] relative">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.12em] px-3 mb-0.5 block">Destino</label>
+                  <label className="text-[10px] font-bold uppercase tracking-[0.22em] px-3 mb-1 block" style={{ color: `${GOLD}cc` }}>Destino</label>
                   <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: `${GOLD}` }} />
                     <Input
                       value={destination}
                       onChange={e => setDestination(e.target.value)}
                       placeholder={currentTab.placeholder}
-                      className="pl-10 h-12 rounded-xl border-slate-200 bg-slate-50 focus:bg-white focus:border-slate-400"
+                      className="pl-10 h-12 rounded-xl border bg-black/30 text-white placeholder:text-white/40 focus:bg-black/50 transition-colors"
+                      style={{ borderColor: `${GOLD}33` }}
                       data-testid="hero-search-input"
                       list="country-suggestions"
                     />
@@ -230,34 +246,36 @@ export default function HomePage() {
 
                 <div className="flex gap-2 sm:gap-3 flex-1">
                   <div className="flex-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.12em] px-3 mb-0.5 block">Fecha</label>
+                    <label className="text-[10px] font-bold uppercase tracking-[0.22em] px-3 mb-1 block" style={{ color: `${GOLD}cc` }}>Fecha</label>
                     <div className="relative">
-                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none z-10" style={{ color: `${GOLD}` }} />
                       <Input
                         type="date"
                         value={dates}
                         onChange={e => setDates(e.target.value)}
-                        className="pl-10 h-12 rounded-xl border-slate-200 bg-slate-50 focus:bg-white focus:border-slate-400"
+                        className="pl-10 h-12 rounded-xl border bg-black/30 text-white focus:bg-black/50 transition-colors [color-scheme:dark]"
+                        style={{ borderColor: `${GOLD}33` }}
                         data-testid="hero-search-date"
                       />
                     </div>
                   </div>
 
-                  <div className="flex-1 sm:max-w-[150px]">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.12em] px-3 mb-0.5 block">Viajeros</label>
+                  <div className="flex-1 sm:max-w-[130px]">
+                    <label className="text-[10px] font-bold uppercase tracking-[0.22em] px-3 mb-1 block" style={{ color: `${GOLD}cc` }}>Viajeros</label>
                     <div className="relative">
-                      <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: `${GOLD}` }} />
                       <select
                         value={guests}
                         onChange={e => setGuests(e.target.value)}
-                        className="w-full pl-10 h-12 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white text-sm appearance-none cursor-pointer"
+                        className="w-full pl-10 h-12 rounded-xl border bg-black/30 text-white text-sm appearance-none cursor-pointer focus:bg-black/50 transition-colors"
+                        style={{ borderColor: `${GOLD}33` }}
                         data-testid="hero-search-guests"
                       >
                         {[1,2,3,4,5,6,7,8].map(n => (
-                          <option key={n} value={n}>{n}</option>
+                          <option key={n} value={n} style={{ background: NAVY_DEEP, color: 'white' }}>{n}</option>
                         ))}
                       </select>
-                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: `${GOLD}aa` }} />
                     </div>
                   </div>
                 </div>
@@ -265,8 +283,12 @@ export default function HomePage() {
                 <div className="flex items-end">
                   <Button
                     type="submit"
-                    className="h-12 px-7 rounded-xl font-bold text-white w-full sm:w-auto text-sm transition-all hover:-translate-y-0.5"
-                    style={{ background: NAVY }}
+                    className="h-12 px-7 rounded-xl font-bold w-full sm:w-auto text-sm transition-all hover:-translate-y-0.5 shadow-[0_10px_30px_-6px_rgba(212,175,90,0.5)]"
+                    style={{
+                      background: `linear-gradient(135deg, #F5E6B8 0%, ${GOLD} 50%, #B8944A 100%)`,
+                      color: NAVY_DEEP,
+                      border: `1px solid ${GOLD}88`,
+                    }}
                     data-testid="hero-search-btn"
                   >
                     <Search className="w-4 h-4 mr-1.5" /> Buscar
@@ -274,20 +296,39 @@ export default function HomePage() {
                 </div>
               </div>
             </form>
+
+            {/* Bottom gold hairline */}
+            <div className="absolute bottom-0 left-6 right-6 h-px" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}44, transparent)` }} />
           </div>
 
-          {/* Popular destinations chips */}
+          {/* Popular destinations chips (dark luxury) */}
           {countries.length > 0 && (
             <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-3 pt-5 scrollbar-hide">
-              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.14em] text-slate-500 whitespace-nowrap">Destinos populares:</span>
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.22em] whitespace-nowrap" style={{ color: `${CHAMPAGNE}aa` }}>Destinos populares:</span>
               {countries.slice(0, 8).map(c => (
                 <Link
                   key={c}
                   to={`/search?country=${encodeURIComponent(c)}`}
-                  className="px-3 py-1.5 bg-slate-50 hover:bg-slate-900 hover:text-white rounded-full text-xs font-medium whitespace-nowrap transition-all border border-slate-200 hover:border-slate-900"
+                  className="px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all hover:-translate-y-0.5"
+                  style={{
+                    background: `${NAVY}80`,
+                    border: `1px solid ${GOLD}33`,
+                    color: CHAMPAGNE,
+                    backdropFilter: 'blur(6px)',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = `${GOLD}18`;
+                    e.currentTarget.style.borderColor = `${GOLD}77`;
+                    e.currentTarget.style.color = '#F5E6B8';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = `${NAVY}80`;
+                    e.currentTarget.style.borderColor = `${GOLD}33`;
+                    e.currentTarget.style.color = CHAMPAGNE;
+                  }}
                   data-testid={`popular-dest-${c}`}
                 >
-                  <MapPin className="w-3 h-3 inline mr-1" />{c}
+                  <MapPin className="w-3 h-3 inline mr-1" style={{ color: GOLD }} />{c}
                 </Link>
               ))}
             </div>
