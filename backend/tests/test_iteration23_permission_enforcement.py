@@ -74,12 +74,12 @@ class TestLoginPermissions:
         data = _login(LIMITED_ADMIN_EMAIL, LIMITED_ADMIN_PASSWORD)
         assert "permissions" in data
         perms = data["permissions"] or {}
-        assert perms.get("dashboard") == True, f"dashboard should be True, got {perms}"
-        assert perms.get("members") == True, f"members should be True, got {perms}"
+        assert perms.get("dashboard"), f"dashboard should be True, got {perms}"
+        assert perms.get("members"), f"members should be True, got {perms}"
         for k in ("packages", "quotations", "clients", "commerce", "categories",
                   "clubs", "regalias", "referrals", "settings", "announcements",
                   "requests", "push"):
-            assert perms.get(k) == False, f"perm '{k}' should be False for testadmin, got {perms.get(k)}"
+            assert not (perms.get(k)), f"perm '{k}' should be False for testadmin, got {perms.get(k)}"
 
 
 # ── 2. 403 for limited admin on disallowed module endpoints ──

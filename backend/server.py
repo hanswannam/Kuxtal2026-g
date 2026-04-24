@@ -543,65 +543,83 @@ def normalize_search(text: str) -> str:
             result.append(re_module.escape(ch))
     return ''.join(result)
 
-@api_router.get("/packages")
-async def list_packages(request: Request, category: Optional[str] = None, country: Optional[str] = None, search: Optional[str] = None, featured: Optional[bool] = None, min_price: Optional[float] = None, max_price: Optional[float] = None, min_days: Optional[int] = None, max_days: Optional[int] = None, sort: Optional[str] = None, include_internal: Optional[bool] = False):
-    # If admin, allow fetching internal packages too. Public users only see visibility=public
-    is_admin = False
+# Sort options for packages: query-param → (field, direction)
+_PACKAGE_SORT_MAP = {
+    "price_asc": ("price", 1),
+    "price_desc": ("price", -1),
+    "duration_asc": ("duration_days", 1),
+    "duration_desc": ("duration_days", -1),
+    "rating": ("rating", -1),
+}
+
+
+async def _is_admin_request(request: Request) -> bool:
     try:
         u = await get_current_user(request)
-        is_admin = u.get("role") in ("super_admin", "admin")
+        return u.get("role") in ("super_admin", "admin")
     except Exception:
-        is_admin = False
-    query = {}
+        return False
+
+
+def _apply_package_range_filter(query: dict, field: str, min_val, max_val) -> None:
+    if min_val is None and max_val is None:
+        return
+    bounds = query.setdefault(field, {})
+    if min_val is not None:
+        bounds["$gte"] = min_val
+    if max_val is not None:
+        bounds["$lte"] = max_val
+
+
+def _apply_package_search_filter(query: dict, search: Optional[str]) -> None:
+    if not search:
+        return
+    search_pattern = normalize_search(search)
+    search_or = [
+        {"title": {"$regex": search_pattern, "$options": "i"}},
+        {"description": {"$regex": search_pattern, "$options": "i"}},
+        {"country": {"$regex": search_pattern, "$options": "i"}},
+    ]
+    # Nest search into $and so it doesn't clobber the visibility filter
+    if "$and" in query:
+        query["$and"].append({"$or": search_or})
+    else:
+        query["$or"] = search_or
+
+
+@api_router.get("/packages")
+async def list_packages(
+    request: Request,
+    category: Optional[str] = None,
+    country: Optional[str] = None,
+    search: Optional[str] = None,
+    featured: Optional[bool] = None,
+    min_price: Optional[float] = None,
+    max_price: Optional[float] = None,
+    min_days: Optional[int] = None,
+    max_days: Optional[int] = None,
+    sort: Optional[str] = None,
+    include_internal: Optional[bool] = False,
+):
+    is_admin = await _is_admin_request(request)
+    query: dict = {}
+
+    # Visibility: admins w/ include_internal see everything; everyone else sees only public+active.
     if not (is_admin and include_internal):
-        # Public/member consumers: only active, public-visible packages
         query["status"] = "active"
         query["$and"] = [{"$or": [{"visibility": "public"}, {"visibility": {"$exists": False}}]}]
+
     if category:
         query["category"] = category
     if country:
-        country_pattern = normalize_search(country)
-        query["country"] = {"$regex": country_pattern, "$options": "i"}
-    if search:
-        search_pattern = normalize_search(search)
-        search_or = [
-            {"title": {"$regex": search_pattern, "$options": "i"}},
-            {"description": {"$regex": search_pattern, "$options": "i"}},
-            {"country": {"$regex": search_pattern, "$options": "i"}}
-        ]
-        # Nest search into $and to not conflict with visibility filter
-        if "$and" in query:
-            query["$and"].append({"$or": search_or})
-        else:
-            query["$or"] = search_or
-    if min_price is not None:
-        query.setdefault("price", {})["$gte"] = min_price
-    if max_price is not None:
-        query.setdefault("price", {})["$lte"] = max_price
-    if min_days is not None:
-        query.setdefault("duration_days", {})["$gte"] = min_days
-    if max_days is not None:
-        query.setdefault("duration_days", {})["$lte"] = max_days
+        query["country"] = {"$regex": normalize_search(country), "$options": "i"}
+    _apply_package_search_filter(query, search)
+    _apply_package_range_filter(query, "price", min_price, max_price)
+    _apply_package_range_filter(query, "duration_days", min_days, max_days)
     if featured is not None:
         query["featured"] = featured
 
-    sort_field = "created_at"
-    sort_dir = -1
-    if sort == "price_asc":
-        sort_field = "price"
-        sort_dir = 1
-    elif sort == "price_desc":
-        sort_field = "price"
-        sort_dir = -1
-    elif sort == "duration_asc":
-        sort_field = "duration_days"
-        sort_dir = 1
-    elif sort == "duration_desc":
-        sort_field = "duration_days"
-        sort_dir = -1
-    elif sort == "rating":
-        sort_field = "rating"
-        sort_dir = -1
+    sort_field, sort_dir = _PACKAGE_SORT_MAP.get(sort or "", ("created_at", -1))
 
     packages = []
     async for p in db.packages.find(query).sort(sort_field, sort_dir).limit(200):
@@ -708,19 +726,41 @@ def download_gdrive_file(file_id: str, dest_path: str) -> str:
             f.write(chunk)
     return content_type
 
+# Extension → canonical MIME mapping (for detect_mime_type)
+_EXT_MIME_MAP = {
+    "pdf": "application/pdf",
+    "png": "image/png",
+    "jpg": "image/jpeg",
+    "jpeg": "image/jpeg",
+    "webp": "image/webp",
+    "avif": "image/avif",
+    "gif": "image/gif",
+    "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "doc": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "xls": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+}
+
+# Content-type keyword → canonical MIME (fallback when extension is missing)
+_CONTENT_TYPE_KEYWORDS = (
+    ("pdf", "application/pdf"),
+    ("word", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
+    ("document", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
+    ("sheet", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+    ("excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+    ("image", "image/jpeg"),
+)
+
+
 def detect_mime_type(file_path: str, content_type: str) -> str:
-    """Detect MIME type from file extension and content-type header."""
+    """Detect MIME type from file extension (preferred) then content-type header."""
     ext = file_path.rsplit('.', 1)[-1].lower() if '.' in file_path else ''
-    if 'pdf' in content_type or ext == 'pdf':
-        return 'application/pdf'
-    if 'image' in content_type or ext in ('png', 'jpg', 'jpeg', 'webp', 'avif'):
-        return f'image/{ext}' if ext else 'image/jpeg'
-    if 'word' in content_type or 'document' in content_type or ext in ('docx', 'doc'):
-        return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-    if 'sheet' in content_type or 'excel' in content_type or ext in ('xlsx', 'xls'):
-        return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    if ext in ('png', 'jpg', 'jpeg', 'webp', 'gif'):
-        return f'image/{ext}'
+    if ext in _EXT_MIME_MAP:
+        return _EXT_MIME_MAP[ext]
+    lowered = (content_type or "").lower()
+    for keyword, mime in _CONTENT_TYPE_KEYWORDS:
+        if keyword in lowered:
+            return mime
     return content_type or 'application/octet-stream'
 
 def extract_text_from_pdf(file_path: str) -> str:
@@ -1006,55 +1046,79 @@ def _cleanup_tmp(tmp_dir: str, tmp_path: str) -> None:
 
 # ── Quotations ──
 
+async def _resolve_member_for_quote(contract_number: str, email: str):
+    """Find matching member by contract_number, falling back to email."""
+    if contract_number:
+        m = await db.members.find_one({"contract_number": contract_number.strip()})
+        if m:
+            return m
+    if email:
+        return await db.members.find_one({"email": email.strip().lower()})
+    return None
+
+
+def _attach_member_to_quote(doc: dict, member: dict) -> None:
+    doc["is_member"] = True
+    doc["member_id"] = str(member["_id"])
+    doc["member_name"] = member.get("name", "")
+    doc["contract_number"] = member.get("contract_number", "")
+
+
+async def _attach_package_to_quote(doc: dict, package_id: str, is_member: bool, guests: int) -> None:
+    if not package_id:
+        return
+    try:
+        pkg = await db.packages.find_one({"_id": ObjectId(package_id)})
+    except Exception:
+        return
+    if not pkg:
+        return
+    unit_price = float(pkg.get("price", 0) or 0)
+    member_unit_price = float(pkg.get("member_price", 0) or 0)
+    applied_price = member_unit_price if (is_member and member_unit_price > 0) else unit_price
+    doc.update({
+        "package_title": pkg.get("title", ""),
+        "package_country": pkg.get("country", ""),
+        "package_duration_days": pkg.get("duration_days", 0),
+        "unit_price": unit_price,
+        "member_unit_price": member_unit_price,
+        "total": round(applied_price * (guests or 1), 2),
+    })
+
+
 @api_router.post("/quotations")
 async def create_quotation(req: QuotationRequest):
-    doc = req.model_dump()
-    doc["created_at"] = datetime.now(timezone.utc).isoformat()
-    doc["status"] = "pending"
-    doc["id"] = str(uuid.uuid4())
-    doc["public_token"] = secrets.token_urlsafe(16)
-    doc["created_by_name"] = "Sistema (web pública)"
-    doc["created_by_id"] = None
-    # Fecha de vencimiento automática (config global o 10 días default)
+    now_iso = datetime.now(timezone.utc).isoformat()
     vdays = await _default_valid_days()
-    doc["valid_until"] = (datetime.now(timezone.utc) + timedelta(days=vdays)).isoformat()
-    doc["timeline"] = [{
-        "event": "created",
-        "label": "Cotización creada",
-        "at": doc["created_at"],
-        "note": "Solicitud recibida desde el sitio web" if not req.contract_number else "Solicitud recibida de socio"
-    }]
-    # Auto-detect member: match by contract_number, then email
-    member = None
-    if req.contract_number:
-        member = await db.members.find_one({"contract_number": req.contract_number.strip()})
-    if not member and req.email:
-        member = await db.members.find_one({"email": req.email.strip().lower()})
+
+    doc = req.model_dump()
+    doc.update({
+        "created_at": now_iso,
+        "status": "pending",
+        "id": str(uuid.uuid4()),
+        "public_token": secrets.token_urlsafe(16),
+        "created_by_name": "Sistema (web pública)",
+        "created_by_id": None,
+        "valid_until": (datetime.now(timezone.utc) + timedelta(days=vdays)).isoformat(),
+        "timeline": [{
+            "event": "created",
+            "label": "Cotización creada",
+            "at": now_iso,
+            "note": "Solicitud recibida desde el sitio web" if not req.contract_number else "Solicitud recibida de socio",
+        }],
+    })
+
+    member = await _resolve_member_for_quote(req.contract_number, req.email)
     if member:
-        doc["is_member"] = True
-        doc["member_id"] = str(member["_id"])
-        doc["member_name"] = member.get("name", "")
-        doc["contract_number"] = member.get("contract_number", "")
+        _attach_member_to_quote(doc, member)
     else:
         doc["is_member"] = False
-        # Auto-register as client for the agency's CRM
         client_id = await _upsert_client(req.name, req.email, req.phone)
         if client_id:
             doc["client_id"] = client_id
-    # Snapshot package info if a package was requested
-    if req.package_id:
-        try:
-            pkg = await db.packages.find_one({"_id": ObjectId(req.package_id)})
-            if pkg:
-                doc["package_title"] = pkg.get("title", "")
-                doc["package_country"] = pkg.get("country", "")
-                doc["package_duration_days"] = pkg.get("duration_days", 0)
-                doc["unit_price"] = float(pkg.get("price", 0) or 0)
-                doc["member_unit_price"] = float(pkg.get("member_price", 0) or 0)
-                applied_price = doc["member_unit_price"] if (doc["is_member"] and doc["member_unit_price"] > 0) else doc["unit_price"]
-                doc["total"] = round(applied_price * (req.guests or 1), 2)
-        except Exception:
-            pass
+
+    await _attach_package_to_quote(doc, req.package_id, doc["is_member"], req.guests)
+
     result = await db.quotations.insert_one(doc)
     doc["_id"] = str(result.inserted_id)
     return serialize_doc(doc)
@@ -1080,8 +1144,10 @@ async def list_quotations(
             query["status"] = status
         if date_from or date_to:
             date_query = {}
-            if date_from: date_query["$gte"] = date_from
-            if date_to: date_query["$lte"] = date_to + "T23:59:59"
+        if date_from:
+            date_query["$gte"] = date_from
+        if date_to:
+            date_query["$lte"] = date_to + "T23:59:59"
             query["created_at"] = date_query
         sort_dir = 1 if sort == "asc" else -1
         quotations = []
@@ -1628,7 +1694,8 @@ async def get_commerce_categories(full: Optional[bool] = False):
     merged = []
     seen = set()
     for name in COMMERCE_CATEGORIES:
-        if name in seen: continue
+        if name in seen:
+            continue
         seen.add(name)
         merged.append({
             "name": name,
@@ -1636,7 +1703,8 @@ async def get_commerce_categories(full: Optional[bool] = False):
             "system": True,
         })
     for name, icon in user_cats.items():
-        if name in seen: continue
+        if name in seen:
+            continue
         seen.add(name)
         merged.append({"name": name, "icon": icon, "system": False})
     if full:
@@ -1661,32 +1729,27 @@ async def create_commerce_category(request: Request):
     })
     return {"name": name, "icon": icon}
 
-@api_router.put("/commerce/categories/{name}")
-async def update_commerce_category(name: str, request: Request):
-    await require_role("super_admin", "admin", permission="categories")(request)
-    body = await request.json()
-    new_name = (body.get("name") or name).strip()
-    icon = (body.get("icon") or "").strip()
-    if not new_name:
-        raise HTTPException(status_code=400, detail="Nombre requerido")
-    # If renaming, ensure no collision
-    if new_name != name:
-        if new_name in COMMERCE_CATEGORIES:
-            raise HTTPException(status_code=400, detail="Nombre ya existe como categoría del sistema")
-        existing = await db.commerce_categories.find_one({"name": new_name})
-        if existing:
-            raise HTTPException(status_code=400, detail="Nombre ya existe")
-    if name in COMMERCE_CATEGORIES:
-        if new_name != name:
-            raise HTTPException(status_code=400, detail="No se puede renombrar una categoría del sistema, solo cambiar el icono")
-        # For system categories, upsert an override record (keeps legacy name list intact)
-        await db.commerce_categories.update_one(
-            {"name": name},
-            {"$set": {"name": name, "icon": icon or DEFAULT_CATEGORY_ICONS.get(name, "🏷️")}},
-            upsert=True,
-        )
-        return {"name": name, "icon": icon or DEFAULT_CATEGORY_ICONS.get(name, "🏷️")}
-    # Custom category
+async def _validate_category_rename(old_name: str, new_name: str) -> None:
+    if new_name == old_name:
+        return
+    if new_name in COMMERCE_CATEGORIES:
+        raise HTTPException(status_code=400, detail="Nombre ya existe como categoría del sistema")
+    if await db.commerce_categories.find_one({"name": new_name}):
+        raise HTTPException(status_code=400, detail="Nombre ya existe")
+
+
+async def _upsert_system_category_icon(name: str, icon: str) -> dict:
+    """System categories: only icon can be overridden (rename is forbidden)."""
+    resolved_icon = icon or DEFAULT_CATEGORY_ICONS.get(name, "🏷️")
+    await db.commerce_categories.update_one(
+        {"name": name},
+        {"$set": {"name": name, "icon": resolved_icon}},
+        upsert=True,
+    )
+    return {"name": name, "icon": resolved_icon}
+
+
+async def _apply_custom_category_update(name: str, new_name: str, icon: str) -> dict:
     update_fields = {}
     if icon:
         update_fields["icon"] = icon
@@ -1700,6 +1763,25 @@ async def update_commerce_category(name: str, request: Request):
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Categoría no encontrada")
     return {"name": new_name, "icon": icon}
+
+
+@api_router.put("/commerce/categories/{name}")
+async def update_commerce_category(name: str, request: Request):
+    await require_role("super_admin", "admin", permission="categories")(request)
+    body = await request.json()
+    new_name = (body.get("name") or name).strip()
+    icon = (body.get("icon") or "").strip()
+    if not new_name:
+        raise HTTPException(status_code=400, detail="Nombre requerido")
+
+    await _validate_category_rename(name, new_name)
+
+    if name in COMMERCE_CATEGORIES:
+        if new_name != name:
+            raise HTTPException(status_code=400, detail="No se puede renombrar una categoría del sistema, solo cambiar el icono")
+        return await _upsert_system_category_icon(name, icon)
+
+    return await _apply_custom_category_update(name, new_name, icon)
 
 @api_router.delete("/commerce/categories/{name}")
 async def delete_commerce_category(name: str, request: Request):
@@ -1835,6 +1917,37 @@ async def reject_commerce(commerce_id: str, request: Request):
         raise HTTPException(status_code=404, detail="Comercio no encontrado")
     return {"message": "Comercio rechazado", "status": "rejected"}
 
+def _can_toggle_commerce(user: dict, commerce_id: str) -> bool:
+    role = user.get("role")
+    if role == "super_admin":
+        return True
+    if role == "admin":
+        return bool((user.get("permissions") or {}).get("commerce"))
+    if role == "commerce":
+        return user.get("commerce_id") == commerce_id
+    return False
+
+
+async def _broadcast_commerce_first_activation(commerce_id: str, target: dict) -> None:
+    """Broadcast when a commerce is turned ON for the first time (only if approved)."""
+    if target.get("status") != "active" or target.get("first_activated_at"):
+        return
+    await db.commerce.update_one(
+        {"_id": ObjectId(commerce_id)},
+        {"$set": {"first_activated_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    try:
+        await _broadcast_news(
+            title="Nuevo comercio afiliado",
+            message=f"{target.get('name','')} - {target.get('benefit_description') or target.get('category','')}. ¡Disfruta tus beneficios!",
+            link=f"/commerce/{commerce_id}",
+            image_url=target.get("logo_url", ""),
+            target="all",
+        )
+    except Exception as e:
+        logger.warning(f"broadcast failed: {e}")
+
+
 @api_router.put("/commerce/{commerce_id}/toggle-active")
 async def toggle_commerce_active(commerce_id: str, request: Request):
     """Turn commerce listing ON/OFF. Allowed for super_admin, admin with commerce permission, or the commerce owner."""
@@ -1842,38 +1955,19 @@ async def toggle_commerce_active(commerce_id: str, request: Request):
     target = await db.commerce.find_one({"_id": ObjectId(commerce_id)})
     if not target:
         raise HTTPException(status_code=404, detail="Comercio no encontrado")
-    role = current.get("role")
-    is_owner = role == "commerce" and current.get("commerce_id") == commerce_id
-    if role == "super_admin":
-        allowed = True
-    elif role == "admin":
-        perms = current.get("permissions") or {}
-        allowed = bool(perms.get("commerce"))
-    elif is_owner:
-        allowed = True
-    else:
-        allowed = False
-    if not allowed:
+
+    if not _can_toggle_commerce(current, commerce_id):
         raise HTTPException(status_code=403, detail="No tienes permiso para cambiar el estado de este comercio")
+
     new_active = not target.get("is_active", False)
-    updates = {"is_active": new_active, "updated_at": datetime.now(timezone.utc).isoformat()}
-    await db.commerce.update_one({"_id": ObjectId(commerce_id)}, {"$set": updates})
-    # Broadcast news the first time it's turned on (if approved) and wasn't on before
-    if new_active and target.get("status") == "active" and not target.get("first_activated_at"):
-        await db.commerce.update_one(
-            {"_id": ObjectId(commerce_id)},
-            {"$set": {"first_activated_at": datetime.now(timezone.utc).isoformat()}},
-        )
-        try:
-            await _broadcast_news(
-                title="Nuevo comercio afiliado",
-                message=f"{target.get('name','')} - {target.get('benefit_description') or target.get('category','')}. ¡Disfruta tus beneficios!",
-                link=f"/commerce/{commerce_id}",
-                image_url=target.get("logo_url", ""),
-                target="all",
-            )
-        except Exception as e:
-            logger.warning(f"broadcast failed: {e}")
+    await db.commerce.update_one(
+        {"_id": ObjectId(commerce_id)},
+        {"$set": {"is_active": new_active, "updated_at": datetime.now(timezone.utc).isoformat()}},
+    )
+
+    if new_active:
+        await _broadcast_commerce_first_activation(commerce_id, target)
+
     return {"message": f"Comercio {'activado' if new_active else 'desactivado'}", "is_active": new_active}
 
 # ── Social links (footer) ──
@@ -3134,7 +3228,7 @@ async def seed_sample_data():
         # Update test credentials
         creds_path = Path("/app/memory/test_credentials.md")
         with open(creds_path, "a") as f:
-            f.write(f"\n## Member (Socio)\n- Contract: KT-001\n- DPI: 1234567890101\n- Name: Juan Pérez García\n")
+            f.write("\n## Member (Socio)\n- Contract: KT-001\n- DPI: 1234567890101\n- Name: Juan Pérez García\n")
 
 @app.on_event("startup")
 async def startup():
@@ -3309,55 +3403,69 @@ def _build_template_xlsx(title: str, columns) -> bytes:
     buf.seek(0)
     return buf.getvalue()
 
-def _parse_uploaded_rows(file_bytes: bytes, filename: str, columns):
-    """Parse CSV/XLSX and map the header labels to field keys. Returns list[dict]."""
-    # Build a label->key map (accept both the label and the raw key)
+def _build_label_to_key_map(columns) -> dict:
+    """Map any known header (label / label-without-asterisk / raw key) → field key."""
     label_to_key = {}
     for key, label, _r, _ex in columns:
         label_to_key[label.strip().lower()] = key
         label_to_key[label.replace("*", "").strip().lower()] = key
         label_to_key[key.lower()] = key
-    rows = []
-    fn = (filename or "").lower()
-    if fn.endswith(".csv"):
-        text = file_bytes.decode("utf-8-sig", errors="ignore")
-        reader = _csv.reader(_io.StringIO(text))
-        data = list(reader)
-        if not data:
-            return []
-        header = [h.strip().lower() for h in data[0]]
-        for raw in data[1:]:
-            if not any((v or "").strip() for v in raw):
-                continue
-            row = {}
-            for i, value in enumerate(raw):
-                if i >= len(header):
-                    break
-                key = label_to_key.get(header[i])
-                if key is not None:
-                    row[key] = (value or "").strip()
-            rows.append(row)
-    else:
-        wb = _load_workbook(_io.BytesIO(file_bytes), read_only=True, data_only=True)
-        ws = wb.active
-        header_row = None
-        for row in ws.iter_rows(values_only=True):
-            header_row = [(str(h).strip().lower() if h is not None else "") for h in row]
+    return label_to_key
+
+
+def _row_has_any_value(values) -> bool:
+    return any((v is not None and str(v).strip() != "") for v in values)
+
+
+def _map_row_values(header: list, raw_values, label_to_key: dict, strip_strings: bool) -> dict:
+    row: dict = {}
+    for i, value in enumerate(raw_values):
+        if i >= len(header):
             break
-        if header_row is None:
-            return []
-        for raw in ws.iter_rows(min_row=2, values_only=True):
-            if not any((v is not None and str(v).strip() != "") for v in raw):
-                continue
-            row = {}
-            for i, value in enumerate(raw):
-                if i >= len(header_row):
-                    break
-                key = label_to_key.get(header_row[i])
-                if key is not None:
-                    row[key] = value
-            rows.append(row)
+        key = label_to_key.get(header[i])
+        if key is None:
+            continue
+        row[key] = (value or "").strip() if strip_strings else value
+    return row
+
+
+def _parse_csv_rows(file_bytes: bytes, label_to_key: dict) -> list:
+    text = file_bytes.decode("utf-8-sig", errors="ignore")
+    data = list(_csv.reader(_io.StringIO(text)))
+    if not data:
+        return []
+    header = [h.strip().lower() for h in data[0]]
+    rows = []
+    for raw in data[1:]:
+        if not _row_has_any_value(raw):
+            continue
+        rows.append(_map_row_values(header, raw, label_to_key, strip_strings=True))
     return rows
+
+
+def _parse_xlsx_rows(file_bytes: bytes, label_to_key: dict) -> list:
+    wb = _load_workbook(_io.BytesIO(file_bytes), read_only=True, data_only=True)
+    ws = wb.active
+    header_row = None
+    for first_row in ws.iter_rows(values_only=True):
+        header_row = [(str(h).strip().lower() if h is not None else "") for h in first_row]
+        break
+    if header_row is None:
+        return []
+    rows = []
+    for raw in ws.iter_rows(min_row=2, values_only=True):
+        if not _row_has_any_value(raw):
+            continue
+        rows.append(_map_row_values(header_row, raw, label_to_key, strip_strings=False))
+    return rows
+
+
+def _parse_uploaded_rows(file_bytes: bytes, filename: str, columns):
+    """Parse CSV/XLSX and map header labels to field keys. Returns list[dict]."""
+    label_to_key = _build_label_to_key_map(columns)
+    if (filename or "").lower().endswith(".csv"):
+        return _parse_csv_rows(file_bytes, label_to_key)
+    return _parse_xlsx_rows(file_bytes, label_to_key)
 
 def _coerce(val, typ):
     if val is None or val == "":
@@ -3395,6 +3503,64 @@ async def packages_template(request: Request):
         headers={"Content-Disposition": 'attachment; filename="plantilla_paquetes.xlsx"'},
     )
 
+async def _load_existing_member_contracts() -> set:
+    """Return all existing contract_numbers to check for in-DB duplicates."""
+    existing = set()
+    async for m in db.members.find({}, {"contract_number": 1}):
+        if m.get("contract_number"):
+            existing.add(m["contract_number"])
+    return existing
+
+
+def _validate_member_row(row: dict) -> tuple:
+    """Return (contract, name, dpi, error_msg_or_None)."""
+    contract = str(row.get("contract_number") or "").strip()
+    name = str(row.get("name") or "").strip()
+    dpi = str(row.get("dpi") or "").strip()
+    if not contract or not name or not dpi:
+        return contract, name, dpi, "Faltan campos obligatorios (contract_number, name, dpi)"
+    return contract, name, dpi, None
+
+
+def _build_member_doc_from_row(row: dict, contract: str, name: str, dpi: str) -> dict:
+    """Coerce typed fields for a single member row."""
+    num_fields = {"service_years": int, "age": int, "family_members_allowed": int, "investment_amount": float}
+    doc = {"contract_number": contract, "name": name, "dpi": dpi, "status": "active"}
+    for key, _lb, _r, _ex in MEMBER_TEMPLATE_COLS:
+        if key in ("contract_number", "name", "dpi"):
+            continue
+        val = row.get(key)
+        if val is None or val == "":
+            continue
+        if key in num_fields:
+            coerced = _coerce(val, num_fields[key])
+            if coerced is not None:
+                doc[key] = coerced
+        else:
+            doc[key] = str(val).strip() if not isinstance(val, (int, float)) else val
+    return doc
+
+
+async def _insert_member_with_login(doc: dict, contract: str, dpi: str, name: str, user_id) -> str:
+    """Persist member + ensure an auth user exists with contract_number as the email prefix."""
+    doc["created_at"] = datetime.now(timezone.utc).isoformat()
+    doc["created_by"] = user_id
+    result = await db.members.insert_one(doc)
+    new_id = str(result.inserted_id)
+    member_email = f"{contract}@kuxtal.member"
+    if not await db.users.find_one({"email": member_email}):
+        await db.users.insert_one({
+            "email": member_email,
+            "password_hash": hash_password(dpi),
+            "name": name,
+            "role": "member",
+            "member_id": new_id,
+            "is_family_member": False,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+    return new_id
+
+
 @app.post("/api/admin/members/bulk-import")
 async def members_bulk_import(request: Request, file: UploadFile = File(...), dry_run: bool = Query(False)):
     user = await require_role("super_admin", "admin")(request)
@@ -3405,68 +3571,35 @@ async def members_bulk_import(request: Request, file: UploadFile = File(...), dr
         raise HTTPException(status_code=400, detail=f"No se pudo leer el archivo: {e}")
 
     created, errors, preview = [], [], []
-    num_fields = {"service_years": int, "age": int, "family_members_allowed": int, "investment_amount": float}
-    existing_contracts = set()
-    existing_dpis = set()
-    if not dry_run:
-        # Pull only to avoid heavy concurrent duplicates inside the batch
-        async for m in db.members.find({}, {"contract_number": 1, "dpi": 1}):
-            if m.get("contract_number"):
-                existing_contracts.add(m["contract_number"])
-            if m.get("dpi"):
-                existing_dpis.add(m["dpi"])
-    else:
-        async for m in db.members.find({}, {"contract_number": 1, "dpi": 1}):
-            if m.get("contract_number"):
-                existing_contracts.add(m["contract_number"])
+    existing_contracts = await _load_existing_member_contracts()
 
     for idx, row in enumerate(rows, start=2):  # row 1 is header
-        contract = str(row.get("contract_number") or "").strip()
-        name = str(row.get("name") or "").strip()
-        dpi = str(row.get("dpi") or "").strip()
-        if not contract or not name or not dpi:
-            errors.append({"row": idx, "error": "Faltan campos obligatorios (contract_number, name, dpi)"})
+        contract, name, dpi, err = _validate_member_row(row)
+        if err:
+            errors.append({"row": idx, "error": err})
             continue
         if contract in existing_contracts:
             errors.append({"row": idx, "contract_number": contract, "error": "El número de contrato ya existe"})
             continue
-        doc = {"contract_number": contract, "name": name, "dpi": dpi, "status": "active"}
-        for key, _lb, _r, _ex in MEMBER_TEMPLATE_COLS:
-            if key in ("contract_number", "name", "dpi"):
-                continue
-            val = row.get(key)
-            if val is None or val == "":
-                continue
-            if key in num_fields:
-                coerced = _coerce(val, num_fields[key])
-                if coerced is not None:
-                    doc[key] = coerced
-            else:
-                doc[key] = str(val).strip() if not isinstance(val, (int, float)) else val
+
+        doc = _build_member_doc_from_row(row, contract, name, dpi)
         preview.append({"row": idx, **doc})
         existing_contracts.add(contract)
+
         if not dry_run:
-            doc["created_at"] = datetime.now(timezone.utc).isoformat()
-            doc["created_by"] = user["_id"]
             try:
-                result = await db.members.insert_one(doc)
-                new_id = str(result.inserted_id)
-                # Auto-create user login (same logic as single-member create)
-                member_email = f"{contract}@kuxtal.member"
-                if not await db.users.find_one({"email": member_email}):
-                    await db.users.insert_one({
-                        "email": member_email,
-                        "password_hash": hash_password(dpi),
-                        "name": name,
-                        "role": "member",
-                        "member_id": new_id,
-                        "is_family_member": False,
-                        "created_at": datetime.now(timezone.utc).isoformat(),
-                    })
+                new_id = await _insert_member_with_login(doc, contract, dpi, name, user["_id"])
                 created.append({"row": idx, "id": new_id, "contract_number": contract})
             except Exception as e:
                 errors.append({"row": idx, "contract_number": contract, "error": str(e)})
-    return {"total_rows": len(rows), "valid": len(preview), "errors": errors, "created": created if not dry_run else [], "preview": preview if dry_run else []}
+
+    return {
+        "total_rows": len(rows),
+        "valid": len(preview),
+        "errors": errors,
+        "created": created if not dry_run else [],
+        "preview": preview if dry_run else [],
+    }
 
 @app.post("/api/admin/packages/bulk-import")
 async def packages_bulk_import(request: Request, file: UploadFile = File(...), dry_run: bool = Query(False)):

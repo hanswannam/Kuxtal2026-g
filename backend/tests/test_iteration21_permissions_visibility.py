@@ -98,7 +98,7 @@ class TestPermissionsMatrix:
         assert r.status_code == 200, r.text
         created = r.json()
         user_id = created["id"]
-        assert created["permissions"].get("quotations") == True
+        assert created["permissions"].get("quotations")
         assert created["role"] == "admin"
 
         # Update permissions using the existing endpoint
@@ -109,8 +109,8 @@ class TestPermissionsMatrix:
         )
         assert r2.status_code == 200, r2.text
         saved = r2.json().get("permissions", {})
-        assert saved.get("packages") == True
-        assert saved.get("quotations") == True
+        assert saved.get("packages")
+        assert saved.get("quotations")
 
         # Verify persisted via list endpoint
         r3 = requests.get(f"{BASE_URL}/api/admin/users", headers=admin_headers)
@@ -118,8 +118,8 @@ class TestPermissionsMatrix:
         found = next((u for u in r3.json() if u.get("email") == email), None)
         assert found is not None
         perms = found.get("permissions", {})
-        assert perms.get("packages") == True
-        assert perms.get("quotations") == True
+        assert perms.get("packages")
+        assert perms.get("quotations")
 
         # Cleanup: delete the created admin
         from urllib.parse import quote

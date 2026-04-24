@@ -203,6 +203,17 @@ Sistema CRM para club vacacional con web publica estilo Expedia, programa Kuxtal
   - Transición del CTA final al footer ahora es suave (ambos navy dark) unificando toda la estética.
 - [ ] Backend refactoring: import_package_from_drive() complexity (break into smaller functions)
 - [ ] Frontend refactoring: CommercePortal.js (491 lines), ChatPage.js, HomePage.js
+- Code review fixes backend (2026-02, iter 43):
+  - **Ruff warnings eliminados** (0 errores ahora): E701 (2 casos de `if x: continue` en línea, 2 casos de `if x: query = ...`) y F541 (f-string sin placeholder).
+  - **`detect_mime_type` refactorizado** con dict `_EXT_MIME_MAP` (extensión→mime) + tupla `_CONTENT_TYPE_KEYWORDS` (keyword→mime fallback). Complejidad 15→3, más rápido y mantenible. Tests manuales pasan (6/6 casos).
+  - **`list_packages` refactorizado**: extraídos `_is_admin_request`, `_apply_package_range_filter`, `_apply_package_search_filter`, + `_PACKAGE_SORT_MAP` (dict lookup en lugar de 5 elif). Complejidad 18→6, 62 líneas→48.
+  - **`create_quotation` refactorizado**: extraídos `_resolve_member_for_quote`, `_attach_member_to_quote`, `_attach_package_to_quote`. Complejidad 15→5.
+  - **`update_commerce_category` refactorizado**: extraídos `_validate_category_rename`, `_upsert_system_category_icon`, `_apply_custom_category_update`. Complejidad 15→4.
+  - **`toggle_commerce_active` refactorizado**: extraídos `_can_toggle_commerce` (RBAC puro), `_broadcast_commerce_first_activation` (efecto colateral). Complejidad 14→3.
+  - **`_parse_uploaded_rows` refactorizado**: extraídos `_build_label_to_key_map`, `_row_has_any_value`, `_map_row_values`, `_parse_csv_rows`, `_parse_xlsx_rows`. Complejidad 25→4.
+  - **`members_bulk_import` refactorizado**: extraídos `_load_existing_member_contracts`, `_validate_member_row`, `_build_member_doc_from_row`, `_insert_member_with_login`. Complejidad 27→6, 70 líneas→35. Eliminado el `existing_dpis` set que nunca se usaba (dead code).
+  - **Tests `== True/False` corregidos**: 17 occurrences en 5 archivos migradas a assertions idiomáticas (`assert x`, `assert not x`, `is True`, `is not True`).
+  - Verificado post-refactor: `/api/packages` con filtros + sort + `/api/commerce/categories` + `/api/quotations` responden correctamente.
 - [ ] Fix pre-existing test files test_kuxtal_api.py / test_coupons.py (missing BASE_URL)
 - [ ] Configurar dominio kuxtaltravelgt.com
 - [ ] Sistema de reviews/testimonios (P1)

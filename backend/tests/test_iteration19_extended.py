@@ -159,7 +159,7 @@ class TestRegalias:
         assert r.status_code == 200, r.text
         data = r.json()
         assert data["name"] == "TEST Regalia Spa"
-        assert data["used"] == False
+        assert not (data["used"])
         assert data["status"] == "active"
         pytest.regalia_id = data["_id"]
         pytest.regalia_member_id = kt001["_id"]
@@ -183,10 +183,10 @@ class TestRegalias:
     def test_toggle_used(self, admin_client):
         r = admin_client.put(f"{BASE_URL}/api/regalias/{pytest.regalia_id}/toggle-used")
         assert r.status_code == 200
-        assert r.json()["used"] == True
+        assert r.json()["used"]
         # Toggle back
         r = admin_client.put(f"{BASE_URL}/api/regalias/{pytest.regalia_id}/toggle-used")
-        assert r.json()["used"] == False
+        assert not (r.json()["used"])
 
     def test_delete_regalia_with_code(self, admin_client):
         # Wrong code
