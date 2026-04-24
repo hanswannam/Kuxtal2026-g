@@ -2,12 +2,57 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api from '../lib/api';
 import { Button } from '../components/ui/button';
-import { Badge } from '../components/ui/badge';
-import { MapPin, Star, Calendar, Users, Check, Clock, Hotel, Mountain, ArrowLeft, Share2, Heart, ChevronLeft, ChevronRight } from 'lucide-react';
+import { MapPin, Star, Calendar, Users, Check, Hotel, Mountain, ArrowLeft, Share2, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { toast } from 'sonner';
 import { CountdownTimer } from '../components/CountdownTimer';
 import ImageWithFallback from '../components/ImageWithFallback';
+
+// Luxury palette — consistent with HomePage
+const NAVY = '#0D2B45';
+const NAVY_DEEP = '#061829';
+const GOLD = '#D4AF5A';
+const CHAMPAGNE = '#E5C989';
+const CREAM_BG = 'linear-gradient(180deg, #FAF8F3 0%, #F3EEE2 60%, #FAF8F3 100%)';
+
+const SERIF = '"Playfair Display", Georgia, serif';
+
+function MetaBadge({ icon: Icon, children }) {
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold"
+      style={{ background: '#FFFFFF', border: `1px solid ${GOLD}44`, color: NAVY }}
+    >
+      <Icon className="w-3.5 h-3.5" style={{ color: GOLD }} />
+      {children}
+    </span>
+  );
+}
+
+function SectionCard({ children, testid }) {
+  return (
+    <div
+      className="relative rounded-[22px] p-6 sm:p-7 overflow-hidden"
+      style={{ background: '#FFFFFF', boxShadow: `0 10px 30px -15px rgba(13,43,69,0.18), 0 0 0 1px ${GOLD}22` }}
+      data-testid={testid}
+    >
+      <div className="absolute top-0 left-6 right-6 h-px" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}66, transparent)` }} />
+      {children}
+    </div>
+  );
+}
+
+function SectionHeading({ eyebrow, title }) {
+  return (
+    <div className="mb-5">
+      <div className="flex items-center gap-2 mb-2">
+        <Sparkles className="w-3 h-3" style={{ color: GOLD }} />
+        <p className="text-[10px] font-bold uppercase tracking-[0.28em]" style={{ color: '#8B6F2E' }}>{eyebrow}</p>
+      </div>
+      <h2 className="font-heading text-2xl font-black tracking-tight" style={{ color: NAVY, fontFamily: SERIF }}>{title}</h2>
+    </div>
+  );
+}
 
 export default function TripDetailPage() {
   const { id } = useParams();
@@ -44,257 +89,391 @@ export default function TripDetailPage() {
   const fmtPrice = (v) => (Number(v) || 0).toLocaleString();
 
   if (loading) return (
-    <div className="min-h-screen pt-20 bg-secondary/20">
+    <div className="min-h-screen pt-20" style={{ background: CREAM_BG }}>
       <div className="max-w-6xl mx-auto px-4 py-8 animate-pulse">
-        <div className="aspect-[21/9] bg-muted rounded-2xl mb-8" />
-        <div className="h-8 bg-muted rounded w-1/2 mb-4" />
-        <div className="h-4 bg-muted rounded w-full mb-2" />
-        <div className="h-4 bg-muted rounded w-3/4" />
+        <div className="aspect-[21/9] rounded-2xl mb-8" style={{ background: '#ece6d8' }} />
+        <div className="h-8 rounded w-1/2 mb-4" style={{ background: '#ece6d8' }} />
+        <div className="h-4 rounded w-full mb-2" style={{ background: '#ece6d8' }} />
+        <div className="h-4 rounded w-3/4" style={{ background: '#ece6d8' }} />
       </div>
     </div>
   );
 
   if (!pkg) return (
-    <div className="min-h-screen pt-20 flex items-center justify-center">
+    <div className="min-h-screen pt-20 flex items-center justify-center" style={{ background: CREAM_BG }}>
       <div className="text-center">
-        <h2 className="font-heading text-2xl font-bold mb-3">Paquete no encontrado</h2>
-        <Link to="/search"><Button className="rounded-full">Volver a buscar</Button></Link>
+        <h2 className="font-heading text-2xl font-bold mb-3" style={{ color: NAVY, fontFamily: SERIF }}>Paquete no encontrado</h2>
+        <Link to="/search">
+          <Button className="rounded-full font-bold uppercase tracking-[0.2em] text-xs px-8" style={{ background: `linear-gradient(135deg, #F5E6B8 0%, ${GOLD} 50%, #B8944A 100%)`, color: NAVY_DEEP, border: `1px solid ${GOLD}` }}>
+            Volver a buscar
+          </Button>
+        </Link>
       </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen pt-20 bg-secondary/20" data-testid="trip-detail-page">
+    <div className="min-h-screen pt-20 relative overflow-hidden" style={{ background: CREAM_BG }} data-testid="trip-detail-page">
+      {/* Top + bottom gold hairlines framing the page */}
+      <div className="absolute top-20 left-0 right-0 h-px z-0" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}44, transparent)` }} />
+      {/* Subtle gold marble */}
+      <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: `radial-gradient(ellipse at 15% 20%, ${GOLD} 0, transparent 45%), radial-gradient(ellipse at 85% 75%, ${GOLD} 0, transparent 45%)` }} />
+
       {/* Breadcrumb */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-4">
-        <Link to="/search" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors" data-testid="back-to-search">
-          <ArrowLeft className="w-4 h-4" /> Volver a resultados
+      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-4">
+        <Link to="/search" className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.22em] transition-all hover:gap-3" style={{ color: NAVY }} data-testid="back-to-search">
+          <ArrowLeft className="w-4 h-4" style={{ color: GOLD }} /> Volver a resultados
         </Link>
       </div>
 
       {/* Hero / Gallery */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
-        <div className="relative rounded-2xl overflow-hidden aspect-[21/9] sm:aspect-[2.5/1]" data-testid="trip-gallery">
+      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mb-10">
+        <div
+          className="relative rounded-[22px] overflow-hidden aspect-[21/9] sm:aspect-[2.5/1]"
+          style={{ boxShadow: `0 25px 60px -20px rgba(13,43,69,0.35), 0 0 0 1px ${GOLD}44` }}
+          data-testid="trip-gallery"
+        >
           <ImageWithFallback
             src={allImages[galleryIndex]}
             alt={pkg.title}
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30" />
+          <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}aa, transparent)` }} />
+          <div className="absolute bottom-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}aa, transparent)` }} />
 
           {/* Gallery controls */}
           {allImages.length > 1 && (
             <>
-              <button onClick={() => setGalleryIndex((galleryIndex - 1 + allImages.length) % allImages.length)} className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 backdrop-blur rounded-full flex items-center justify-center hover:bg-white transition-colors" data-testid="gallery-prev">
+              <button
+                onClick={() => setGalleryIndex((galleryIndex - 1 + allImages.length) % allImages.length)}
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full flex items-center justify-center transition-all hover:scale-110"
+                style={{ background: `${NAVY_DEEP}dd`, border: `1px solid ${GOLD}66`, backdropFilter: 'blur(8px)', color: CHAMPAGNE }}
+                data-testid="gallery-prev"
+              >
                 <ChevronLeft className="w-5 h-5" />
               </button>
-              <button onClick={() => setGalleryIndex((galleryIndex + 1) % allImages.length)} className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 backdrop-blur rounded-full flex items-center justify-center hover:bg-white transition-colors" data-testid="gallery-next">
+              <button
+                onClick={() => setGalleryIndex((galleryIndex + 1) % allImages.length)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full flex items-center justify-center transition-all hover:scale-110"
+                style={{ background: `${NAVY_DEEP}dd`, border: `1px solid ${GOLD}66`, backdropFilter: 'blur(8px)', color: CHAMPAGNE }}
+                data-testid="gallery-next"
+              >
                 <ChevronRight className="w-5 h-5" />
               </button>
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
+              <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-1.5">
                 {allImages.map((_, i) => (
-                  <button key={`dot-${i}`} onClick={() => setGalleryIndex(i)} className={`w-2 h-2 rounded-full transition-all ${i === galleryIndex ? 'bg-white w-6' : 'bg-white/50'}`} />
+                  <button
+                    key={`dot-${i}`}
+                    onClick={() => setGalleryIndex(i)}
+                    className="h-1.5 rounded-full transition-all"
+                    style={{
+                      width: i === galleryIndex ? 32 : 8,
+                      background: i === galleryIndex ? GOLD : 'rgba(245,230,184,0.4)',
+                    }}
+                  />
                 ))}
               </div>
             </>
           )}
 
-          {/* Category badge */}
-          <div className="absolute top-4 left-4 flex gap-2">
-            <Badge className="bg-white/90 backdrop-blur text-foreground rounded-full px-3 py-1">
+          {/* Category + Featured badges */}
+          <div className="absolute top-4 left-4 flex flex-wrap gap-2">
+            <span
+              className="inline-flex items-center px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-[0.22em]"
+              style={{ background: `${NAVY_DEEP}ee`, color: CHAMPAGNE, border: `1px solid ${GOLD}44`, backdropFilter: 'blur(8px)' }}
+            >
               {pkg.category === 'alojamiento' ? 'Alojamiento' : pkg.category === 'experiencia' ? 'Experiencia' : 'Paquete'}
-            </Badge>
-            {pkg.featured && <Badge className="bg-primary text-white rounded-full px-3 py-1">Destacado</Badge>}
+            </span>
+            {pkg.featured && (
+              <span
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.22em]"
+                style={{ background: `linear-gradient(135deg, #F5E6B8 0%, ${GOLD} 50%, #B8944A 100%)`, color: NAVY_DEEP, border: `1px solid ${GOLD}`, boxShadow: `0 6px 18px -4px rgba(212,175,90,0.6)` }}
+              >
+                <Sparkles className="w-2.5 h-2.5" /> Exclusivo
+              </span>
+            )}
           </div>
 
           {/* Share button */}
-          <button className="absolute top-4 right-4 w-10 h-10 bg-white/80 backdrop-blur rounded-full flex items-center justify-center hover:bg-white transition-colors" onClick={() => {navigator.clipboard.writeText(window.location.href); toast.success('Enlace copiado');}} data-testid="share-btn">
+          <button
+            className="absolute top-4 right-4 w-11 h-11 rounded-full flex items-center justify-center transition-all hover:scale-110"
+            style={{ background: `${NAVY_DEEP}dd`, border: `1px solid ${GOLD}66`, backdropFilter: 'blur(8px)', color: CHAMPAGNE }}
+            onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success('Enlace copiado'); }}
+            data-testid="share-btn"
+          >
             <Share2 className="w-4 h-4" />
           </button>
         </div>
       </div>
 
       {/* Content */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
+      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-8">
+          <div className="lg:col-span-2 space-y-6">
             {/* Title & Meta */}
             <div>
-              <h1 className="font-heading text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight mb-3 text-primary" data-testid="trip-title">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="h-px w-8" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}aa)` }} />
+                <Sparkles className="w-3 h-3" style={{ color: GOLD }} />
+                <div className="h-px flex-1 max-w-[100px]" style={{ background: `linear-gradient(90deg, ${GOLD}aa, transparent)` }} />
+              </div>
+              <h1
+                className="font-heading text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-[1.02] mb-4"
+                style={{ color: NAVY, fontFamily: SERIF }}
+                data-testid="trip-title"
+              >
                 {pkg.title}
               </h1>
-              <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-accent-foreground" />{pkg.country}</span>
-                <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4" />{pkg.duration_days} días</span>
-                <span className="flex items-center gap-1.5"><Star className="w-4 h-4 text-amber-400 fill-amber-400" />{pkg.rating}/5</span>
-                {pkg.accommodation_type && <span className="flex items-center gap-1.5"><Hotel className="w-4 h-4" />{pkg.accommodation_type}</span>}
-                {pkg.difficulty && <span className="flex items-center gap-1.5"><Mountain className="w-4 h-4" />{pkg.difficulty}</span>}
-                {pkg.max_group && <span className="flex items-center gap-1.5"><Users className="w-4 h-4" />{pkg.min_group || 1}-{pkg.max_group} personas</span>}
+              <div className="flex flex-wrap items-center gap-2">
+                <MetaBadge icon={MapPin}>{pkg.country}</MetaBadge>
+                <MetaBadge icon={Calendar}>{pkg.duration_days} días</MetaBadge>
+                <MetaBadge icon={Star}>{pkg.rating}/5</MetaBadge>
+                {pkg.accommodation_type && <MetaBadge icon={Hotel}>{pkg.accommodation_type}</MetaBadge>}
+                {pkg.difficulty && <MetaBadge icon={Mountain}>{pkg.difficulty}</MetaBadge>}
+                {pkg.max_group && <MetaBadge icon={Users}>{pkg.min_group || 1}-{pkg.max_group} personas</MetaBadge>}
               </div>
             </div>
 
             {/* Description */}
-            <div className="bg-white rounded-2xl p-6 border border-border">
-              <h2 className="font-heading text-lg font-semibold mb-3 text-primary">Descripción</h2>
-              <p className="text-muted-foreground leading-relaxed whitespace-pre-line" data-testid="trip-description">
+            <SectionCard testid="trip-description-card">
+              <SectionHeading eyebrow="Sobre el destino" title="Descripción" />
+              <p className="leading-relaxed whitespace-pre-line text-sm sm:text-base" style={{ color: `${NAVY}cc` }} data-testid="trip-description">
                 {pkg.description}
               </p>
-            </div>
+            </SectionCard>
 
             {/* Includes */}
             {Array.isArray(pkg.includes) && pkg.includes.length > 0 && (
-              <div className="bg-white rounded-2xl p-6 border border-border" data-testid="trip-includes">
-                <h2 className="font-heading text-lg font-semibold mb-4 text-primary">Que Incluye</h2>
+              <SectionCard testid="trip-includes">
+                <SectionHeading eyebrow="Beneficios incluidos" title="Qué incluye" />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {pkg.includes.map((item, idx) => (
-                    <div key={`inc-${idx}`} className="flex items-center gap-3 p-3 bg-emerald-50/50 rounded-xl border border-emerald-100">
-                      <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
-                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                    <div
+                      key={`inc-${idx}`}
+                      className="flex items-center gap-3 p-3 rounded-xl transition-all"
+                      style={{ background: `${GOLD}0F`, border: `1px solid ${GOLD}33` }}
+                    >
+                      <div
+                        className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
+                        style={{ background: `linear-gradient(135deg, #F5E6B8 0%, ${GOLD} 50%, #B8944A 100%)` }}
+                      >
+                        <Check className="w-3.5 h-3.5" style={{ color: NAVY_DEEP }} strokeWidth={3} />
                       </div>
-                      <span className="text-sm font-medium">{item}</span>
+                      <span className="text-sm font-medium" style={{ color: NAVY }}>{item}</span>
                     </div>
                   ))}
                 </div>
-              </div>
+              </SectionCard>
             )}
 
             {/* Itinerary */}
             {Array.isArray(pkg.itinerary) && pkg.itinerary.length > 0 && (
-              <div className="bg-white rounded-2xl p-6 border border-border" data-testid="trip-itinerary">
-                <h2 className="font-heading text-lg font-semibold mb-4 text-primary">Itinerario Dia por Dia</h2>
+              <SectionCard testid="trip-itinerary">
+                <SectionHeading eyebrow="Programa completo" title="Itinerario día por día" />
                 <div className="space-y-4">
                   {pkg.itinerary.map((day, i) => (
                     <div key={`day-${i}`} className="flex gap-4">
                       <div className="flex flex-col items-center">
-                        <div className="w-10 h-10 rounded-full font-bold text-sm flex items-center justify-center shrink-0 text-white bg-primary">
+                        <div
+                          className="w-11 h-11 rounded-full font-black text-sm flex items-center justify-center shrink-0"
+                          style={{
+                            background: `linear-gradient(135deg, #F5E6B8 0%, ${GOLD} 50%, #B8944A 100%)`,
+                            color: NAVY_DEEP,
+                            boxShadow: `0 6px 18px -4px rgba(212,175,90,0.5)`,
+                            fontFamily: SERIF,
+                          }}
+                        >
                           {day?.day || i + 1}
                         </div>
-                        {i < pkg.itinerary.length - 1 && <div className="w-0.5 flex-1 bg-border mt-2" />}
+                        {i < pkg.itinerary.length - 1 && (
+                          <div className="w-px flex-1 mt-2" style={{ background: `linear-gradient(180deg, ${GOLD}77, transparent)` }} />
+                        )}
                       </div>
-                      <div className="pb-6">
-                        <h3 className="font-semibold text-sm mb-1">{day?.title || `Dia ${day?.day || i + 1}`}</h3>
-                        <p className="text-sm text-muted-foreground leading-relaxed">{day?.description || ''}</p>
+                      <div className="pb-4 flex-1">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.22em] mb-1" style={{ color: `${GOLD}cc` }}>
+                          Día {day?.day || i + 1}
+                        </p>
+                        <h3 className="font-heading font-bold text-base mb-1" style={{ color: NAVY, fontFamily: SERIF }}>
+                          {day?.title || `Día ${day?.day || i + 1}`}
+                        </h3>
+                        <p className="text-sm leading-relaxed" style={{ color: `${NAVY}99` }}>{day?.description || ''}</p>
                       </div>
                     </div>
                   ))}
                 </div>
-              </div>
+              </SectionCard>
             )}
           </div>
 
           {/* Sidebar - Pricing & CTA */}
           <div className="lg:col-span-1">
             <div className="sticky top-36 space-y-4">
-              {/* Price Card */}
-              <div className="bg-white rounded-2xl p-6 border border-border shadow-lg" data-testid="trip-price-card">
-                <div className="mb-4">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Desde</p>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-bold text-primary">Q.{fmtPrice(pkg.price)}</span>
-                    <span className="text-sm text-muted-foreground">por persona</span>
+              {/* Price Card — luxury dark */}
+              <div
+                className="relative rounded-[22px] p-6 overflow-hidden"
+                style={{
+                  background: `linear-gradient(145deg, ${NAVY} 0%, ${NAVY_DEEP} 100%)`,
+                  border: `1px solid ${GOLD}66`,
+                  boxShadow: `0 25px 60px -20px rgba(13,43,69,0.55)`,
+                }}
+                data-testid="trip-price-card"
+              >
+                {/* Gold radial + hairlines */}
+                <div className="absolute inset-0 opacity-[0.1] pointer-events-none" style={{ backgroundImage: `radial-gradient(circle at 85% 15%, ${GOLD} 0, transparent 50%)` }} />
+                <div className="absolute top-0 left-6 right-6 h-px" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}aa, transparent)` }} />
+                <div className="absolute bottom-0 left-6 right-6 h-px" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}66, transparent)` }} />
+
+                <div className="relative mb-4">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.28em] mb-2" style={{ color: `${GOLD}cc` }}>Desde</p>
+                  <div className="flex items-baseline gap-2 flex-wrap">
+                    <span
+                      className="text-4xl sm:text-5xl font-black tracking-tight"
+                      style={{
+                        background: `linear-gradient(92deg, #F5E6B8 0%, ${GOLD} 50%, #B8944A 100%)`,
+                        WebkitBackgroundClip: 'text',
+                        backgroundClip: 'text',
+                        color: 'transparent',
+                        fontFamily: SERIF,
+                      }}
+                    >
+                      Q.{fmtPrice(pkg.price)}
+                    </span>
+                    <span className="text-sm italic" style={{ color: `${CHAMPAGNE}99`, fontFamily: SERIF }}>por persona</span>
                   </div>
                   {memberPrice > 0 && (
-                    <div className="mt-2 p-2 rounded-lg border bg-accent/10 border-accent/20">
-                      <p className="text-xs font-semibold text-accent-foreground">Precio Socio: Q.{fmtPrice(memberPrice)}</p>
+                    <div
+                      className="mt-3 flex items-center justify-between p-3 rounded-xl"
+                      style={{ background: `${GOLD}15`, border: `1px solid ${GOLD}66` }}
+                    >
+                      <span className="text-[10px] font-bold uppercase tracking-[0.22em]" style={{ color: CHAMPAGNE }}>Precio socio</span>
+                      <span className="text-base font-black" style={{ color: '#F5E6B8', fontFamily: SERIF }}>Q.{fmtPrice(memberPrice)}</span>
                     </div>
                   )}
-                  <p className="text-[11px] text-muted-foreground italic leading-relaxed mt-3" data-testid="price-disclaimer">
-                    Los precios mostrados son referenciales y pueden variar según fechas de viaje, temporada y disponibilidad al momento de la reserva. Para obtener una cotización exacta, contáctanos directamente.
-                    <br />
-                    No incluyen vuelos, impuestos ni otros gastos adicionales.
+                  <p className="text-[11px] italic leading-relaxed mt-4" style={{ color: `${CHAMPAGNE}77`, fontFamily: SERIF }} data-testid="price-disclaimer">
+                    Precios referenciales — pueden variar según fechas, temporada y disponibilidad. No incluyen vuelos, impuestos ni extras.
                   </p>
                 </div>
 
                 {pkg.promo_end && (
-                  <CountdownTimer endDate={pkg.promo_end} label="Promoción termina en" className="mb-4" />
+                  <div className="relative mb-4 pt-4 border-t" style={{ borderColor: `${GOLD}33` }}>
+                    <CountdownTimer endDate={pkg.promo_end} label="Promoción termina en" />
+                  </div>
                 )}
 
-                <div className="space-y-3 mb-5 text-sm">
-                  <div className="flex items-center justify-between py-2 border-b border-border">
-                    <span className="text-muted-foreground flex items-center gap-2"><Calendar className="w-3.5 h-3.5" /> Duración</span>
-                    <span className="font-medium">{pkg.duration_days} días</span>
-                  </div>
-                  <div className="flex items-center justify-between py-2 border-b border-border">
-                    <span className="text-muted-foreground flex items-center gap-2"><MapPin className="w-3.5 h-3.5" /> Destino</span>
-                    <span className="font-medium">{pkg.country}</span>
-                  </div>
-                  {pkg.accommodation_type && (
-                    <div className="flex items-center justify-between py-2 border-b border-border">
-                      <span className="text-muted-foreground flex items-center gap-2"><Hotel className="w-3.5 h-3.5" /> Alojamiento</span>
-                      <span className="font-medium capitalize">{pkg.accommodation_type}</span>
+                <div className="relative space-y-0 mb-5 text-sm">
+                  {[
+                    { icon: Calendar, label: 'Duración', value: `${pkg.duration_days} días` },
+                    { icon: MapPin, label: 'Destino', value: pkg.country },
+                    ...(pkg.accommodation_type ? [{ icon: Hotel, label: 'Alojamiento', value: pkg.accommodation_type }] : []),
+                    ...(pkg.max_group ? [{ icon: Users, label: 'Grupo', value: `${pkg.min_group || 1}-${pkg.max_group} personas` }] : []),
+                  ].map((row, i, arr) => (
+                    <div
+                      key={row.label}
+                      className="flex items-center justify-between py-3"
+                      style={{ borderBottom: i < arr.length - 1 ? `1px solid ${GOLD}22` : 'none' }}
+                    >
+                      <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.15em]" style={{ color: `${CHAMPAGNE}aa` }}>
+                        <row.icon className="w-3.5 h-3.5" style={{ color: GOLD }} />
+                        {row.label}
+                      </span>
+                      <span className="font-semibold capitalize" style={{ color: CHAMPAGNE }}>{row.value}</span>
                     </div>
-                  )}
-                  {pkg.max_group && (
-                    <div className="flex items-center justify-between py-2">
-                      <span className="text-muted-foreground flex items-center gap-2"><Users className="w-3.5 h-3.5" /> Grupo</span>
-                      <span className="font-medium">{pkg.min_group || 1}-{pkg.max_group} personas</span>
-                    </div>
-                  )}
+                  ))}
                 </div>
 
                 <Button
                   onClick={() => setShowQuoteForm(true)}
-                  className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-white text-base font-semibold shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
+                  className="relative w-full h-13 rounded-xl text-sm font-black uppercase tracking-[0.2em] transition-all hover:-translate-y-0.5"
+                  style={{
+                    background: `linear-gradient(135deg, #F5E6B8 0%, ${GOLD} 50%, #B8944A 100%)`,
+                    color: NAVY_DEEP,
+                    border: `1px solid ${GOLD}`,
+                    boxShadow: `0 15px 40px -10px rgba(212,175,90,0.55)`,
+                  }}
                   data-testid="request-quote-btn"
                 >
-                  Solicitar Cotización
+                  Solicitar cotización
                 </Button>
-                <p className="text-[10px] text-center text-muted-foreground mt-3">Sin compromiso. Te respondemos en menos de 24 horas.</p>
+                <p className="text-[10px] text-center mt-3 italic" style={{ color: `${CHAMPAGNE}88`, fontFamily: SERIF }}>
+                  Sin compromiso — respuesta en menos de 24 horas
+                </p>
               </div>
 
-              {/* Trust signals */}
-              <div className="bg-white rounded-2xl p-5 border border-border">
-                <div className="space-y-3 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-accent-foreground" /><span>Asesoría personalizada</span></div>
-                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-accent-foreground" /><span>Precios exclusivos para socios</span></div>
-                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-accent-foreground" /><span>Pago en cuotas disponible</span></div>
-                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-accent-foreground" /><span>Garantía de mejor precio</span></div>
+              {/* Trust signals — cream card */}
+              <SectionCard>
+                <p className="text-[10px] font-bold uppercase tracking-[0.28em] mb-3" style={{ color: '#8B6F2E' }}>Garantía Kuxtal</p>
+                <div className="space-y-2.5 text-sm">
+                  {[
+                    'Asesoría personalizada',
+                    'Precios exclusivos para socios',
+                    'Pago en cuotas disponible',
+                    'Garantía de mejor precio',
+                  ].map((t) => (
+                    <div key={t} className="flex items-center gap-3">
+                      <div
+                        className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
+                        style={{ background: `linear-gradient(135deg, #F5E6B8 0%, ${GOLD} 50%, #B8944A 100%)` }}
+                      >
+                        <Check className="w-3 h-3" style={{ color: NAVY_DEEP }} strokeWidth={3} />
+                      </div>
+                      <span style={{ color: `${NAVY}cc` }}>{t}</span>
+                    </div>
+                  ))}
                 </div>
-              </div>
+              </SectionCard>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Quote Modal */}
+      {/* Quote Modal — luxury styled */}
       {showQuoteForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in" data-testid="quote-modal">
-          <div className="bg-white rounded-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
-            <h3 className="font-heading text-xl font-semibold mb-1">Solicitar Cotización</h3>
-            <p className="text-sm text-muted-foreground mb-5">Para: {pkg.title}</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in" style={{ background: `${NAVY_DEEP}cc`, backdropFilter: 'blur(8px)' }} data-testid="quote-modal">
+          <div
+            className="relative rounded-[22px] w-full max-w-md p-6 max-h-[90vh] overflow-y-auto"
+            style={{ background: '#FFFFFF', boxShadow: `0 40px 80px -20px rgba(0,0,0,0.5), 0 0 0 1px ${GOLD}44` }}
+          >
+            <div className="absolute top-0 left-6 right-6 h-px" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}aa, transparent)` }} />
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles className="w-3 h-3" style={{ color: GOLD }} />
+              <p className="text-[10px] font-bold uppercase tracking-[0.28em]" style={{ color: '#8B6F2E' }}>Solicitud privada</p>
+            </div>
+            <h3 className="font-heading text-2xl font-black mb-1" style={{ color: NAVY, fontFamily: SERIF }}>Solicitar Cotización</h3>
+            <p className="text-sm italic mb-5" style={{ color: `${NAVY}99`, fontFamily: SERIF }}>Para: {pkg.title}</p>
             <form onSubmit={submitQuote} className="space-y-3">
               <div>
-                <label className="text-xs font-medium">Nombre completo</label>
-                <input value={quoteForm.name} onChange={e => setQuoteForm({...quoteForm, name: e.target.value})} required className="w-full mt-1 h-10 rounded-xl border border-input px-3 text-sm" data-testid="quote-name" />
+                <label className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: `${NAVY}88` }}>Nombre completo</label>
+                <input value={quoteForm.name} onChange={e => setQuoteForm({ ...quoteForm, name: e.target.value })} required className="w-full mt-1 h-10 rounded-xl px-3 text-sm focus:outline-none transition-all" style={{ border: `1px solid ${GOLD}44`, background: '#FAF8F3' }} data-testid="quote-name" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium">Email</label>
-                  <input type="email" value={quoteForm.email} onChange={e => setQuoteForm({...quoteForm, email: e.target.value})} required className="w-full mt-1 h-10 rounded-xl border border-input px-3 text-sm" data-testid="quote-email" />
+                  <label className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: `${NAVY}88` }}>Email</label>
+                  <input type="email" value={quoteForm.email} onChange={e => setQuoteForm({ ...quoteForm, email: e.target.value })} required className="w-full mt-1 h-10 rounded-xl px-3 text-sm focus:outline-none" style={{ border: `1px solid ${GOLD}44`, background: '#FAF8F3' }} data-testid="quote-email" />
                 </div>
                 <div>
-                  <label className="text-xs font-medium">Teléfono</label>
-                  <input value={quoteForm.phone} onChange={e => setQuoteForm({...quoteForm, phone: e.target.value})} required className="w-full mt-1 h-10 rounded-xl border border-input px-3 text-sm" data-testid="quote-phone" />
+                  <label className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: `${NAVY}88` }}>Teléfono</label>
+                  <input value={quoteForm.phone} onChange={e => setQuoteForm({ ...quoteForm, phone: e.target.value })} required className="w-full mt-1 h-10 rounded-xl px-3 text-sm focus:outline-none" style={{ border: `1px solid ${GOLD}44`, background: '#FAF8F3' }} data-testid="quote-phone" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium">No. Contrato (socio)</label>
-                  <input value={quoteForm.contract_number} onChange={e => setQuoteForm({...quoteForm, contract_number: e.target.value})} placeholder="Opcional" className="w-full mt-1 h-10 rounded-xl border border-input px-3 text-sm" data-testid="quote-contract" />
+                  <label className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: `${NAVY}88` }}>No. Contrato</label>
+                  <input value={quoteForm.contract_number} onChange={e => setQuoteForm({ ...quoteForm, contract_number: e.target.value })} placeholder="Opcional" className="w-full mt-1 h-10 rounded-xl px-3 text-sm focus:outline-none" style={{ border: `1px solid ${GOLD}44`, background: '#FAF8F3' }} data-testid="quote-contract" />
                 </div>
                 <div>
-                  <label className="text-xs font-medium">Viajeros</label>
-                  <input type="number" min="1" value={quoteForm.guests} onChange={e => setQuoteForm({...quoteForm, guests: parseInt(e.target.value)})} className="w-full mt-1 h-10 rounded-xl border border-input px-3 text-sm" data-testid="quote-guests" />
+                  <label className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: `${NAVY}88` }}>Viajeros</label>
+                  <input type="number" min="1" value={quoteForm.guests} onChange={e => setQuoteForm({ ...quoteForm, guests: parseInt(e.target.value) })} className="w-full mt-1 h-10 rounded-xl px-3 text-sm focus:outline-none" style={{ border: `1px solid ${GOLD}44`, background: '#FAF8F3' }} data-testid="quote-guests" />
                 </div>
               </div>
               <div>
-                <label className="text-xs font-medium">Mensaje (opcional)</label>
-                <textarea value={quoteForm.message} onChange={e => setQuoteForm({...quoteForm, message: e.target.value})} rows={3} placeholder="Fechas preferidas, requisitos especiales..." className="w-full mt-1 rounded-xl border border-input px-3 py-2 text-sm resize-none" data-testid="quote-message" />
+                <label className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: `${NAVY}88` }}>Mensaje (opcional)</label>
+                <textarea value={quoteForm.message} onChange={e => setQuoteForm({ ...quoteForm, message: e.target.value })} rows={3} placeholder="Fechas preferidas, requisitos especiales..." className="w-full mt-1 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none" style={{ border: `1px solid ${GOLD}44`, background: '#FAF8F3' }} data-testid="quote-message" />
               </div>
-              <div className="flex gap-3 pt-2">
-                <Button type="button" variant="outline" onClick={() => setShowQuoteForm(false)} className="flex-1 rounded-xl">Cancelar</Button>
-                <Button type="submit" className="flex-1 rounded-xl bg-primary hover:bg-primary/90 text-white" data-testid="quote-submit-btn">Enviar Cotización</Button>
+              <div className="flex gap-3 pt-3">
+                <Button type="button" variant="outline" onClick={() => setShowQuoteForm(false)} className="flex-1 rounded-xl font-bold uppercase tracking-[0.15em] text-xs" style={{ borderColor: `${GOLD}77`, color: NAVY, background: 'transparent' }}>Cancelar</Button>
+                <Button type="submit" className="flex-1 rounded-xl font-bold uppercase tracking-[0.15em] text-xs" style={{ background: `linear-gradient(135deg, #F5E6B8 0%, ${GOLD} 50%, #B8944A 100%)`, color: NAVY_DEEP, border: `1px solid ${GOLD}` }} data-testid="quote-submit-btn">Enviar</Button>
               </div>
             </form>
           </div>

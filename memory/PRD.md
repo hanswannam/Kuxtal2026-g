@@ -262,3 +262,13 @@ Sistema CRM para club vacacional con web publica estilo Expedia, programa Kuxtal
   - Estrella rating dorada, descripción en italic Playfair, "VER DETALLE" dorado en caps tracking editorial.
   - Botón "VER TODOS LOS DESTINOS" pill dorado metálico grande + tagline italic Playfair "+ de 50 destinos curados, 6 continentes".
   - Ritmo cinematográfico logrado: dark navy → cream luxury magazine → dark navy continuo.
+- TripDetailPage rediseñada luxury magazine (2026-02, iter 49):
+  - Reescrita completa (305→307 líneas) siguiendo la misma línea navy+gold+cream del HomePage.
+  - Hero con ring dorado + shadow, hairlines, gallery controls navy+champagne, dots pill dorado. Badges navy_deep+champagne y "EXCLUSIVO" dorado metálico.
+  - Título en **Playfair italic serif** navy (antes sans). Meta row con pill badges blancos con border dorado + íconos dorados (antes texto plain).
+  - 3 SectionCards (Descripción/Qué incluye/Itinerario) con hairline top dorada, eyebrow sparkle caps, títulos Playfair.
+  - "Qué incluye": íconos check dorados metálicos circulares sobre fondo dorado sutil (antes verde emerald).
+  - "Itinerario": círculos dorados metálicos numerados en Playfair con línea vertical dorada conectora + eyebrow "DÍA N" + títulos Playfair.
+  - **Price Card sidebar DARK luxury**: navy gradient + "Q.XX,XXX en Playfair serif con gradiente dorado metálico gigante" + PRECIO SOCIO pill dorado + countdown estilo luxury + specs en caps champagne con íconos dorados + botón "SOLICITAR COTIZACIÓN" dorado metálico.
+  - Garantía Kuxtal con 4 checks dorados metálicos.
+  - Modal cotización: backdrop navy + blur, ring dorado, eyebrow "SOLICITUD PRIVADA", título Playfair italic, inputs cream con borders dorados, botones luxury.
