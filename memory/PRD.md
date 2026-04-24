@@ -272,3 +272,17 @@ Sistema CRM para club vacacional con web publica estilo Expedia, programa Kuxtal
   - **Price Card sidebar DARK luxury**: navy gradient + "Q.XX,XXX en Playfair serif con gradiente dorado metálico gigante" + PRECIO SOCIO pill dorado + countdown estilo luxury + specs en caps champagne con íconos dorados + botón "SOLICITAR COTIZACIÓN" dorado metálico.
   - Garantía Kuxtal con 4 checks dorados metálicos.
   - Modal cotización: backdrop navy + blur, ring dorado, eyebrow "SOLICITUD PRIVADA", título Playfair italic, inputs cream con borders dorados, botones luxury.
+- SearchPage (`/search`) rediseñada luxury magazine (2026-02, iter 50):
+  - Reescritura completa de `/app/frontend/src/pages/SearchPage.js` aplicando el mismo sistema visual navy+gold+cream que HomePage "Destinos destacados" y TripDetailPage.
+  - Fondo: gradiente cream (#FAF8F3→#F3EEE2) con vetas doradas sutiles (opacity 0.035) para continuidad con la colección.
+  - Header sticky `top-16` glass cream 92% + blur + hairline dorada superior, shadow sutil.
+  - Inputs pill (h-12 rounded-full) con border dorado `GOLD/55`, ícono Search/MapPin en dorado, placeholder Playfair italic.
+  - Botón Filtros: outline dorado cuando inactivo, gradiente dorado metálico cuando activo (misma plantilla que CTAs luxury del Home).
+  - Category pills navy con `CHAMPAGNE` + inset gold al estar activas (antes bg-primary blanco). Inactivas outline sutil navy.
+  - Expanded filters: labels en caps amber con tracking 0.2em, inputs white+inset gold, select con font-bold.
+  - Hero de resultados: eyebrow "LA COLECCIÓN KUXTAL" con sparkle dorada + hairlines, H1 Playfair italic gradiente dorado ("Todos los *destinos*" / "Resultados para *"..."*" / "Destinos en *País*"), subtitulo italic Playfair "N experiencias encontradas".
+  - Sort inline en pill blanco con border dorado.
+  - Cards 4:5 editoriales idénticas al HomePage: ring dorado + shadow hover gold, hairline top en hover, badge categoría navy_deep+champagne, badge "Exclusivo" dorado metálico, precio pill dorado Playfair, ribbon "Socio · Q.X" navy con Sparkles dorada, rating gold star, descripción Playfair italic, footer con MapPin + Users compacto + "Ver detalle →" dorado caps.
+  - Skeleton de loading en cream con shimmer dorado (antes gris plain).
+  - Empty state editorial: círculo dorado con ícono Search, eyebrow "SIN COINCIDENCIAS" con sparkles laterales, H2 Playfair italic, CTA pill dorado metálico "Limpiar filtros y ver todo".
+  - Resultado: journey Home → Search → Detalle 100% unificado en el lenguaje Luxury Magazine / Amex Black. Verificado con screenshot tool (1920x800) en preview URL.
