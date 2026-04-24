@@ -73,29 +73,53 @@ export default function CommerceDetailPage() {
   const hasMaps = commerce.google_maps_url || commerce.waze_url;
 
   return (
-    <div className="min-h-screen pt-24 pb-16" data-testid="commerce-detail-page">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <Link to="/benefits" className="inline-flex items-center gap-1 text-muted-foreground text-sm mb-6 hover:text-primary transition-colors" data-testid="back-to-benefits">
+    <div className="min-h-screen pt-24 pb-16 relative" data-testid="commerce-detail-page" style={{ background: 'radial-gradient(ellipse at top, #1a1a24 0%, #0B0B0F 55%, #050507 100%)' }}>
+      {/* Subtle gold radials */}
+      <div className="absolute inset-0 opacity-[0.12] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 15% 20%, rgba(212,175,90,0.45) 0, transparent 40%), radial-gradient(circle at 85% 80%, rgba(212,175,90,0.25) 0, transparent 45%)' }} />
+      {/* Grid texture */}
+      <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'linear-gradient(rgba(212,175,90,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(212,175,90,0.5) 1px, transparent 1px)', backgroundSize: '72px 72px' }} />
+      <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <Link to="/benefits" className="inline-flex items-center gap-1 text-[#F4EBD0]/60 text-xs uppercase tracking-[0.18em] font-semibold mb-6 hover:text-[#D4AF5A] transition-colors" data-testid="back-to-benefits">
           <ArrowLeft className="w-4 h-4" /> Volver a beneficios
         </Link>
 
-        {/* Header */}
-        <div className="bg-white rounded-2xl p-6 sm:p-8 border border-border mb-6" data-testid="commerce-header">
-          <div className="flex items-start gap-5">
-            <div className="w-20 h-20 rounded-2xl bg-accent flex items-center justify-center text-3xl shrink-0 overflow-hidden">
-              {commerce.logo_url ? <img src={commerce.logo_url} alt={commerce.name} className="w-full h-full object-cover" /> : <ImageWithFallback src="" alt={commerce.name} className="w-full h-full" />}
+        {/* Header Card — obsidian + gold */}
+        <div
+          className="relative rounded-[22px] overflow-hidden ring-1 ring-[#D4AF5A]/20 shadow-[0_20px_50px_-20px_rgba(0,0,0,0.8)] mb-6"
+          data-testid="commerce-header"
+          style={{ background: 'linear-gradient(145deg, #0F0F14 0%, #16161C 55%, #0B0B0F 100%)' }}
+        >
+          <div className="h-[3px] bg-gradient-to-r from-transparent via-[#D4AF5A] to-transparent opacity-80" />
+          <div className="absolute top-0 right-0 w-40 h-40 rounded-bl-full bg-gradient-to-bl from-[#D4AF5A]/10 to-transparent pointer-events-none" />
+          <div className="p-6 sm:p-8 flex flex-col sm:flex-row items-center sm:items-start gap-5 sm:gap-6">
+            <div className="relative shrink-0">
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-[#D4AF5A]/40 via-transparent to-[#D4AF5A]/40 blur-md" />
+              <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #FDFCF7 0%, #F4EBD0 100%)', boxShadow: 'inset 0 0 0 2px rgba(212,175,90,0.3), 0 10px 30px -10px rgba(0,0,0,0.6)' }}>
+                {commerce.logo_url ? <img src={commerce.logo_url} alt={commerce.name} className="w-full h-full object-contain p-3" /> : <ImageWithFallback src="" alt={commerce.name} className="w-full h-full" />}
+              </div>
             </div>
-            <div>
-              <Badge variant="secondary" className="rounded-full text-xs mb-2">{commerce.category}</Badge>
-              <h1 className="font-heading text-2xl sm:text-3xl font-bold mb-1">{commerce.name}</h1>
-              {commerce.location && <p className="text-sm text-muted-foreground flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {commerce.location}</p>}
+            <div className="text-center sm:text-left flex-1 min-w-0">
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[#D4AF5A]/10 border border-[#D4AF5A]/25 text-[#E5C989] text-[10px] font-bold uppercase tracking-[0.2em] mb-3">
+                {commerce.category}
+              </span>
+              <h1 className="font-heading text-2xl sm:text-4xl font-black text-[#F4EBD0] tracking-tight leading-[1.05] break-words">{commerce.name}</h1>
+              <div className="flex items-center justify-center sm:justify-start gap-2 my-3">
+                <div className="h-px w-10 bg-gradient-to-r from-[#D4AF5A]/60 to-transparent" />
+                <Star className="w-3 h-3 text-[#D4AF5A] fill-current" />
+                <div className="h-px w-10 bg-gradient-to-l from-[#D4AF5A]/60 to-transparent" />
+              </div>
+              {commerce.location && (
+                <p className="text-sm text-[#F4EBD0]/60 flex items-center justify-center sm:justify-start gap-1.5 italic tracking-wide">
+                  <MapPin className="w-3.5 h-3.5 text-[#D4AF5A]/70" /> {commerce.location}
+                </p>
+              )}
             </div>
           </div>
         </div>
 
         {/* YouTube Video */}
         {embedUrl && (
-          <div className="bg-white rounded-2xl overflow-hidden border border-border mb-6" data-testid="commerce-video">
+          <div className="rounded-[22px] overflow-hidden ring-1 ring-[#D4AF5A]/15 mb-6" data-testid="commerce-video" style={{ background: 'linear-gradient(145deg, #0F0F14 0%, #16161C 100%)' }}>
             <div className="aspect-video">
               <iframe src={embedUrl} title="Video del comercio" className="w-full h-full" allowFullScreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" />
             </div>
@@ -104,12 +128,12 @@ export default function CommerceDetailPage() {
 
         {/* Photos */}
         {hasPhotos && (
-          <div className="bg-white rounded-2xl p-5 border border-border mb-6" data-testid="commerce-photos">
-            <h2 className="font-heading text-lg font-semibold mb-4 flex items-center gap-2"><Image className="w-5 h-5 text-primary" /> Fotos</h2>
+          <div className="rounded-[22px] p-5 ring-1 ring-[#D4AF5A]/15 mb-6" data-testid="commerce-photos" style={{ background: 'linear-gradient(145deg, #0F0F14 0%, #16161C 100%)' }}>
+            <h2 className="font-heading text-lg font-bold text-[#F4EBD0] mb-4 flex items-center gap-2"><Image className="w-5 h-5 text-[#D4AF5A]" /> Galería</h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {commerce.photos.map((url, i) => (
-                <div key={url} className="aspect-square rounded-xl overflow-hidden border border-border">
-                  <img src={url} alt="" className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+              {commerce.photos.map((url) => (
+                <div key={url} className="aspect-square rounded-xl overflow-hidden ring-1 ring-[#D4AF5A]/15">
+                  <img src={url} alt="" className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
                 </div>
               ))}
             </div>
@@ -118,52 +142,48 @@ export default function CommerceDetailPage() {
 
         {/* Description */}
         {commerce.description && (
-          <div className="bg-white rounded-2xl p-6 border border-border mb-6" data-testid="commerce-desc">
-            <h2 className="font-heading text-lg font-semibold mb-3">Acerca del comercio</h2>
-            <p className="text-foreground/80 leading-relaxed">{commerce.description}</p>
+          <div className="rounded-[22px] p-6 ring-1 ring-[#D4AF5A]/15 mb-6" data-testid="commerce-desc" style={{ background: 'linear-gradient(145deg, #0F0F14 0%, #16161C 100%)' }}>
+            <h2 className="font-heading text-lg font-bold text-[#F4EBD0] mb-3">Acerca del comercio</h2>
+            <p className="text-[#F4EBD0]/75 leading-relaxed italic">{commerce.description}</p>
           </div>
         )}
 
-        {/* Benefit */}
+        {/* Benefit — Gold Signature Card */}
         {commerce.benefit_description && (
-          <div className="bg-accent/50 rounded-2xl p-6 border border-primary/10 mb-6" data-testid="commerce-benefit">
-            <div className="flex items-center gap-3 mb-2">
-              <Gift className="w-6 h-6 text-primary" />
-              <h2 className="font-heading text-xl font-semibold">Beneficio Exclusivo para Socios</h2>
+          <div className="relative rounded-[22px] p-7 ring-1 ring-[#D4AF5A]/40 shadow-[0_20px_50px_-20px_rgba(212,175,90,0.4)] mb-6 overflow-hidden" data-testid="commerce-benefit" style={{ background: 'linear-gradient(145deg, #1a1510 0%, #0F0F14 100%)' }}>
+            <div className="h-[3px] absolute top-0 left-0 right-0 bg-gradient-to-r from-transparent via-[#D4AF5A] to-transparent" />
+            <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-[#D4AF5A]/15 blur-3xl pointer-events-none" />
+            <div className="relative">
+              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#D4AF5A]/15 border border-[#D4AF5A]/30 text-[#E5C989] text-[10px] font-bold uppercase tracking-[0.22em] mb-3">
+                <Gift className="w-3 h-3" /> Beneficio Exclusivo
+              </span>
+              <h2
+                className="font-heading text-2xl sm:text-3xl font-black leading-tight mt-2 mb-3"
+                style={{ background: 'linear-gradient(92deg, #B8944A 0%, #F5E6B8 50%, #D4AF5A 100%)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}
+              >
+                Para Socios Kuxtal
+              </h2>
+              <p className="text-[#F4EBD0]/85 text-base leading-relaxed">{commerce.benefit_description}</p>
             </div>
-            <p className="text-foreground/80">{commerce.benefit_description}</p>
           </div>
         )}
 
         {/* Social Media */}
         {hasSocial && (
-          <div className="bg-white rounded-2xl p-5 border border-border mb-6" data-testid="commerce-social">
-            <h2 className="font-heading text-lg font-semibold mb-4">Redes Sociales</h2>
+          <div className="rounded-[22px] p-5 ring-1 ring-[#D4AF5A]/15 mb-6" data-testid="commerce-social" style={{ background: 'linear-gradient(145deg, #0F0F14 0%, #16161C 100%)' }}>
+            <h2 className="font-heading text-lg font-bold text-[#F4EBD0] mb-4">Redes Sociales</h2>
             <div className="flex flex-wrap gap-3">
-              {commerce.social_facebook && (
-                <a href={commerce.social_facebook} target="_blank" rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border text-sm font-medium hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all">
-                  <Facebook className="w-4 h-4" /> Facebook <ExternalLink className="w-3 h-3 opacity-50" />
+              {[
+                { url: commerce.social_facebook, icon: Facebook, label: 'Facebook' },
+                { url: commerce.social_instagram, icon: Instagram, label: 'Instagram' },
+                { url: commerce.social_tiktok, icon: Globe, label: 'TikTok' },
+                { url: commerce.social_twitter, icon: Globe, label: 'X / Twitter' },
+              ].filter(s => s.url).map(s => (
+                <a key={s.label} href={s.url} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#D4AF5A]/5 border border-[#D4AF5A]/25 text-[#E5C989] text-sm font-semibold hover:bg-[#D4AF5A]/15 hover:border-[#D4AF5A]/50 transition-all">
+                  <s.icon className="w-4 h-4" /> {s.label} <ExternalLink className="w-3 h-3 opacity-60" />
                 </a>
-              )}
-              {commerce.social_instagram && (
-                <a href={commerce.social_instagram} target="_blank" rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border text-sm font-medium hover:bg-pink-50 hover:text-pink-600 hover:border-pink-200 transition-all">
-                  <Instagram className="w-4 h-4" /> Instagram <ExternalLink className="w-3 h-3 opacity-50" />
-                </a>
-              )}
-              {commerce.social_tiktok && (
-                <a href={commerce.social_tiktok} target="_blank" rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border text-sm font-medium hover:bg-slate-50 hover:text-slate-700 hover:border-slate-200 transition-all">
-                  <Globe className="w-4 h-4" /> TikTok <ExternalLink className="w-3 h-3 opacity-50" />
-                </a>
-              )}
-              {commerce.social_twitter && (
-                <a href={commerce.social_twitter} target="_blank" rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border text-sm font-medium hover:bg-sky-50 hover:text-sky-600 hover:border-sky-200 transition-all">
-                  <Globe className="w-4 h-4" /> X/Twitter <ExternalLink className="w-3 h-3 opacity-50" />
-                </a>
-              )}
+              ))}
             </div>
           </div>
         )}
@@ -171,11 +191,11 @@ export default function CommerceDetailPage() {
         {/* Location & Maps + Contact */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
           {/* Location */}
-          <div className="bg-white rounded-2xl p-5 border border-border" data-testid="commerce-location">
-            <h2 className="font-heading text-lg font-semibold mb-3 flex items-center gap-2"><MapPin className="w-5 h-5 text-primary" /> Ubicación</h2>
+          <div className="rounded-[22px] p-5 ring-1 ring-[#D4AF5A]/15" data-testid="commerce-location" style={{ background: 'linear-gradient(145deg, #0F0F14 0%, #16161C 100%)' }}>
+            <h2 className="font-heading text-lg font-bold text-[#F4EBD0] mb-3 flex items-center gap-2"><MapPin className="w-5 h-5 text-[#D4AF5A]" /> Ubicación</h2>
             <div className="space-y-2">
-              {commerce.location && <p className="font-medium">{commerce.location}</p>}
-              {commerce.address && <p className="text-sm text-muted-foreground">{commerce.address}</p>}
+              {commerce.location && <p className="font-semibold text-[#F4EBD0]">{commerce.location}</p>}
+              {commerce.address && <p className="text-sm text-[#F4EBD0]/55">{commerce.address}</p>}
               {hasMaps && (
                 <div className="flex flex-wrap gap-2 pt-3">
                   {commerce.google_maps_url && (

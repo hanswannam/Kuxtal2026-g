@@ -55,10 +55,12 @@ function shortDesc(text = '', maxLen = 65) {
 }
 
 // Renders a category icon: emoji, uploaded image URL, or lucide:Name. Falls back to a Lucide component.
-function CatIconRender({ icon, fallback: Fallback = Store, className = 'w-3.5 h-3.5' }) {
+function CatIconRender({ icon, fallback: Fallback = Store, className = 'w-3.5 h-3.5', monochrome = false }) {
   if (!icon) return <Fallback className={className} />;
   const Lc = getLucideComponent(icon);
   if (Lc) return <Lc className={className} strokeWidth={1.8} />;
+  // In monochrome mode skip colored emojis/images entirely — fall back to the neutral lucide icon
+  if (monochrome) return <Fallback className={className} />;
   if (icon.startsWith('http') || icon.startsWith('/')) {
     return <img src={icon} alt="" className={`${className} object-contain inline-block`} />;
   }
@@ -153,10 +155,10 @@ export default function BenefitsPage() {
           </div>
 
           {/* Category Grid */}
-          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2.5 mt-7" data-testid="category-filters">
+          <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2 mt-7" data-testid="category-filters">
             <button
               onClick={() => setCategory('')}
-              className={`flex items-center justify-center gap-1.5 px-3 py-3 rounded-2xl text-xs sm:text-sm font-bold transition-all uppercase tracking-wider ${
+              className={`flex items-center justify-center gap-1 px-2 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl text-[10px] sm:text-xs font-bold transition-all uppercase tracking-[0.12em] sm:tracking-[0.18em] ${
                 category === ''
                   ? 'text-[#0B0B0F] shadow-lg shadow-[#D4AF5A]/40'
                   : 'bg-white/[0.04] text-[#F4EBD0]/70 hover:bg-[#D4AF5A]/10 hover:text-[#F4EBD0] border border-[#D4AF5A]/15 hover:border-[#D4AF5A]/40 backdrop-blur-sm'
@@ -174,7 +176,8 @@ export default function BenefitsPage() {
                 <button
                   key={name}
                   onClick={() => setCategory(name)}
-                  className={`flex items-center justify-center gap-1.5 px-3 py-3 rounded-2xl text-xs sm:text-sm font-semibold transition-all truncate uppercase tracking-wider ${
+                  title={name}
+                  className={`flex items-center justify-center gap-1 px-2 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl text-[10px] sm:text-xs font-semibold transition-all uppercase tracking-[0.12em] sm:tracking-[0.18em] ${
                     isActive
                       ? 'text-[#0B0B0F] shadow-lg shadow-[#D4AF5A]/40'
                       : 'bg-white/[0.04] text-[#F4EBD0]/70 hover:bg-[#D4AF5A]/10 hover:text-[#F4EBD0] border border-[#D4AF5A]/15 hover:border-[#D4AF5A]/40 backdrop-blur-sm'
@@ -182,7 +185,8 @@ export default function BenefitsPage() {
                   style={isActive ? { background: 'linear-gradient(135deg, #F5E6B8 0%, #D4AF5A 50%, #B8944A 100%)' } : {}}
                   data-testid={`cat-${name}`}
                 >
-                  <CatIconRender icon={cat.icon} fallback={conf.icon} /> {name}
+                  <CatIconRender icon={cat.icon} fallback={conf.icon} className={`w-3 h-3 shrink-0 ${isActive ? 'text-[#0B0B0F]' : 'text-[#D4AF5A]/70'}`} monochrome />
+                  <span className="truncate">{name}</span>
                 </button>
               );
             })}
