@@ -118,6 +118,11 @@ Sistema CRM para club vacacional con web publica estilo Expedia, programa Kuxtal
 - Package Visibility (2026-02, iter 21): campo `visibility` = public|internal. Endpoints públicos filtran visibility=internal. Admin management usa ?include_internal=true. AdminPackages con filtro Todos/Público/Interno + radio en form.
 - Quotations tracking & filters (2026-02, iter 21): created_at, created_by_id, created_by_name ('Sistema (web pública)' para web pública, nombre del admin para POST /quotations/admin). GET /api/quotations soporta created_by, date_from, date_to. UI con quot-date-from/to, quot-filter-creator, quot-clear-filters, meta muestra '· por <creador>'.
 - Code Quality: Component refactoring, lazy loading, ErrorBoundary, SEO OG tags, 30+ MongoDB indexes
+- CommerceDetailPage luxury redesign (2026-02, iter 36):
+  - Aplicado el mismo tema "Amex Black / Luxury" de BenefitsPage a la vista interna de comercio.
+  - Fondo radial obsidiana (#1a1a24 → #0B0B0F → #050507) con acentos dorados (#D4AF5A) y texto crema (#F4EBD0).
+  - Todas las secciones refactorizadas: header card, video, galería, descripción, beneficio (card signature dorado), redes sociales, ubicación con botones Google Maps/Waze dorados (antes azul/celeste), contacto con teléfono en tono dorado (antes esmeralda), validar visita con input oscuro y botón dorado, raspa y gana con gradiente dorado sobre fondo oscuro, y promociones activas con tarjetas obsidiana.
+  - Estados de carga y error ("comercio no encontrado") también en tema oscuro.
 
 ## Code Review Status (Applied)
 - [x] XSS: DOMPurify.sanitize with strict ALLOWED_TAGS/ALLOWED_ATTR whitelist
@@ -141,7 +146,7 @@ Sistema CRM para club vacacional con web publica estilo Expedia, programa Kuxtal
 - [ ] Exponer FEATURE_KEYS en frontend desde GET /api/admin/feature-keys en lugar de duplicar lista en AdminUsers.js
 - [ ] DELETE endpoint para quotations (actualmente no existe, 2 quotations TEST quedaron en DB)
 - [ ] Backend refactoring: import_package_from_drive() complexity (break into smaller functions)
-- [ ] Frontend refactoring: CommercePortal.js (491 lines), CommerceDetailPage.js, ChatPage.js, HomePage.js
+- [ ] Frontend refactoring: CommercePortal.js (491 lines), ChatPage.js, HomePage.js
 - [ ] Fix pre-existing test files test_kuxtal_api.py / test_coupons.py (missing BASE_URL)
 - [ ] Configurar dominio kuxtaltravelgt.com
 - [ ] Sistema de reviews/testimonios (P1)
