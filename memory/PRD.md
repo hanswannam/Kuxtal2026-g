@@ -232,4 +232,15 @@ Sistema CRM para club vacacional con web publica estilo Expedia, programa Kuxtal
   - `_broadcast_news` sigue en `server.py` y se importa tarde en `create_package` para evitar dependencia circular.
   - `server.py` bajó **3605 → 3065 líneas** (−540, acumulado desde Fase 1: **−701 líneas, −18.6%**).
   - Fixed 6 f-strings sin placeholder en tests (ruff --fix).
+- Backend modularización — Fase 3 (2026-02, iter 46):
+  - Creado `/app/backend/routers/quotations.py` (537 líneas) con:
+    - 11 rutas: `POST /quotations` (public), `GET /quotations/public/{token}`, `POST /quotations/public/{token}/decision`, `GET /quotations`, `POST /quotations/admin`, `PUT /quotations/{id}`, `POST /quotations/{id}/timeline`, `PUT /quotations/{id}/respond`, `GET /quotations/{id}/share`, `GET /config/quotation-settings`, `PUT /config/quotation-settings`.
+    - Modelos Pydantic: `QuotationRequest`, `QuotationSettings`.
+    - Helpers privados (10): `_default_valid_days`, `_upsert_client`, `_resolve_member_for_quote`, `_attach_member_to_quote`, `_attach_package_to_quote`, `_attach_package_snapshot`, `_build_admin_quotation_doc`, `_fill_missing_contact`, `_attach_contact_from_source`, `_build_list_query`.
+    - Constante `_STATUS_LABELS` extraída de `update_quotation`.
+  - **Bug fix de regresión**: `list_quotations` tenía indentación rota (fruto de fix anterior de E701) — el `if date_from or date_to:` nunca se respetaba y `date_query` podía ser referenciado antes de asignación. Arreglado con helper `_build_list_query` que maneja correctamente los 4 estados posibles (ambos/solo-from/solo-to/ninguno).
+  - `update_quotation` refactorizada con el mapping extraído `_STATUS_LABELS` (antes dict inline).
+  - `_send_push_raw` sigue en server.py y se importa tarde en `public_quotation_decision`.
+  - `server.py` bajó **3065 → 2618 líneas** (−447 en esta fase, **−1148 acumulado, −30.5% desde el inicio del refactor**).
+  - Verificado end-to-end (11 pruebas): crear público con KT-001 auto-detectado, vista pública con viewed_at, list filtered (23 pending con el fix de fechas), update con status+timeline, nota manual, respond, public decision approve/push notification al admin, share con WhatsApp+mailto URLs, config GET/PUT, regresión packages OK.
   - Verificado end-to-end: list con filtros, get por id, create con auth, toggle-status con razón, delete con delete_code, 422 para body vacío, regresión auth OK.
