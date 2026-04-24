@@ -37,14 +37,8 @@ const PERKS = [
   { icon: Handshake, title: 'Beneficios con Aliados', desc: 'Descuentos y ventajas en restaurantes, servicios y comercios de nuestra red.' },
 ];
 
-// Static partners (logos/names). These are placeholders for the allies row.
-const PARTNERS = [
-  { name: 'La Estancia', tag: 'Argentina' },
-  { name: 'azul', tag: 'restaurante' },
-  { name: 'mío', tag: 'café' },
-  { name: 'La Cabrera', tag: 'steak house' },
-  { name: 'BODYTECH', tag: '' },
-];
+// Max allies to show in the home hero partners row (above this shows "y más aliados").
+const PARTNERS_LIMIT = 8;
 
 // Collage images for Kuxtal Club section (2x2) — each with a caption that tells the value prop.
 const CLUB_COLLAGE = [
@@ -83,6 +77,8 @@ export default function HomePage() {
   const [guests, setGuests] = useState('2');
   const [countries, setCountries] = useState([]);
   const [socialLinks, setSocialLinks] = useState({});
+  const [partners, setPartners] = useState([]);
+  const [totalPartners, setTotalPartners] = useState(0);
   const navigate = useNavigate();
   useDocumentTitle(null);
 
@@ -90,6 +86,11 @@ export default function HomePage() {
     axios.get(`${API}/api/config/social-links`).then(r => setSocialLinks(r.data || {})).catch(() => {});
     axios.get(`${API}/api/packages?featured=true`).then(r => setPackages(r.data.slice(0, 6))).catch(() => {});
     axios.get(`${API}/api/countries`).then(r => setCountries(r.data)).catch(() => {});
+    axios.get(`${API}/api/commerce`).then(r => {
+      const list = Array.isArray(r.data) ? r.data : [];
+      setTotalPartners(list.length);
+      setPartners(list.slice(0, PARTNERS_LIMIT));
+    }).catch(() => {});
   }, []);
 
   const handleSearch = (e) => {
@@ -763,15 +764,41 @@ export default function HomePage() {
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-x-6 sm:gap-x-10 lg:gap-x-14 gap-y-5 sm:gap-y-6">
-            {PARTNERS.map(p => (
-              <div key={p.name} className="text-center group transition-all hover:opacity-100 opacity-80" data-testid={`partner-${p.name}`}>
-                <p className="text-lg sm:text-2xl font-black text-white tracking-tight" style={{ fontFamily: '"Playfair Display", Georgia, serif' }}>{p.name}</p>
-                {p.tag && <p className="text-[9px] sm:text-[10px] uppercase tracking-[0.22em] sm:tracking-[0.28em] mt-0.5" style={{ color: `${CHAMPAGNE}88` }}>{p.tag}</p>}
-              </div>
+            {partners.length === 0 && (
+              <p className="text-center text-xs sm:text-sm italic" style={{ color: `${CHAMPAGNE}88`, fontFamily: '"Playfair Display", Georgia, serif' }}>
+                Próximamente compartiremos nuestra red de aliados selectos.
+              </p>
+            )}
+            {partners.map(p => (
+              <Link
+                key={p._id}
+                to={`/commerce/${p._id}`}
+                className="text-center group transition-all hover:opacity-100 opacity-80 hover:-translate-y-0.5"
+                data-testid={`partner-${p.name}`}
+              >
+                {p.logo_url ? (
+                  <div className="h-10 sm:h-12 flex items-center justify-center mb-1">
+                    <img src={p.logo_url} alt={p.name} className="max-h-full max-w-[140px] object-contain" style={{ filter: 'brightness(0) invert(1)' }} />
+                  </div>
+                ) : (
+                  <p className="text-lg sm:text-2xl font-black text-white tracking-tight group-hover:text-[#E5C989] transition-colors" style={{ fontFamily: '"Playfair Display", Georgia, serif' }}>
+                    {p.name}
+                  </p>
+                )}
+                {p.category && (
+                  <p className="text-[9px] sm:text-[10px] uppercase tracking-[0.22em] sm:tracking-[0.28em] mt-0.5" style={{ color: `${CHAMPAGNE}88` }}>
+                    {p.category}
+                  </p>
+                )}
+              </Link>
             ))}
-            <div className="text-center">
-              <p className="text-[10px] uppercase tracking-[0.22em] sm:tracking-[0.26em] font-bold italic" style={{ color: GOLD, fontFamily: '"Playfair Display", Georgia, serif' }}>y más aliados<br />especiales</p>
-            </div>
+            {totalPartners > PARTNERS_LIMIT && (
+              <Link to="/benefits" className="text-center hover:-translate-y-0.5 transition-all" data-testid="more-partners-link">
+                <p className="text-[10px] uppercase tracking-[0.22em] sm:tracking-[0.26em] font-bold italic" style={{ color: GOLD, fontFamily: '"Playfair Display", Georgia, serif' }}>
+                  y {totalPartners - PARTNERS_LIMIT}+<br />aliados más
+                </p>
+              </Link>
+            )}
           </div>
         </div>
       </section>
