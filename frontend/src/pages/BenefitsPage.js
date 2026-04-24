@@ -171,7 +171,9 @@ export default function BenefitsPage() {
       )}
 
       {/* Results */}
-      <section className="py-10 bg-secondary/20">
+      <section className="py-12 relative" style={{ background: 'linear-gradient(180deg, #FAF8F3 0%, #F3EEE2 100%)' }}>
+        {/* Subtle marble texture */}
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 20% 30%, #D4AF5A 0, transparent 40%), radial-gradient(circle at 80% 70%, #D4AF5A 0, transparent 40%)' }} />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Results Count */}
           <div className="flex items-center justify-between mb-6">
@@ -216,7 +218,7 @@ export default function BenefitsPage() {
 
           {/* Commerce Grid */}
           {!loading && commerces.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7">
               {commerces.map((c, i) => {
                 const conf = getCatConfig(c.category);
                 const catData = categories.find(x => x.name === c.category);
@@ -228,91 +230,122 @@ export default function BenefitsPage() {
                   <Link
                     key={c._id}
                     to={`/commerce/${c._id}`}
-                    className={`group relative bg-white rounded-3xl overflow-hidden border transition-all duration-300 hover:shadow-[0_20px_60px_-20px_rgba(0,0,0,0.25)] hover:-translate-y-1 ${isFeatured ? 'border-[#D4AF5A] shadow-[0_4px_24px_-8px_rgba(212,175,90,0.4)]' : 'border-slate-200'}`}
+                    className={`group relative rounded-[22px] overflow-hidden transition-all duration-500 hover:-translate-y-1.5 ${isFeatured ? 'ring-1 ring-[#D4AF5A]/40 shadow-[0_20px_50px_-20px_rgba(212,175,90,0.5)] hover:shadow-[0_30px_80px_-20px_rgba(212,175,90,0.65)]' : 'ring-1 ring-white/5 shadow-[0_10px_30px_-15px_rgba(0,0,0,0.6)] hover:shadow-[0_25px_60px_-20px_rgba(0,0,0,0.8)] hover:ring-[#D4AF5A]/30'}`}
                     data-testid={`commerce-card-${i}`}
+                    style={{
+                      background:
+                        'linear-gradient(145deg, #0F0F14 0%, #16161C 55%, #0B0B0F 100%)',
+                    }}
                   >
+                    {/* Gold hairline border (inner) */}
+                    <div className="pointer-events-none absolute inset-0 rounded-[22px] border border-[#D4AF5A]/10" />
+
+                    {/* Top gold shimmer bar */}
+                    <div className="h-[3px] bg-gradient-to-r from-transparent via-[#D4AF5A] to-transparent opacity-80" />
+
                     {/* Featured ribbon */}
                     {isFeatured && (
-                      <div className="absolute top-0 right-0 z-10">
-                        <div className="bg-gradient-to-br from-[#D4AF5A] to-[#B8944A] text-white text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-bl-2xl shadow-md flex items-center gap-1">
-                          <Star className="w-2.5 h-2.5 fill-current" /> Recomendado
+                      <div className="absolute top-3 right-3 z-10">
+                        <div className="px-3 py-1 rounded-full bg-gradient-to-r from-[#D4AF5A] via-[#F5E6B8] to-[#D4AF5A] text-[#0B0B0F] text-[10px] font-black uppercase tracking-[0.18em] flex items-center gap-1 shadow-lg shadow-[#D4AF5A]/40">
+                          <Star className="w-2.5 h-2.5 fill-current" /> Exclusivo
                         </div>
                       </div>
                     )}
 
-                    {/* Tinted header with LARGE logo */}
-                    <div className={`relative ${conf.tint} px-5 pt-7 pb-14`}>
-                      <div className={`absolute left-0 top-0 h-full w-1 ${conf.strip}`} />
-                      {/* Category chip */}
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${conf.chip}`}>
+                    {/* Category & offer chips */}
+                    <div className="relative px-6 pt-6 pb-2 flex items-center gap-2 flex-wrap">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#D4AF5A]/10 border border-[#D4AF5A]/25 text-[#E5C989] text-[10px] font-semibold uppercase tracking-[0.18em]">
                         <CatIconRender icon={catData?.icon} fallback={conf.icon} className="w-3 h-3" />
                         {c.category}
                       </span>
                       {hasHotDeal && (
-                        <span className="ml-2 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-red-100 text-red-700">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-500/15 border border-red-400/30 text-red-300 text-[10px] font-bold uppercase tracking-wider">
                           <Flame className="w-3 h-3" /> Oferta
                         </span>
                       )}
                     </div>
 
-                    {/* LARGE Logo — overlapping the header bottom */}
-                    <div className="relative px-6 -mt-12">
-                      <div className="w-24 h-24 rounded-2xl bg-white shadow-lg border border-slate-100 flex items-center justify-center overflow-hidden mx-auto">
-                        {c.logo_url ? (
-                          <img src={c.logo_url} alt={c.name} className="w-full h-full object-contain p-2" />
-                        ) : catData?.icon ? (
-                          <CatIconRender icon={catData.icon} fallback={conf.icon} className="w-14 h-14 text-slate-700" />
-                        ) : (
-                          <conf.icon className="w-14 h-14 text-slate-700" />
-                        )}
+                    {/* LARGE Logo in premium gold-ring frame */}
+                    <div className="relative flex justify-center pt-4 pb-2">
+                      <div className="relative">
+                        <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-[#D4AF5A]/40 via-transparent to-[#D4AF5A]/40 blur-md" />
+                        <div className="relative w-28 h-28 rounded-2xl overflow-hidden flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #FDFCF7 0%, #F4EBD0 100%)', boxShadow: 'inset 0 0 0 2px rgba(212,175,90,0.3), 0 10px 30px -10px rgba(0,0,0,0.6)' }}>
+                          {c.logo_url ? (
+                            <img src={c.logo_url} alt={c.name} className="w-full h-full object-contain p-3" />
+                          ) : catData?.icon ? (
+                            <CatIconRender icon={catData.icon} fallback={conf.icon} className="w-16 h-16 text-[#8B6F2E]" />
+                          ) : (
+                            <conf.icon className="w-16 h-16 text-[#8B6F2E]" />
+                          )}
+                        </div>
                       </div>
                     </div>
 
                     {/* Body */}
-                    <div className="px-6 pt-4 pb-5 text-center">
-                      {/* BENEFIT — largest element */}
+                    <div className="px-6 pt-3 pb-6 text-center relative">
+                      {/* BENEFIT — gold shimmer headline */}
                       {highlight && (
                         <div className="mb-2">
-                          <div className={`font-heading text-3xl sm:text-4xl font-black tracking-tight ${highlight.kind === 'pct' || highlight.kind === 'bogo' ? 'text-[#B8944A]' : 'text-slate-900'}`}>
-                            {highlight.kind === 'pct' && '🔥 '}
+                          <div
+                            className="font-heading text-4xl sm:text-5xl font-black tracking-tight leading-none"
+                            style={{
+                              background:
+                                'linear-gradient(92deg, #B8944A 0%, #F5E6B8 45%, #D4AF5A 55%, #8B6F2E 100%)',
+                              WebkitBackgroundClip: 'text',
+                              backgroundClip: 'text',
+                              color: 'transparent',
+                              textShadow: '0 2px 20px rgba(212,175,90,0.15)',
+                            }}
+                          >
                             {highlight.label}
                           </div>
                         </div>
                       )}
 
+                      {/* Separator */}
+                      <div className="flex items-center justify-center gap-2 my-3">
+                        <div className="h-px w-8 bg-gradient-to-r from-transparent to-[#D4AF5A]/50" />
+                        <Sparkles className="w-3 h-3 text-[#D4AF5A]" />
+                        <div className="h-px w-8 bg-gradient-to-l from-transparent to-[#D4AF5A]/50" />
+                      </div>
+
                       {/* Merchant name */}
-                      <h3 className="font-heading text-lg font-bold text-slate-900 group-hover:text-[#B8944A] transition-colors line-clamp-1 mb-1">
+                      <h3 className="font-heading text-xl font-bold text-[#F4EBD0] group-hover:text-[#F5E6B8] transition-colors line-clamp-1 mb-1">
                         {c.name}
                       </h3>
 
                       {/* 1-line description */}
                       {c.description && (
-                        <p className="text-xs text-slate-500 line-clamp-1 mb-4">
+                        <p className="text-[11px] text-white/40 italic line-clamp-1 mb-4 tracking-wide">
                           {shortDesc(c.description)}
                         </p>
                       )}
 
                       {/* Footer: location + phone */}
                       {(c.location || c.phone) && (
-                        <div className="flex items-center justify-center gap-4 text-[11px] text-slate-400 pt-3 border-t border-slate-100">
+                        <div className="flex items-center justify-center gap-4 text-[10px] text-white/45 pt-3 border-t border-[#D4AF5A]/10">
                           {c.location && (
-                            <span className="flex items-center gap-1 line-clamp-1"><MapPin className="w-3 h-3 shrink-0" /> {c.location}</span>
+                            <span className="flex items-center gap-1 line-clamp-1"><MapPin className="w-3 h-3 shrink-0 text-[#D4AF5A]/60" /> {c.location}</span>
                           )}
                           {c.phone && (
-                            <span className="flex items-center gap-1"><Phone className="w-3 h-3 shrink-0" /> {c.phone}</span>
+                            <span className="flex items-center gap-1"><Phone className="w-3 h-3 shrink-0 text-[#D4AF5A]/60" /> {c.phone}</span>
                           )}
                           {c.website && !c.location && !c.phone && (
-                            <span className="flex items-center gap-1"><ExternalLink className="w-3 h-3 shrink-0" /> Sitio web</span>
+                            <span className="flex items-center gap-1"><ExternalLink className="w-3 h-3 shrink-0 text-[#D4AF5A]/60" /> Sitio web</span>
                           )}
                         </div>
                       )}
 
                       {/* CTA */}
-                      <div className="mt-4 flex items-center justify-center gap-1 text-[11px] font-semibold text-[#B8944A] group-hover:text-[#8B6F2E] transition-colors">
-                        Ver beneficio completo
+                      <div className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-[#D4AF5A]/25 bg-[#D4AF5A]/5 text-[#E5C989] text-[11px] font-semibold uppercase tracking-[0.15em] group-hover:bg-[#D4AF5A] group-hover:text-[#0B0B0F] group-hover:border-[#D4AF5A] transition-all">
+                        Ver beneficio
                         <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                       </div>
                     </div>
+
+                    {/* Bottom corner decorations (subtle) */}
+                    <div className="pointer-events-none absolute bottom-0 left-0 w-24 h-24 rounded-tr-full bg-gradient-to-tr from-[#D4AF5A]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <div className="pointer-events-none absolute top-0 right-0 w-32 h-32 rounded-bl-full bg-gradient-to-bl from-[#D4AF5A]/5 to-transparent" />
                   </Link>
                 );
               })}
