@@ -253,3 +253,12 @@ Sistema CRM para club vacacional con web publica estilo Expedia, programa Kuxtal
   - Botón "Buscar": gradiente dorado metálico con shadow dorada (antes navy sólido).
   - Chips "Destinos populares": dark glass (navy/80 + blur), border dorado, texto champagne, hover transiciona a fondo dorado translúcido. Ícono MapPin dorado.
   - Resultado: transición perfecta hero→buscador→Kuxtal Club sin ruptura visual.
+- Destinos destacados "Luxury Magazine" (2026-02, iter 48):
+  - Rediseño completo estilo revista de lujo impresa (Condé Nast Traveler vibes). Fondo cream mantenido como respiro light entre secciones dark, con hairlines doradas marco.
+  - Título "Destinos **destacados**" con italic serif Playfair gradiente dorado metálico (antes lime verde).
+  - Cards aspect 4:5 editorial (antes 4:3), ring dorado sutil, hairline top en hover, shadow dorada.
+  - Badge "EXCLUSIVO" dorado metálico con Sparkle (antes "DESTACADO" verde lima).
+  - Pill precio: gradiente dorado + Playfair serif (antes navy sticker).
+  - Estrella rating dorada, descripción en italic Playfair, "VER DETALLE" dorado en caps tracking editorial.
+  - Botón "VER TODOS LOS DESTINOS" pill dorado metálico grande + tagline italic Playfair "+ de 50 destinos curados, 6 continentes".
+  - Ritmo cinematográfico logrado: dark navy → cream luxury magazine → dark navy continuo.

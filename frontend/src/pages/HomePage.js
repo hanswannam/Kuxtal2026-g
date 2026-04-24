@@ -563,80 +563,155 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ══════ DESTINOS DESTACADOS ══════ */}
+      {/* ══════ DESTINOS DESTACADOS (luxury magazine cream) ══════ */}
       {packages.length > 0 && (
-        <section className="py-20 sm:py-24 relative" style={{ background: 'linear-gradient(180deg, #FAF8F3 0%, #F3EEE2 100%)' }} data-testid="featured-packages">
-          {/* Subtle gold marble */}
-          <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: `radial-gradient(circle at 20% 30%, ${GOLD} 0, transparent 40%), radial-gradient(circle at 80% 70%, ${GOLD} 0, transparent 40%)` }} />
+        <section className="py-20 sm:py-28 relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #FAF8F3 0%, #F3EEE2 60%, #FAF8F3 100%)' }} data-testid="featured-packages">
+          {/* Subtle gold marble veins */}
+          <div className="absolute inset-0 opacity-[0.04] pointer-events-none" style={{ backgroundImage: `radial-gradient(ellipse at 20% 20%, ${GOLD} 0, transparent 45%), radial-gradient(ellipse at 80% 70%, ${GOLD} 0, transparent 45%)` }} />
+          {/* Top + bottom gold hairlines framing the section */}
+          <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}66, transparent)` }} />
+          <div className="absolute bottom-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}66, transparent)` }} />
+
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-end justify-between mb-10">
+            <div className="flex items-end justify-between mb-10 sm:mb-14 flex-wrap gap-4">
               <div>
                 <div className="flex items-center gap-2 mb-3">
-                  <div className="h-px w-10" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}aa)` }} />
+                  <div className="h-px w-8 sm:w-10" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}aa)` }} />
                   <Sparkles className="w-3 h-3" style={{ color: GOLD }} />
-                  <p className="text-[11px] font-bold uppercase tracking-[0.28em]" style={{ color: '#8B6F2E' }}>Descubre la colección</p>
+                  <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.22em] sm:tracking-[0.3em]" style={{ color: '#8B6F2E' }}>Descubre la colección</p>
                 </div>
-                <h2 className="font-heading text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight" style={{ color: NAVY }}>
+                <h2 className="font-heading text-3xl xs:text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[0.95]" style={{ color: NAVY }}>
                   Destinos{' '}
-                  <span className="italic" style={{ fontFamily: '"Playfair Display", Georgia, serif', color: LIME }}>destacados</span>
+                  <span className="italic font-semibold" style={{ fontFamily: '"Playfair Display", Georgia, serif', background: `linear-gradient(92deg, ${GOLD} 0%, #B8944A 50%, ${GOLD} 100%)`, WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>destacados</span>
                 </h2>
               </div>
-              <Link to="/search" className="hidden sm:flex items-center gap-1.5 text-sm font-bold transition-all hover:gap-3" style={{ color: NAVY }} data-testid="view-all-link">
-                Ver todos <ArrowRight className="w-4 h-4" />
+              <Link to="/search" className="hidden sm:flex items-center gap-2 text-sm font-bold uppercase tracking-[0.2em] transition-all hover:gap-3 group" style={{ color: NAVY }} data-testid="view-all-link">
+                Ver todos
+                <span className="w-8 h-px transition-all group-hover:w-12" style={{ background: GOLD }} />
+                <ArrowRight className="w-4 h-4" style={{ color: GOLD }} />
               </Link>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
               {packages.map((pkg, i) => (
                 <Link
                   key={pkg._id}
                   to={`/trip/${pkg._id}`}
-                  className="group bg-white rounded-2xl overflow-hidden ring-1 ring-slate-100 hover:ring-slate-200 hover:shadow-[0_20px_50px_-20px_rgba(13,43,69,0.35)] transition-all hover:-translate-y-1"
+                  className="group relative block rounded-[22px] overflow-hidden transition-all duration-500 hover:-translate-y-2"
+                  style={{
+                    background: '#FFFFFF',
+                    boxShadow: `0 8px 24px -12px rgba(13,43,69,0.15), 0 0 0 1px ${GOLD}22`,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.boxShadow = `0 30px 60px -20px rgba(212,175,90,0.35), 0 0 0 1px ${GOLD}88`;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.boxShadow = `0 8px 24px -12px rgba(13,43,69,0.15), 0 0 0 1px ${GOLD}22`;
+                  }}
                   data-testid={`trip-card-${i}`}
                 >
-                  <div className="relative aspect-[4/3] overflow-hidden">
+                  {/* Top gold hairline — appears on hover */}
+                  <div className="absolute top-0 left-0 right-0 h-[2px] z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}, transparent)` }} />
+
+                  <div className="relative aspect-[4/5] overflow-hidden">
                     <ImageWithFallback
                       src={pkg.image_url}
                       alt={pkg.title}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                     />
-                    <div className="absolute top-3 left-3">
-                      <span className="px-3 py-1 bg-white/95 backdrop-blur-sm rounded-full text-[10px] font-bold uppercase tracking-wider text-slate-800">
+                    {/* Bottom-to-top gradient for price legibility */}
+                    <div className="absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+
+                    {/* Category badge — navy serif premium */}
+                    <div className="absolute top-4 left-4">
+                      <span
+                        className="inline-flex items-center px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-[0.2em]"
+                        style={{
+                          background: `${NAVY_DEEP}ee`,
+                          color: CHAMPAGNE,
+                          backdropFilter: 'blur(8px)',
+                          border: `1px solid ${GOLD}44`,
+                        }}
+                      >
                         {pkg.category === 'alojamiento' ? 'Alojamiento' : pkg.category === 'experiencia' ? 'Experiencia' : 'Paquete'}
                       </span>
                     </div>
+
+                    {/* Featured badge — gold metallic (replaces lime green) */}
                     {pkg.featured && (
-                      <div className="absolute top-3 right-3">
-                        <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider" style={{ background: LIME, color: NAVY }}>
-                          Destacado
+                      <div className="absolute top-4 right-4">
+                        <span
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em]"
+                          style={{
+                            background: `linear-gradient(135deg, #F5E6B8 0%, ${GOLD} 50%, #B8944A 100%)`,
+                            color: NAVY_DEEP,
+                            boxShadow: `0 6px 18px -4px rgba(212,175,90,0.6)`,
+                            border: `1px solid ${GOLD}`,
+                          }}
+                        >
+                          <Sparkles className="w-2.5 h-2.5" /> Exclusivo
                         </span>
                       </div>
                     )}
-                    <div className="absolute bottom-3 right-3">
-                      <span className="px-3 py-1.5 backdrop-blur-sm rounded-lg text-sm font-black text-white" style={{ background: `${NAVY}dd` }}>
+
+                    {/* Price pill — gold metallic with dark text */}
+                    <div className="absolute bottom-4 right-4">
+                      <div
+                        className="px-4 py-2 rounded-xl text-base font-black backdrop-blur-sm"
+                        style={{
+                          background: `linear-gradient(135deg, #F5E6B8 0%, ${GOLD} 50%, #B8944A 100%)`,
+                          color: NAVY_DEEP,
+                          boxShadow: `0 8px 20px -6px rgba(212,175,90,0.55)`,
+                          border: `1px solid ${GOLD}cc`,
+                          fontFamily: '"Playfair Display", Georgia, serif',
+                        }}
+                      >
                         Q.{pkg.price?.toLocaleString()}
-                      </span>
+                      </div>
                     </div>
                   </div>
-                  <div className="p-5">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-1">
-                        <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-                        <span className="text-sm font-bold">{pkg.rating}</span>
-                        <span className="text-xs text-slate-400">/5</span>
+
+                  <div className="p-5 sm:p-6">
+                    {/* Rating + duration row with gold star */}
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-1.5">
+                        <Star className="w-4 h-4" style={{ color: GOLD, fill: GOLD }} />
+                        <span className="text-sm font-black" style={{ color: NAVY }}>{pkg.rating}</span>
+                        <span className="text-xs" style={{ color: `${NAVY}55` }}>/5</span>
                       </div>
-                      <span className="text-xs text-slate-500">{pkg.duration_days} días</span>
+                      <span className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: `${NAVY}77` }}>
+                        {pkg.duration_days} días
+                      </span>
                     </div>
-                    <h3 className="font-heading text-lg font-bold mb-1 line-clamp-1" style={{ color: NAVY }}>
+
+                    {/* Mini gold hairline divider */}
+                    <div className="h-px mb-3 opacity-40" style={{ background: `linear-gradient(90deg, ${GOLD}aa, transparent)` }} />
+
+                    {/* Title — serif italic on hover */}
+                    <h3
+                      className="font-heading text-xl font-bold mb-2 line-clamp-1 transition-all duration-300"
+                      style={{ color: NAVY }}
+                    >
                       {pkg.title}
                     </h3>
-                    <p className="text-sm text-slate-500 line-clamp-2 mb-3">{pkg.short_description || pkg.description}</p>
-                    <div className="flex items-center gap-1.5 text-sm text-slate-500">
-                      <MapPin className="w-3.5 h-3.5" style={{ color: LIME }} />
-                      <span>{pkg.country}</span>
+                    <p className="text-sm line-clamp-2 mb-4 italic leading-relaxed" style={{ color: `${NAVY}88`, fontFamily: '"Playfair Display", Georgia, serif' }}>
+                      {pkg.short_description || pkg.description}
+                    </p>
+
+                    {/* Bottom row: location + arrow */}
+                    <div className="flex items-center justify-between pt-3 border-t" style={{ borderColor: `${GOLD}22` }}>
+                      <div className="flex items-center gap-1.5 text-sm font-semibold" style={{ color: NAVY }}>
+                        <MapPin className="w-3.5 h-3.5" style={{ color: GOLD }} />
+                        <span>{pkg.country}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.2em] transition-all group-hover:gap-3" style={{ color: GOLD }}>
+                        Ver detalle
+                        <ArrowRight className="w-3 h-3" />
+                      </div>
                     </div>
+
                     {pkg.promo_end && (
-                      <div className="mt-3 pt-3 border-t border-slate-100">
+                      <div className="mt-3 pt-3 border-t" style={{ borderColor: `${GOLD}22` }}>
                         <CountdownTimer endDate={pkg.promo_end} compact />
                       </div>
                     )}
@@ -645,12 +720,24 @@ export default function HomePage() {
               ))}
             </div>
 
-            <div className="text-center mt-10">
+            <div className="text-center mt-14 sm:mt-16">
               <Link to="/search">
-                <Button size="lg" className="rounded-full px-8 text-white font-bold" style={{ background: NAVY }} data-testid="view-all-packages-btn">
-                  Ver Todos los Destinos <ArrowRight className="w-4 h-4 ml-2" />
+                <Button
+                  size="lg"
+                  className="rounded-full px-10 h-13 font-bold text-sm uppercase tracking-[0.2em] transition-all hover:-translate-y-0.5 shadow-[0_15px_40px_-10px_rgba(212,175,90,0.5)] hover:shadow-[0_20px_50px_-10px_rgba(212,175,90,0.7)]"
+                  style={{
+                    background: `linear-gradient(135deg, #F5E6B8 0%, ${GOLD} 50%, #B8944A 100%)`,
+                    color: NAVY_DEEP,
+                    border: `1px solid ${GOLD}`,
+                  }}
+                  data-testid="view-all-packages-btn"
+                >
+                  Ver todos los destinos <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               </Link>
+              <p className="mt-4 text-[11px] italic tracking-wide" style={{ color: `${NAVY}55`, fontFamily: '"Playfair Display", Georgia, serif' }}>
+                + de 50 destinos curados, 6 continentes
+              </p>
             </div>
           </div>
         </section>
