@@ -46,12 +46,28 @@ const PARTNERS = [
   { name: 'BODYTECH', tag: '' },
 ];
 
-// Collage images for Kuxtal Club section (2x2)
+// Collage images for Kuxtal Club section (2x2) — each with a caption that tells the value prop.
 const CLUB_COLLAGE = [
-  'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=700&h=500&fit=crop', // beach
-  'https://images.unsplash.com/photo-1519817650390-64a93db51149?w=700&h=500&fit=crop', // couple
-  'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=700&h=500&fit=crop', // plane
-  'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=700&h=500&fit=crop', // restaurant
+  {
+    src: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&h=600&fit=crop&q=80',
+    label: 'Destinos',
+    caption: 'Paraísos exclusivos',
+  },
+  {
+    src: 'https://images.unsplash.com/photo-1540541338287-41700207dee6?w=800&h=600&fit=crop&q=80',
+    label: 'Resorts',
+    caption: 'Estadías premium',
+  },
+  {
+    src: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&h=600&fit=crop&q=80',
+    label: 'Experiencias',
+    caption: 'Gastronomía & eventos',
+  },
+  {
+    src: 'https://images.unsplash.com/photo-1556388158-158ea5ccacbd?w=800&h=600&fit=crop&q=80',
+    label: 'Vuelos',
+    caption: 'Tarifas preferenciales',
+  },
 ];
 
 // Hero image: infinity pool with palms (luxe resort aerial view)
@@ -356,24 +372,35 @@ export default function HomePage() {
                   </div>
                 </div>
               </div>
-              {/* Collage — mobile 2x2 */}
+              {/* Collage — mobile 2x2 with captions */}
               <div className="grid grid-cols-2 gap-2.5">
-                {CLUB_COLLAGE.map((src) => (
-                  <div key={src} className="relative rounded-xl overflow-hidden ring-1 ring-white/10 aspect-[4/3]">
-                    <img src={src} alt="" className="w-full h-full object-cover" loading="lazy" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                {CLUB_COLLAGE.map((item) => (
+                  <div key={item.src} className="relative rounded-xl overflow-hidden ring-1 ring-[#D4AF5A]/20 aspect-[4/3] group">
+                    <img src={item.src} alt={item.label} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
+                    {/* Gold hairline top */}
+                    <div className="absolute top-0 left-3 right-3 h-px opacity-80" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}aa, transparent)` }} />
+                    <div className="absolute bottom-0 left-0 right-0 p-3">
+                      <p className="text-[9px] font-bold uppercase tracking-[0.22em]" style={{ color: GOLD }}>{item.label}</p>
+                      <p className="text-[11px] text-white/90 italic leading-tight" style={{ fontFamily: '"Playfair Display", Georgia, serif' }}>{item.caption}</p>
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Desktop: 2x2 collage with floating card */}
+            {/* Desktop: 2x2 collage with floating card + captions */}
             <div className="hidden lg:block relative">
               <div className="grid grid-cols-2 gap-4">
-                {CLUB_COLLAGE.map((src, i) => (
-                  <div key={src} className={`relative rounded-2xl overflow-hidden ring-1 ring-white/10 aspect-[4/3] ${i === 0 ? 'translate-y-3' : ''} ${i === 3 ? 'translate-y-3' : ''}`}>
-                    <img src={src} alt="" className="w-full h-full object-cover" loading="lazy" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                {CLUB_COLLAGE.map((item, i) => (
+                  <div key={item.src} className={`relative rounded-2xl overflow-hidden ring-1 ring-[#D4AF5A]/20 aspect-[4/3] group ${i === 0 ? 'translate-y-3' : ''} ${i === 3 ? 'translate-y-3' : ''}`}>
+                    <img src={item.src} alt={item.label} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                    <div className="absolute top-0 left-4 right-4 h-px opacity-80" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}aa, transparent)` }} />
+                    <div className="absolute bottom-0 left-0 right-0 p-4">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.25em]" style={{ color: GOLD }}>{item.label}</p>
+                      <p className="text-sm text-white/90 italic" style={{ fontFamily: '"Playfair Display", Georgia, serif' }}>{item.caption}</p>
+                    </div>
                   </div>
                 ))}
               </div>

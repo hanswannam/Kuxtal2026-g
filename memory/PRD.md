@@ -183,6 +183,11 @@ Sistema CRM para club vacacional con web publica estilo Expedia, programa Kuxtal
 ## Pending / Backlog
 - [ ] FASE 2 Cotizaciones: envío por email con Resend (requiere RESEND_API_KEY del usuario)
 - [ ] FASE 3 Cotizaciones: PDF de recibo de pago interno
+- Club collage con storytelling (2026-02, iter 41):
+  - 4 imágenes del collage Kuxtal Club ahora tienen caption dorado + serif italic que cuentan la propuesta de valor del club: **Destinos** (Paraísos exclusivos), **Resorts** (Estadías premium), **Experiencias** (Gastronomía & eventos), **Vuelos** (Tarifas preferenciales).
+  - Reemplazada imagen de mezquita (no relacionada con Guatemala/Caribe) por atardecer playa caribe y avión despegando en pista.
+  - Cada tarjeta tiene hairline dorada top, gradiente oscuro bottom→transparent para legibilidad, hover con zoom sutil (scale-110).
+  - Ring dorado en borde (antes ring-white/10).
 - [ ] Backend refactoring: server.py ~2729 líneas — dividir en routers (auth/admin_users/packages/quotations/members/regalias/clubs/commerce)
 - [ ] Exponer FEATURE_KEYS en frontend desde GET /api/admin/feature-keys en lugar de duplicar lista en AdminUsers.js
 - [ ] DELETE endpoint para quotations (actualmente no existe, 2 quotations TEST quedaron en DB)
