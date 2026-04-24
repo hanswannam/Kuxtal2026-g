@@ -204,12 +204,12 @@ export default function HomePage() {
             <div className="absolute top-0 left-6 right-6 h-px" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}aa, transparent)` }} />
 
             {/* Tabs */}
-            <div className="relative flex gap-1 px-2 sm:px-4 pt-3 sm:pt-4 overflow-x-auto scrollbar-hide" data-testid="search-tabs">
+            <div className="relative flex gap-0.5 sm:gap-1 px-2 sm:px-4 pt-3 sm:pt-4" data-testid="search-tabs">
               {SEARCH_TABS.map(tab => (
                 <button
                   key={tab.id}
                   onClick={() => setSearchTab(tab.id)}
-                  className={`relative flex items-center gap-1.5 px-4 sm:px-5 py-2.5 rounded-t-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap`}
+                  className={`relative flex-1 sm:flex-initial flex items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-5 py-2.5 rounded-t-xl text-[11px] sm:text-sm font-semibold transition-all whitespace-nowrap min-w-0`}
                   style={
                     searchTab === tab.id
                       ? {
@@ -221,8 +221,8 @@ export default function HomePage() {
                   }
                   data-testid={`search-tab-${tab.id}`}
                 >
-                  <tab.icon className="w-4 h-4" />
-                  <span>{tab.label}</span>
+                  <tab.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                  <span className="truncate">{tab.label}</span>
                 </button>
               ))}
             </div>
