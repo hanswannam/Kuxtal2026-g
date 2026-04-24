@@ -3,19 +3,58 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { Search, MapPin, Star, Calendar, Users, ArrowRight, Shield, Heart, Globe, Store, Gift, Plane, Hotel, Compass, Package, ChevronDown, Facebook, Instagram, Twitter, Youtube, Linkedin, MessageCircle } from 'lucide-react';
+import {
+  Search, MapPin, Star, Calendar, Users, ArrowRight, Plane, Hotel, Compass, Package,
+  ChevronDown, Facebook, Instagram, Twitter, Youtube, Linkedin, MessageCircle,
+  Tag, Sparkles, Handshake, Crown, Lock, ShieldCheck, ArrowUpRight,
+} from 'lucide-react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { CountdownTimer } from '../components/CountdownTimer';
 import ImageWithFallback from '../components/ImageWithFallback';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 const LOGO_URL = "https://customer-assets.emergentagent.com/job_vacation-club-portal/artifacts/ikgtmopq_logo%20kuxtal.avif";
+const CLUB_LOGO = "https://customer-assets.emergentagent.com/job_vacation-club-portal/artifacts/s1oay7h5_Kuxtal%20Club.png";
+
+// Brand palette per design spec
+const NAVY = '#0D2B45';
+const LIME = '#8CC63F';
 
 const SEARCH_TABS = [
   { id: 'paquete', label: 'Paquetes', icon: Package, placeholder: 'Cancún, Riviera Maya...' },
   { id: 'alojamiento', label: 'Alojamientos', icon: Hotel, placeholder: 'Hotel, Resort, Villa...' },
   { id: 'experiencia', label: 'Experiencias', icon: Compass, placeholder: 'Tours, Aventuras...' },
 ];
+
+// Four perks shown in hero strip + in "Disfruta más" grid
+const PERKS = [
+  { icon: Tag, title: 'Precios Exclusivos', desc: 'Accede a tarifas preferenciales en hoteles, paquetes vacacionales y más.' },
+  { icon: Sparkles, title: 'Promociones Especiales', desc: 'Ofertas y descuentos exclusivos solo para miembros, todo el año.' },
+  { icon: Plane, title: 'Experiencias Únicas', desc: 'Vive eventos, viajes y experiencias diseñadas especialmente para nuestros socios.' },
+  { icon: Handshake, title: 'Beneficios con Aliados', desc: 'Descuentos y ventajas en restaurantes, servicios y comercios de nuestra red.' },
+];
+
+// Static partners (logos/names). These are placeholders for the allies row.
+const PARTNERS = [
+  { name: 'La Estancia', tag: 'Argentina' },
+  { name: 'azul', tag: 'restaurante' },
+  { name: 'mío', tag: 'café' },
+  { name: 'La Cabrera', tag: 'steak house' },
+  { name: 'BODYTECH', tag: '' },
+];
+
+// Collage images for Kuxtal Club section (2x2)
+const CLUB_COLLAGE = [
+  'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=700&h=500&fit=crop', // beach
+  'https://images.unsplash.com/photo-1519817650390-64a93db51149?w=700&h=500&fit=crop', // couple
+  'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=700&h=500&fit=crop', // plane
+  'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=700&h=500&fit=crop', // restaurant
+];
+
+// Hero image: infinity pool with palms (luxe resort aerial view)
+const HERO_IMG = 'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=1920&h=1200&fit=crop&q=80';
+// Final CTA image: tropical island from above
+const CTA_IMG = 'https://images.unsplash.com/photo-1559128010-7c1ad6e1b6a5?w=1600&h=900&fit=crop&q=80';
 
 export default function HomePage() {
   const [packages, setPackages] = useState([]);
@@ -30,9 +69,6 @@ export default function HomePage() {
 
   useEffect(() => {
     axios.get(`${API}/api/config/social-links`).then(r => setSocialLinks(r.data || {})).catch(() => {});
-  }, []);
-
-  useEffect(() => {
     axios.get(`${API}/api/packages?featured=true`).then(r => setPackages(r.data.slice(0, 6))).catch(() => {});
     axios.get(`${API}/api/countries`).then(r => setCountries(r.data)).catch(() => {});
   }, []);
@@ -48,63 +84,104 @@ export default function HomePage() {
   const currentTab = SEARCH_TABS.find(t => t.id === searchTab) || SEARCH_TABS[0];
 
   return (
-    <div className="min-h-screen" data-testid="home-page">
-      {/* Hero Section */}
-      <section className="relative min-h-[600px] lg:min-h-[700px] flex items-center overflow-hidden">
+    <div className="min-h-screen bg-white" data-testid="home-page">
+
+      {/* ══════ HERO ══════ */}
+      <section className="relative min-h-[640px] lg:min-h-[760px] flex items-center overflow-hidden" data-testid="hero-section">
         <div className="absolute inset-0">
-          <img
-            src="https://images.unsplash.com/photo-1770185998570-db739db7af47?crop=entropy&cs=srgb&fm=jpg&ixlib=rb-4.1.0&q=85&w=1920"
-            alt="Resort tropical aereo"
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/60" />
+          <img src={HERO_IMG} alt="Resort tropical con piscina infinita" className="w-full h-full object-cover" />
+          {/* Left-to-right navy overlay for readability on text side */}
+          <div className="absolute inset-0" style={{ background: `linear-gradient(100deg, ${NAVY}f2 0%, ${NAVY}cc 38%, ${NAVY}55 60%, transparent 85%)` }} />
         </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full pt-28 pb-16">
-          {/* Title */}
-          <div className="text-center mb-10 animate-fade-in-up">
-            <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl text-white font-bold tracking-tighter leading-tight mb-4">
-              Tu destino perfecto te espera
-            </h1>
-            <p className="text-base sm:text-lg text-white/80 font-body max-w-2xl mx-auto leading-relaxed">
-              Paquetes exclusivos, alojamientos premium y experiencias unicas en los mejores destinos del mundo.
-            </p>
-          </div>
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full pt-32 pb-20">
+          <div className="max-w-2xl">
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/25 bg-white/10 backdrop-blur-sm text-white/90 text-[10px] font-bold uppercase tracking-[0.22em] mb-6" data-testid="hero-eyebrow">
+              <Crown className="w-3 h-3" style={{ color: LIME }} /> Club de viajes exclusivo
+            </span>
 
-          {/* Search Box - Expedia Style */}
-          <div className="max-w-4xl mx-auto" data-testid="hero-search-box">
+            <h1 className="font-heading text-5xl sm:text-6xl lg:text-7xl text-white font-black tracking-tight leading-[1.02] mb-5" data-testid="hero-title">
+              Más que viajes,<br />
+              es <span style={{ color: LIME }}>pertenecer.</span>
+            </h1>
+
+            <p className="text-base sm:text-lg text-white/75 max-w-lg leading-relaxed mb-9" data-testid="hero-subtitle">
+              Accede a experiencias exclusivas, precios especiales y beneficios únicos con Kuxtal&nbsp;Travels.
+            </p>
+
+            <div className="flex flex-wrap gap-3 mb-12">
+              <Link to="/login">
+                <Button
+                  size="lg"
+                  className="rounded-full h-12 px-7 font-bold text-sm shadow-[0_10px_30px_-6px_rgba(140,198,63,0.55)] hover:shadow-[0_14px_36px_-6px_rgba(140,198,63,0.75)] transition-all hover:-translate-y-0.5"
+                  style={{ background: LIME, color: NAVY }}
+                  data-testid="hero-join-btn"
+                >
+                  Hazte miembro <ArrowRight className="w-4 h-4 ml-1.5" />
+                </Button>
+              </Link>
+              <a href="#kuxtal-club-section">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="rounded-full h-12 px-7 font-semibold text-sm border-white/40 text-white bg-white/5 backdrop-blur-sm hover:bg-white/15 hover:border-white/70 transition-all"
+                  data-testid="hero-learn-btn"
+                >
+                  Conoce más
+                </Button>
+              </a>
+            </div>
+
+            {/* Perks mini-strip — 4 icons in a row */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-5 max-w-3xl" data-testid="hero-perks">
+              {PERKS.map((p) => (
+                <div key={p.title} className="flex flex-col items-start text-white/90 group">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-2 transition-all group-hover:scale-110" style={{ background: `${LIME}22`, border: `1px solid ${LIME}55` }}>
+                    <p.icon className="w-5 h-5" strokeWidth={1.6} style={{ color: LIME }} />
+                  </div>
+                  <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.12em] leading-tight">{p.title}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ══════ SEARCH BAND (moved below hero) ══════ */}
+      <section className="relative bg-white border-b border-slate-100 -mt-10 z-20" data-testid="search-band">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="relative rounded-2xl bg-white shadow-[0_20px_60px_-20px_rgba(13,43,69,0.25)] ring-1 ring-slate-100 overflow-hidden">
             {/* Tabs */}
-            <div className="flex gap-1 mb-0" data-testid="search-tabs">
+            <div className="flex gap-0.5 px-3 pt-3" data-testid="search-tabs">
               {SEARCH_TABS.map(tab => (
                 <button
                   key={tab.id}
                   onClick={() => setSearchTab(tab.id)}
-                  className={`flex items-center gap-2 px-5 py-3 rounded-t-xl text-sm font-semibold transition-all ${
+                  className={`flex items-center gap-1.5 px-4 sm:px-5 py-2.5 rounded-t-xl text-xs sm:text-sm font-semibold transition-all ${
                     searchTab === tab.id
-                      ? 'bg-white text-foreground shadow-sm'
-                      : 'bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm'
+                      ? 'text-white'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                   }`}
+                  style={searchTab === tab.id ? { background: NAVY } : {}}
                   data-testid={`search-tab-${tab.id}`}
                 >
                   <tab.icon className="w-4 h-4" />
-                  <span className="hidden sm:inline">{tab.label}</span>
+                  <span className="hidden xs:inline">{tab.label}</span>
                 </button>
               ))}
             </div>
 
-            {/* Search Form */}
-            <form onSubmit={handleSearch} className="bg-white rounded-2xl rounded-tl-none shadow-2xl p-3 sm:p-4" data-testid="hero-search-form">
+            <form onSubmit={handleSearch} className="p-3 sm:p-4 pt-2" data-testid="hero-search-form">
               <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                {/* Destination */}
                 <div className="flex-[2] relative">
-                  <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-0.5 block">Destino</label>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.12em] px-3 mb-0.5 block">Destino</label>
                   <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <Input
                       value={destination}
                       onChange={e => setDestination(e.target.value)}
                       placeholder={currentTab.placeholder}
-                      className="pl-10 h-12 rounded-xl border-border bg-secondary/30 focus:bg-white"
+                      className="pl-10 h-12 rounded-xl border-slate-200 bg-slate-50 focus:bg-white focus:border-slate-400"
                       data-testid="hero-search-input"
                       list="country-suggestions"
                     />
@@ -114,397 +191,398 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                {/* Dates */}
                 <div className="flex-1">
-                  <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-0.5 block">Fecha</label>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.12em] px-3 mb-0.5 block">Fecha</label>
                   <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <Input
                       type="date"
                       value={dates}
                       onChange={e => setDates(e.target.value)}
-                      className="pl-10 h-12 rounded-xl border-border bg-secondary/30 focus:bg-white"
+                      className="pl-10 h-12 rounded-xl border-slate-200 bg-slate-50 focus:bg-white focus:border-slate-400"
                       data-testid="hero-search-date"
                     />
                   </div>
                 </div>
 
-                {/* Guests */}
-                <div className="flex-1 sm:max-w-[140px]">
-                  <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-0.5 block">Viajeros</label>
+                <div className="flex-1 sm:max-w-[150px]">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.12em] px-3 mb-0.5 block">Viajeros</label>
                   <div className="relative">
-                    <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <select
                       value={guests}
                       onChange={e => setGuests(e.target.value)}
-                      className="w-full pl-10 h-12 rounded-xl border border-border bg-secondary/30 focus:bg-white text-sm appearance-none cursor-pointer"
+                      className="w-full pl-10 h-12 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white text-sm appearance-none cursor-pointer"
                       data-testid="hero-search-guests"
                     >
                       {[1,2,3,4,5,6,7,8].map(n => (
                         <option key={n} value={n}>{n} {n === 1 ? 'viajero' : 'viajeros'}</option>
                       ))}
                     </select>
-                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                   </div>
                 </div>
 
-                {/* Search Button */}
                 <div className="flex items-end">
                   <Button
                     type="submit"
-                    className="h-12 px-8 rounded-xl bg-primary hover:bg-primary/90 shadow-lg transition-all hover:-translate-y-0.5 w-full sm:w-auto text-base font-semibold text-white"
+                    className="h-12 px-7 rounded-xl font-bold text-white w-full sm:w-auto text-sm transition-all hover:-translate-y-0.5"
+                    style={{ background: NAVY }}
                     data-testid="hero-search-btn"
                   >
-                    <Search className="w-5 h-5 mr-2" />
-                    Buscar
+                    <Search className="w-4 h-4 mr-1.5" /> Buscar
                   </Button>
                 </div>
               </div>
             </form>
           </div>
 
-          {/* Quick Stats */}
-          <div className="flex justify-center gap-8 sm:gap-12 mt-8 text-white/80 text-sm">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-white">{packages.length > 0 ? '50+' : '---'}</p>
-              <p className="text-xs">Destinos</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-white">4.8</p>
-              <p className="text-xs">Calificacion</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-white">1000+</p>
-              <p className="text-xs">Viajeros</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Popular Destinations - Quick Access */}
-      {countries.length > 0 && (
-        <section className="py-10 bg-white border-b border-border">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center gap-4 overflow-x-auto pb-2 scrollbar-hide">
-              <span className="text-sm font-semibold text-muted-foreground whitespace-nowrap">Destinos populares:</span>
+          {/* Popular destinations chips */}
+          {countries.length > 0 && (
+            <div className="flex items-center gap-3 overflow-x-auto pb-2 pt-5 scrollbar-hide">
+              <span className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500 whitespace-nowrap">Destinos populares:</span>
               {countries.slice(0, 8).map(c => (
                 <Link
                   key={c}
                   to={`/search?country=${encodeURIComponent(c)}`}
-                  className="px-4 py-2 bg-secondary/60 hover:bg-primary/10 hover:text-primary rounded-full text-sm font-medium whitespace-nowrap transition-all border border-transparent hover:border-primary/20"
+                  className="px-3.5 py-1.5 bg-slate-50 hover:bg-slate-900 hover:text-white rounded-full text-xs font-medium whitespace-nowrap transition-all border border-slate-200 hover:border-slate-900"
+                  style={{}}
                   data-testid={`popular-dest-${c}`}
                 >
                   <MapPin className="w-3 h-3 inline mr-1" />{c}
                 </Link>
               ))}
             </div>
+          )}
+        </div>
+      </section>
+
+      {/* ══════ KUXTAL CLUB — Tu membresía, un mundo de beneficios ══════ */}
+      <section id="kuxtal-club-section" className="relative py-20 sm:py-24 overflow-hidden" style={{ background: NAVY }} data-testid="kuxtal-club-section">
+        {/* Subtle radial lime accents */}
+        <div className="absolute inset-0 opacity-[0.08] pointer-events-none" style={{ backgroundImage: `radial-gradient(circle at 20% 30%, ${LIME} 0, transparent 40%), radial-gradient(circle at 80% 80%, ${LIME} 0, transparent 40%)` }} />
+        {/* Dot grid */}
+        <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '36px 36px' }} />
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+          {/* Left text */}
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.25em] mb-4" style={{ color: LIME }}>
+              Kuxtal Club
+            </p>
+            <h2 className="font-heading text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-[1.05] mb-5">
+              Tu membresía,<br />
+              un mundo de <span style={{ color: LIME }}>beneficios</span>
+            </h2>
+            <p className="text-white/65 text-base leading-relaxed mb-8 max-w-lg">
+              Somos un club de viajes diseñado para personas que buscan más que un destino. Vive experiencias inolvidables y disfruta beneficios en comercios aliados.
+            </p>
+            <Link to="/benefits">
+              <Button
+                size="lg"
+                className="rounded-full h-12 px-7 font-bold text-sm text-white transition-all hover:-translate-y-0.5 shadow-[0_10px_30px_-6px_rgba(13,43,69,0.7)]"
+                style={{ background: '#08213A', border: `1px solid ${LIME}55` }}
+                data-testid="club-see-benefits-btn"
+              >
+                Ver beneficios <ArrowUpRight className="w-4 h-4 ml-1.5" />
+              </Button>
+            </Link>
+          </div>
+
+          {/* Right: 2x2 collage with floating membership card */}
+          <div className="relative" data-testid="club-collage">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
+              {CLUB_COLLAGE.map((src, i) => (
+                <div key={src} className={`relative rounded-2xl overflow-hidden ring-1 ring-white/10 aspect-[4/3] ${i === 0 ? 'translate-y-3' : ''} ${i === 3 ? 'translate-y-3' : ''}`}>
+                  <img src={src} alt="" className="w-full h-full object-cover" loading="lazy" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+                </div>
+              ))}
+            </div>
+
+            {/* Floating membership card */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[68%] max-w-[340px]" data-testid="membership-card">
+              <div className="relative rounded-2xl p-5 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.6)] ring-1" style={{ background: `linear-gradient(140deg, ${NAVY} 0%, #142f4b 55%, ${NAVY} 100%)`, borderColor: `${LIME}44` }}>
+                <div className="flex items-center justify-center mb-3">
+                  <img src={CLUB_LOGO} alt="Kuxtal Club" className="h-12 w-auto" />
+                </div>
+                <div className="text-center pt-2 border-t" style={{ borderColor: `${LIME}33` }}>
+                  <p className="text-white font-heading font-bold text-base tracking-tight mt-2">
+                    KUXTAL <span style={{ color: LIME }}>CLUB</span>
+                  </p>
+                  <p className="text-white/60 text-[10px] font-bold uppercase tracking-[0.2em] mt-0.5">Acceso Exclusivo</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ══════ DISFRUTA MÁS, PAGANDO MENOS ══════ */}
+      <section className="py-20 bg-white" data-testid="perks-section">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="font-heading text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight" style={{ color: NAVY }}>
+              Disfruta <span style={{ color: LIME }}>más</span>, pagando <span style={{ color: LIME }}>menos</span>
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {PERKS.map((p) => (
+              <div
+                key={p.title}
+                className="group rounded-2xl p-6 bg-white border border-slate-100 hover:border-slate-200 hover:shadow-[0_20px_40px_-20px_rgba(13,43,69,0.25)] transition-all hover:-translate-y-1 text-center"
+                data-testid={`perk-${p.title}`}
+              >
+                <div className="w-14 h-14 mx-auto mb-4 rounded-2xl flex items-center justify-center transition-all group-hover:scale-110" style={{ background: `${LIME}18`, color: NAVY }}>
+                  <p.icon className="w-7 h-7" strokeWidth={1.5} />
+                </div>
+                <h3 className="font-heading font-bold text-sm uppercase tracking-wide mb-2" style={{ color: NAVY }}>
+                  {p.title}
+                </h3>
+                <p className="text-xs text-slate-500 leading-relaxed">{p.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ══════ DESTINOS DESTACADOS ══════ */}
+      {packages.length > 0 && (
+        <section className="py-20 bg-slate-50" data-testid="featured-packages">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-end justify-between mb-10">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.22em] mb-2" style={{ color: LIME }}>Descubre</p>
+                <h2 className="font-heading text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight" style={{ color: NAVY }}>
+                  Destinos Destacados
+                </h2>
+              </div>
+              <Link to="/search" className="hidden sm:flex items-center gap-1.5 text-sm font-bold transition-all hover:gap-3" style={{ color: NAVY }} data-testid="view-all-link">
+                Ver todos <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {packages.map((pkg, i) => (
+                <Link
+                  key={pkg._id}
+                  to={`/trip/${pkg._id}`}
+                  className="group bg-white rounded-2xl overflow-hidden ring-1 ring-slate-100 hover:ring-slate-200 hover:shadow-[0_20px_50px_-20px_rgba(13,43,69,0.35)] transition-all hover:-translate-y-1"
+                  data-testid={`trip-card-${i}`}
+                >
+                  <div className="relative aspect-[4/3] overflow-hidden">
+                    <ImageWithFallback
+                      src={pkg.image_url}
+                      alt={pkg.title}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                    <div className="absolute top-3 left-3">
+                      <span className="px-3 py-1 bg-white/95 backdrop-blur-sm rounded-full text-[10px] font-bold uppercase tracking-wider text-slate-800">
+                        {pkg.category === 'alojamiento' ? 'Alojamiento' : pkg.category === 'experiencia' ? 'Experiencia' : 'Paquete'}
+                      </span>
+                    </div>
+                    {pkg.featured && (
+                      <div className="absolute top-3 right-3">
+                        <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider" style={{ background: LIME, color: NAVY }}>
+                          Destacado
+                        </span>
+                      </div>
+                    )}
+                    <div className="absolute bottom-3 right-3">
+                      <span className="px-3 py-1.5 backdrop-blur-sm rounded-lg text-sm font-black text-white" style={{ background: `${NAVY}dd` }}>
+                        Q.{pkg.price?.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="p-5">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-1">
+                        <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                        <span className="text-sm font-bold">{pkg.rating}</span>
+                        <span className="text-xs text-slate-400">/5</span>
+                      </div>
+                      <span className="text-xs text-slate-500">{pkg.duration_days} días</span>
+                    </div>
+                    <h3 className="font-heading text-lg font-bold mb-1 line-clamp-1" style={{ color: NAVY }}>
+                      {pkg.title}
+                    </h3>
+                    <p className="text-sm text-slate-500 line-clamp-2 mb-3">{pkg.short_description || pkg.description}</p>
+                    <div className="flex items-center gap-1.5 text-sm text-slate-500">
+                      <MapPin className="w-3.5 h-3.5" style={{ color: LIME }} />
+                      <span>{pkg.country}</span>
+                    </div>
+                    {pkg.promo_end && (
+                      <div className="mt-3 pt-3 border-t border-slate-100">
+                        <CountdownTimer endDate={pkg.promo_end} compact />
+                      </div>
+                    )}
+                  </div>
+                </Link>
+              ))}
+            </div>
+
+            <div className="text-center mt-10">
+              <Link to="/search">
+                <Button size="lg" className="rounded-full px-8 text-white font-bold" style={{ background: NAVY }} data-testid="view-all-packages-btn">
+                  Ver Todos los Destinos <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </Link>
+            </div>
           </div>
         </section>
       )}
 
-      {/* Value Props - Visual Cards with Images */}
-      <section className="py-16 sm:py-20 bg-white" data-testid="value-props-section">
+      {/* ══════ NUESTROS ALIADOS ══════ */}
+      <section className="py-14 sm:py-16 relative" style={{ background: NAVY }} data-testid="partners-section">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <p className="text-xs uppercase tracking-[0.2em] font-semibold mb-2 text-accent-foreground">Por que elegirnos</p>
-            <h2 className="font-heading text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-primary">
-              La experiencia Kuxtal Travel
-            </h2>
+          <div className="text-center mb-8">
+            <p className="text-xs sm:text-sm font-bold uppercase tracking-[0.25em] text-white/90">
+              Nuestros <span style={{ color: LIME }}>aliados</span>
+            </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6">
-            {[
-              {
-                icon: Shield,
-                title: 'Seguridad Total',
-                desc: 'Viaja con la tranquilidad de estar respaldado por expertos en viajes con mas de 10 anos de experiencia',
-                img: 'https://images.unsplash.com/photo-1772305436753-e308844ecda2?w=600&h=400&fit=crop',
-              },
-              {
-                icon: Heart,
-                title: 'Experiencias Unicas',
-                desc: 'Actividades exclusivas disenadas para crear recuerdos inolvidables con tu familia y amigos',
-                img: 'https://images.unsplash.com/photo-1702387267777-9e6b312720c7?w=600&h=400&fit=crop',
-              },
-              {
-                icon: Globe,
-                title: 'Destinos Premium',
-                desc: 'Acceso a los mejores destinos en Latinoamerica y el mundo con precios exclusivos para socios',
-                img: 'https://images.unsplash.com/photo-1580259401966-d14193bdade2?w=600&h=400&fit=crop',
-              },
-            ].map((item) => (
-              <div key={item.title} className="group rounded-2xl overflow-hidden border border-border hover:shadow-xl transition-all duration-300 hover:-translate-y-1" data-testid={`value-prop-${item.title}`}>
-                <div className="relative h-48 sm:h-56 overflow-hidden">
-                  <img src={item.img} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                  <div className="absolute bottom-4 left-4">
-                    <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-primary">
-                      <item.icon className="w-5 h-5 text-white" strokeWidth={1.5} />
-                    </div>
-                  </div>
-                </div>
-                <div className="p-5">
-                  <h3 className="font-heading text-lg font-semibold mb-2 text-primary">{item.title}</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
-                </div>
+          <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-10 lg:gap-14">
+            {PARTNERS.map(p => (
+              <div key={p.name} className="text-center group transition-all hover:opacity-100 opacity-75" data-testid={`partner-${p.name}`}>
+                <p className="font-heading text-xl sm:text-2xl font-black text-white tracking-tight" style={{ fontFamily: 'serif' }}>{p.name}</p>
+                {p.tag && <p className="text-[10px] uppercase tracking-[0.25em] text-white/50 mt-0.5">{p.tag}</p>}
               </div>
             ))}
+            <div className="text-center">
+              <p className="text-[10px] uppercase tracking-[0.22em] font-bold" style={{ color: LIME }}>Y más aliados<br />especiales</p>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Featured Packages */}
-      <section className="py-20 bg-[#F8FAFC]" data-testid="featured-packages">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-end justify-between mb-12">
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] font-semibold mb-2 text-accent-foreground">Descubre</p>
-              <h2 className="font-heading text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-primary">
-                Destinos Destacados
-              </h2>
-            </div>
-            <Link to="/search" className="hidden sm:flex items-center gap-2 text-primary text-sm font-medium hover:gap-3 transition-all" data-testid="view-all-link">
-              Ver todos <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
+      {/* ══════ CTA FINAL ══════ */}
+      <section className="relative py-20 overflow-hidden" data-testid="final-cta">
+        <div className="absolute inset-0">
+          <img src={CTA_IMG} alt="Destino paradisíaco" className="w-full h-full object-cover" />
+          <div className="absolute inset-0" style={{ background: `linear-gradient(100deg, ${NAVY}f5 0%, ${NAVY}e8 45%, ${NAVY}c8 100%)` }} />
+        </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 stagger-children">
-            {packages.map((pkg, i) => (
-              <Link
-                key={pkg._id}
-                to={`/trip/${pkg._id}`}
-                className="trip-card group bg-white rounded-2xl overflow-hidden border border-border opacity-0 animate-fade-in-up hover:shadow-xl transition-shadow duration-300"
-                data-testid={`trip-card-${i}`}
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+          <div>
+            <h2 className="font-heading text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-[1.05] mb-4">
+              El mundo es mejor<br />
+              cuando eres <span style={{ color: LIME }}>miembro.</span>
+            </h2>
+            <p className="text-white/70 text-base leading-relaxed mb-7 max-w-md">
+              Únete a Kuxtal Club y comienza a disfrutar de un mundo de beneficios desde hoy.
+            </p>
+            <Link to="/login">
+              <Button
+                size="lg"
+                className="rounded-full h-13 px-8 font-bold text-sm shadow-[0_10px_30px_-6px_rgba(140,198,63,0.55)] hover:shadow-[0_14px_36px_-6px_rgba(140,198,63,0.75)] transition-all hover:-translate-y-0.5"
+                style={{ background: LIME, color: NAVY }}
+                data-testid="final-cta-btn"
               >
-                <div className="relative aspect-[4/3] overflow-hidden">
-                  <ImageWithFallback
-                    src={pkg.image_url}
-                    alt={pkg.title}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                  <div className="absolute top-3 left-3 flex gap-2">
-                    <span className="px-3 py-1 bg-white/90 backdrop-blur-sm rounded-full text-xs font-semibold text-foreground">
-                      {pkg.category === 'alojamiento' ? 'Alojamiento' : pkg.category === 'experiencia' ? 'Experiencia' : 'Paquete'}
-                    </span>
-                  </div>
-                  {pkg.featured && (
-                    <div className="absolute top-3 right-3">
-                      <span className="px-3 py-1 bg-accent text-primary rounded-full text-xs font-semibold">
-                        Destacado
-                      </span>
-                    </div>
-                  )}
-                  {/* Price overlay */}
-                  <div className="absolute bottom-3 right-3">
-                    <span className="px-3 py-1.5 bg-primary/85 backdrop-blur-sm text-white rounded-lg text-sm font-bold">
-                      Q.{pkg.price?.toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-                <div className="p-5">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-1">
-                      <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-                      <span className="text-sm font-semibold">{pkg.rating}</span>
-                      <span className="text-xs text-muted-foreground">/5</span>
-                    </div>
-                    <span className="text-xs text-muted-foreground">{pkg.duration_days} días</span>
-                  </div>
-                  <h3 className="font-heading text-lg font-semibold mb-1 text-primary transition-colors line-clamp-1">
-                    {pkg.title}
-                  </h3>
-                  <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{pkg.short_description || pkg.description}</p>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <MapPin className="w-3.5 h-3.5 text-accent-foreground" />
-                    <span>{pkg.country}</span>
-                  </div>
-                  {pkg.promo_end && (
-                    <div className="mt-3 pt-3 border-t border-border">
-                      <CountdownTimer endDate={pkg.promo_end} compact />
-                    </div>
-                  )}
-                </div>
-              </Link>
-            ))}
-          </div>
-
-          <div className="text-center mt-10">
-            <Link to="/search">
-              <Button size="lg" className="rounded-full bg-primary hover:bg-primary/90 px-8 text-white" data-testid="view-all-packages-btn">
-                Ver Todos los Destinos <ArrowRight className="w-4 h-4 ml-2" />
+                Hazte miembro hoy <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </Link>
           </div>
-        </div>
-      </section>
 
-      {/* CTA Section */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="relative rounded-3xl overflow-hidden">
-            <img
-              src="https://images.unsplash.com/photo-1626970356891-a6339d8eece6?w=1200"
-              alt="Experiencia vacacional"
-              className="w-full h-[400px] object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent flex items-center">
-              <div className="px-8 sm:px-12 lg:px-16 max-w-xl">
-                <p className="text-xs uppercase tracking-[0.3em] text-white/60 font-semibold mb-3">Unete al Club</p>
-                <h2 className="font-heading text-2xl sm:text-3xl lg:text-4xl text-white font-bold tracking-tight mb-4">
-                  Transforma tus suenos en aventuras
-                </h2>
-                <p className="text-white/70 mb-6 text-sm leading-relaxed">
-                  Como socio de Kuxtal Travel obten precios exclusivos, acceso a promociones y beneficios en comercios aliados.
-                </p>
-                <div className="flex flex-wrap gap-3">
-                  <Link to="/search">
-                    <Button size="lg" className="rounded-full bg-accent text-accent-foreground transition-all hover:-translate-y-0.5 hover:opacity-90 font-bold" data-testid="cta-explore-btn">
-                      <Plane className="w-4 h-4 mr-2" /> Explorar Destinos
-                    </Button>
-                  </Link>
-                  <Link to="/login">
-                    <Button size="lg" variant="outline" className="rounded-full border-white/40 text-white hover:bg-white/15" data-testid="cta-login-btn">
-                      Acceso Socios
-                    </Button>
-                  </Link>
+          {/* Right side benefits */}
+          <div className="space-y-4">
+            {[
+              { icon: Crown, title: 'Membresía 100% Digital', desc: 'Todo desde nuestra plataforma fácil, rápida y segura.' },
+              { icon: Lock, title: 'Acceso Inmediato', desc: 'Comienza a disfrutar tus beneficios desde el primer día.' },
+              { icon: ShieldCheck, title: 'Respaldo Kuxtal', desc: 'Más de 10 años conectando socios con experiencias únicas.' },
+            ].map((b) => (
+              <div key={b.title} className="flex items-start gap-4 p-5 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 transition-all">
+                <div className="shrink-0 w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: `${LIME}22`, border: `1px solid ${LIME}55` }}>
+                  <b.icon className="w-6 h-6" style={{ color: LIME }} strokeWidth={1.6} />
+                </div>
+                <div>
+                  <p className="text-sm font-bold uppercase tracking-wide mb-1" style={{ color: LIME }}>{b.title}</p>
+                  <p className="text-white/70 text-sm leading-relaxed">{b.desc}</p>
                 </div>
               </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* ══════ KUXTAL CLUB - Benefits Section ══════ */}
-      <section className="py-0 bg-[#0a0f1a]" data-testid="kuxtal-club-section">
-        {/* Hero Banner */}
-        <div className="relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-[#0a0f1a] via-[#111827] to-[#1a0a0a]" />
-          <div className="absolute inset-0 opacity-[0.04]" style={{backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '40px 40px'}} />
-          
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-28">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-              {/* Left - Content */}
-              <div>
-                <div className="flex items-center gap-3 mb-6">
-                  <img
-                    src="https://customer-assets.emergentagent.com/job_vacation-club-portal/artifacts/s1oay7h5_Kuxtal%20Club.png"
-                    alt="Kuxtal Club"
-                    className="h-20 sm:h-24 w-auto"
-                    data-testid="kuxtal-club-logo"
-                  />
-                </div>
-                <h2 className="font-heading text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight leading-tight mb-5">
-                  Tu tarjeta de<br />
-                  <span className="bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 bg-clip-text text-transparent">
-                    beneficios exclusivos
-                  </span>
-                </h2>
-                <p className="text-white/60 text-base sm:text-lg leading-relaxed mb-8 max-w-lg">
-                  Como socio de Kuxtal Club accede a descuentos y promociones especiales en los mejores comercios aliados de Guatemala.
-                </p>
-
-                {/* Stats Row */}
-                <div className="flex gap-8 mb-8">
-                  <div>
-                    <p className="text-3xl font-bold text-white">150+</p>
-                    <p className="text-xs text-white/40 uppercase tracking-wider">Comercios</p>
-                  </div>
-                  <div className="w-px bg-white/10" />
-                  <div>
-                    <p className="text-3xl font-bold text-white">12</p>
-                    <p className="text-xs text-white/40 uppercase tracking-wider">Categorias</p>
-                  </div>
-                  <div className="w-px bg-white/10" />
-                  <div>
-                    <p className="text-3xl font-bold bg-gradient-to-r from-amber-400 to-yellow-300 bg-clip-text text-transparent">50%</p>
-                    <p className="text-xs text-white/40 uppercase tracking-wider">Hasta descuento</p>
-                  </div>
-                </div>
-
-                <div className="flex gap-3">
-                  <Link to="/benefits">
-                    <Button size="lg" className="rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black font-bold shadow-lg shadow-amber-500/20 transition-all hover:-translate-y-0.5 px-8" data-testid="kuxtal-club-explore-btn">
-                      <Store className="w-5 h-5 mr-2" /> Explorar Beneficios
-                    </Button>
-                  </Link>
-                  <Link to="/login">
-                    <Button size="lg" variant="outline" className="rounded-full border-white/20 text-white hover:bg-white/10 font-semibold" data-testid="kuxtal-club-login-btn">
-                      Acceso Socios
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-
-              {/* Right - Category Grid */}
-              <div className="grid grid-cols-3 gap-3" data-testid="kuxtal-club-categories">
-                {[
-                  { icon: Store, label: 'Restaurantes', desc: 'Gastronomia', color: 'from-orange-500/20 to-orange-600/10', iconColor: 'text-orange-400', border: 'border-orange-500/20' },
-                  { icon: Heart, label: 'Belleza', desc: 'Spa & Estetica', color: 'from-pink-500/20 to-pink-600/10', iconColor: 'text-pink-400', border: 'border-pink-500/20' },
-                  { icon: Shield, label: 'Deportes', desc: 'Fitness & Gym', color: 'from-emerald-500/20 to-emerald-600/10', iconColor: 'text-emerald-400', border: 'border-emerald-500/20' },
-                  { icon: Gift, label: 'Mascotas', desc: 'Veterinarias', color: 'from-amber-500/20 to-amber-600/10', iconColor: 'text-amber-400', border: 'border-amber-500/20' },
-                  { icon: Globe, label: 'Salud', desc: 'Hospitales', color: 'from-blue-500/20 to-blue-600/10', iconColor: 'text-blue-400', border: 'border-blue-500/20' },
-                  { icon: Star, label: 'Diversion', desc: 'Entretenimiento', color: 'from-violet-500/20 to-violet-600/10', iconColor: 'text-violet-400', border: 'border-violet-500/20' },
-                ].map((cat) => (
-                  <Link
-                    key={cat.label}
-                    to={`/benefits?category=${cat.label}`}
-                    className={`group relative p-4 sm:p-5 rounded-2xl bg-gradient-to-br ${cat.color} border ${cat.border} backdrop-blur-sm hover:scale-[1.03] transition-all duration-300`}
-                    data-testid={`club-cat-${cat.label}`}
-                  >
-                    <div className={`${cat.iconColor} mb-3`}>
-                      <cat.icon className="w-7 h-7" strokeWidth={1.5} />
-                    </div>
-                    <p className="text-white font-semibold text-sm">{cat.label}</p>
-                    <p className="text-white/40 text-[10px] mt-0.5">{cat.desc}</p>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="bg-foreground text-white py-12">
+      {/* ══════ FOOTER ══════ */}
+      <footer className="relative bg-white border-t border-slate-100 pt-14 pb-8" data-testid="footer">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <img src={LOGO_URL} alt="Kuxtal Travel" className="h-10 w-auto brightness-0 invert" />
-              </div>
-              <p className="text-sm text-white/60 leading-relaxed">
-                "Kuxtal" significa "vida" en maya. Transformamos suenos en aventuras inolvidables.
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-8 mb-10">
+
+            {/* Brand column */}
+            <div className="col-span-2">
+              <img src={LOGO_URL} alt="Kuxtal Travels" className="h-12 w-auto mb-4" />
+              <p className="text-sm leading-relaxed mb-4 max-w-xs" style={{ color: `${NAVY}99` }}>
+                Cada destino una historia. "Kuxtal" significa <em>vida</em> en maya.
               </p>
               {(socialLinks.facebook || socialLinks.instagram || socialLinks.tiktok || socialLinks.twitter || socialLinks.youtube || socialLinks.linkedin || socialLinks.whatsapp) && (
-                <div className="flex gap-2 mt-4" data-testid="footer-socials">
-                  {socialLinks.facebook && <a href={socialLinks.facebook} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors" aria-label="Facebook" data-testid="social-facebook"><Facebook className="w-4 h-4" /></a>}
-                  {socialLinks.instagram && <a href={socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors" aria-label="Instagram" data-testid="social-instagram"><Instagram className="w-4 h-4" /></a>}
-                  {socialLinks.tiktok && <a href={socialLinks.tiktok} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-xs font-bold transition-colors" aria-label="TikTok" data-testid="social-tiktok">TT</a>}
-                  {socialLinks.twitter && <a href={socialLinks.twitter} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors" aria-label="X" data-testid="social-twitter"><Twitter className="w-4 h-4" /></a>}
-                  {socialLinks.youtube && <a href={socialLinks.youtube} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors" aria-label="YouTube" data-testid="social-youtube"><Youtube className="w-4 h-4" /></a>}
-                  {socialLinks.linkedin && <a href={socialLinks.linkedin} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors" aria-label="LinkedIn" data-testid="social-linkedin"><Linkedin className="w-4 h-4" /></a>}
-                  {socialLinks.whatsapp && <a href={socialLinks.whatsapp.startsWith('http') ? socialLinks.whatsapp : `https://wa.me/${socialLinks.whatsapp.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors" aria-label="WhatsApp" data-testid="social-whatsapp"><MessageCircle className="w-4 h-4" /></a>}
+                <div className="flex gap-2" data-testid="footer-socials">
+                  {socialLinks.facebook && <a href={socialLinks.facebook} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full flex items-center justify-center transition-colors" style={{ background: `${NAVY}11`, color: NAVY }} aria-label="Facebook" data-testid="social-facebook"><Facebook className="w-4 h-4" /></a>}
+                  {socialLinks.instagram && <a href={socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full flex items-center justify-center transition-colors" style={{ background: `${NAVY}11`, color: NAVY }} aria-label="Instagram" data-testid="social-instagram"><Instagram className="w-4 h-4" /></a>}
+                  {socialLinks.tiktok && <a href={socialLinks.tiktok} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-colors" style={{ background: `${NAVY}11`, color: NAVY }} aria-label="TikTok" data-testid="social-tiktok">TT</a>}
+                  {socialLinks.twitter && <a href={socialLinks.twitter} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full flex items-center justify-center transition-colors" style={{ background: `${NAVY}11`, color: NAVY }} aria-label="X" data-testid="social-twitter"><Twitter className="w-4 h-4" /></a>}
+                  {socialLinks.youtube && <a href={socialLinks.youtube} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full flex items-center justify-center transition-colors" style={{ background: `${NAVY}11`, color: NAVY }} aria-label="YouTube" data-testid="social-youtube"><Youtube className="w-4 h-4" /></a>}
+                  {socialLinks.linkedin && <a href={socialLinks.linkedin} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full flex items-center justify-center transition-colors" style={{ background: `${NAVY}11`, color: NAVY }} aria-label="LinkedIn" data-testid="social-linkedin"><Linkedin className="w-4 h-4" /></a>}
+                  {socialLinks.whatsapp && <a href={socialLinks.whatsapp.startsWith('http') ? socialLinks.whatsapp : `https://wa.me/${socialLinks.whatsapp.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-full flex items-center justify-center transition-colors" style={{ background: `${NAVY}11`, color: NAVY }} aria-label="WhatsApp" data-testid="social-whatsapp"><MessageCircle className="w-4 h-4" /></a>}
                 </div>
               )}
             </div>
+
+            {/* Navigation */}
             <div>
-              <h4 className="font-semibold mb-3 text-sm uppercase tracking-wider">Enlaces</h4>
-              <div className="space-y-2 text-sm text-white/60">
-                <Link to="/search" className="block hover:text-white transition-colors">Destinos</Link>
-                <Link to="/search?category=experiencia" className="block hover:text-white transition-colors">Experiencias</Link>
-                <Link to="/search?category=alojamiento" className="block hover:text-white transition-colors">Alojamientos</Link>
-                <Link to="/login" className="block hover:text-white transition-colors">Acceso Socios</Link>
+              <h4 className="font-heading font-bold text-xs uppercase tracking-[0.14em] mb-3" style={{ color: NAVY }}>Navegación</h4>
+              <div className="space-y-2 text-sm" style={{ color: `${NAVY}99` }}>
+                <Link to="/" className="block hover:text-slate-900 transition-colors">Inicio</Link>
+                <Link to="/benefits" className="block hover:text-slate-900 transition-colors">Beneficios</Link>
+                <Link to="/search" className="block hover:text-slate-900 transition-colors">Viajes</Link>
+                <Link to="/partners" className="block hover:text-slate-900 transition-colors">Aliados</Link>
               </div>
             </div>
+
+            {/* Help */}
             <div>
-              <h4 className="font-semibold mb-3 text-sm uppercase tracking-wider">Contacto</h4>
-              <div className="space-y-2 text-sm text-white/60">
-                <p>Guatemala, Centro America</p>
-                <p>info@kuxtaltravels.com</p>
+              <h4 className="font-heading font-bold text-xs uppercase tracking-[0.14em] mb-3" style={{ color: NAVY }}>Ayuda</h4>
+              <div className="space-y-2 text-sm" style={{ color: `${NAVY}99` }}>
+                <Link to="/faq" className="block hover:text-slate-900 transition-colors">Preguntas frecuentes</Link>
+                <Link to="/terms" className="block hover:text-slate-900 transition-colors">Términos y condiciones</Link>
+                <Link to="/privacy" className="block hover:text-slate-900 transition-colors">Políticas de privacidad</Link>
+                <Link to="/contact" className="block hover:text-slate-900 transition-colors">Contáctanos</Link>
+              </div>
+            </div>
+
+            {/* Contact */}
+            <div>
+              <h4 className="font-heading font-bold text-xs uppercase tracking-[0.14em] mb-3" style={{ color: NAVY }}>Contáctanos</h4>
+              <div className="space-y-2 text-sm" style={{ color: `${NAVY}99` }}>
+                <p className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 shrink-0" style={{ color: LIME }} /> Guatemala</p>
+                <p className="flex items-center gap-1.5">✉ info@kuxtaltravelgt.com</p>
               </div>
             </div>
           </div>
-          <div className="border-t border-white/10 pt-6 text-center text-xs text-white/40">
-            &copy; {new Date().getFullYear()} Kuxtal Travel. Todos los derechos reservados.
+
+          {/* App Store / Google Play band */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pt-8 border-t border-slate-100">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] mb-2" style={{ color: NAVY }}>Descarga nuestra app</p>
+              <div className="flex gap-3" data-testid="app-badges">
+                <a href="#" aria-label="Disponible en App Store" className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-white transition-all hover:-translate-y-0.5" style={{ background: NAVY }}>
+                  <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
+                  <div className="text-left leading-tight">
+                    <p className="text-[9px] uppercase tracking-wider opacity-70">Disponible en</p>
+                    <p className="text-sm font-bold">App Store</p>
+                  </div>
+                </a>
+                <a href="#" aria-label="Disponible en Google Play" className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-white transition-all hover:-translate-y-0.5" style={{ background: NAVY }}>
+                  <svg className="w-6 h-6" viewBox="0 0 24 24" aria-hidden="true"><path fill="#32bbff" d="M3.609 1.814L13.792 12 3.61 22.186a1 1 0 0 1-.61-.92V2.734a1 1 0 0 1 .609-.92z"/><path fill="#32bbff" d="M14.5 12.71l2.43-2.43-3.37-1.9z" opacity="0.6"/><path fill="#ffd400" d="M16.93 10.28l-3.14 1.72 3.37 1.9 2.93-1.64a1 1 0 0 0 0-1.75z"/><path fill="#ff3a44" d="M13.79 12l-10.18 10.19a1 1 0 0 0 1.1.08l12.22-7z"/><path fill="#00c48b" d="M4.71 1.73a1 1 0 0 0-1.1.08L13.79 12l3.14-3.14z"/></svg>
+                  <div className="text-left leading-tight">
+                    <p className="text-[9px] uppercase tracking-wider opacity-70">Disponible en</p>
+                    <p className="text-sm font-bold">Google Play</p>
+                  </div>
+                </a>
+              </div>
+            </div>
+            <p className="text-xs" style={{ color: `${NAVY}77` }}>
+              &copy; {new Date().getFullYear()} Kuxtal Travels. Todos los derechos reservados.
+            </p>
           </div>
         </div>
       </footer>

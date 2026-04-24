@@ -118,6 +118,20 @@ Sistema CRM para club vacacional con web publica estilo Expedia, programa Kuxtal
 - Package Visibility (2026-02, iter 21): campo `visibility` = public|internal. Endpoints públicos filtran visibility=internal. Admin management usa ?include_internal=true. AdminPackages con filtro Todos/Público/Interno + radio en form.
 - Quotations tracking & filters (2026-02, iter 21): created_at, created_by_id, created_by_name ('Sistema (web pública)' para web pública, nombre del admin para POST /quotations/admin). GET /api/quotations soporta created_by, date_from, date_to. UI con quot-date-from/to, quot-filter-creator, quot-clear-filters, meta muestra '· por <creador>'.
 - Code Quality: Component refactoring, lazy loading, ErrorBoundary, SEO OG tags, 30+ MongoDB indexes
+- HomePage rediseño premium "Club Exclusivo" (2026-02, iter 37):
+  - Hero rediseñado con imagen de piscina infinita + título "Más que viajes, es pertenecer" (PERTENECER en verde lima) + subtexto + 2 CTAs "Hazte miembro" y "Conoce más" + mini-strip de 4 beneficios con iconos.
+  - Buscador Expedia-style movido a una sección dedicada debajo del hero, flotando con shadow y tabs (Paquetes/Alojamientos/Experiencias), seguido por chips de destinos populares.
+  - Nueva sección Kuxtal Club (fondo navy #0D2B45 + acentos lima): "Tu membresía, un mundo de beneficios" con collage 2x2 de imágenes y tarjeta de membresía flotante sobre el collage.
+  - Sección "Disfruta más, pagando menos" con 4 cards de beneficios (Precios Exclusivos, Promociones Especiales, Experiencias Únicas, Beneficios con Aliados).
+  - Sección "Destinos Destacados" con cards mejoradas (navy/lime accents, precio en navy).
+  - Nueva sección "Nuestros Aliados" con logos tipo serif horizontales sobre navy (La Estancia, azul, mío, La Cabrera, BODYTECH).
+  - CTA final: imagen paradisíaca con overlay navy uniforme, "El mundo es mejor cuando eres miembro" + botón lima + 3 tarjetas beneficios laterales (Membresía 100% Digital, Acceso Inmediato, Respaldo Kuxtal).
+  - Footer premium con logo Kuxtal, 4 columnas (Navegación, Ayuda, Contáctanos), redes sociales y badges App Store / Google Play (SVG inline).
+  - Paleta aplicada: navy #0D2B45 + lime #8CC63F + blanco. Token CSS --primary preservado para no afectar otras páginas.
+- Nuevo icono PWA (2026-02, iter 37):
+  - Reemplazados todos los iconos PWA con el nuevo icono oficial (K blanco + avión lima sobre fondo navy): sizes 72/96/128/144/152/180/192/256/384/512 + 512-maskable (con safe-zone navy padding 10%) + apple-touch-icon (180) + favicon.ico (multi-size 16/32/48).
+  - Theme_color manifest y msapplication-TileColor actualizados a #0D2B45.
+  - Service Worker bump a v8 para forzar re-cache.
 - CommerceDetailPage luxury redesign (2026-02, iter 36):
   - Aplicado el mismo tema "Amex Black / Luxury" de BenefitsPage a la vista interna de comercio.
   - Fondo radial obsidiana (#1a1a24 → #0B0B0F → #050507) con acentos dorados (#D4AF5A) y texto crema (#F4EBD0).
