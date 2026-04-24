@@ -4,30 +4,54 @@ import axios from 'axios';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
-import { Search, MapPin, Phone, Gift, Store, Star, Heart, Shield, Globe, ArrowRight, Sparkles, ExternalLink } from 'lucide-react';
+import { Search, MapPin, Phone, Store, Star, Heart, Shield, Globe, ArrowUpRight, Sparkles, ExternalLink, Flame } from 'lucide-react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { getLucideComponent } from '../components/LucideIconPicker';
 
 const API = process.env.REACT_APP_BACKEND_URL;
 const CLUB_LOGO = "https://customer-assets.emergentagent.com/job_vacation-club-portal/artifacts/s1oay7h5_Kuxtal%20Club.png";
 
+// Unified palette: charcoal + white + single gold accent. Per-category we tint the category
+// strip/chip with a soft pastel — but the benefit & CTA always use the unified gold/charcoal.
 const CATEGORY_CONFIG = {
-  'Restaurantes': { icon: Store, color: 'from-orange-500 to-orange-600', light: 'bg-orange-50 text-orange-600 border-orange-200', accent: 'text-orange-500' },
-  'Belleza': { icon: Heart, color: 'from-pink-500 to-pink-600', light: 'bg-pink-50 text-pink-600 border-pink-200', accent: 'text-pink-500' },
-  'Deportes': { icon: Shield, color: 'from-emerald-500 to-emerald-600', light: 'bg-emerald-50 text-emerald-600 border-emerald-200', accent: 'text-emerald-500' },
-  'Mascotas': { icon: Gift, color: 'from-amber-500 to-amber-600', light: 'bg-amber-50 text-amber-600 border-amber-200', accent: 'text-amber-500' },
-  'Hospitales': { icon: Globe, color: 'from-blue-500 to-blue-600', light: 'bg-blue-50 text-blue-600 border-blue-200', accent: 'text-blue-500' },
-  'Entretenimiento': { icon: Star, color: 'from-violet-500 to-violet-600', light: 'bg-violet-50 text-violet-600 border-violet-200', accent: 'text-violet-500' },
-  'Servicios': { icon: Sparkles, color: 'from-slate-500 to-slate-600', light: 'bg-slate-50 text-slate-600 border-slate-200', accent: 'text-slate-500' },
-  'Tecnología': { icon: Globe, color: 'from-cyan-500 to-cyan-600', light: 'bg-cyan-50 text-cyan-600 border-cyan-200', accent: 'text-cyan-500' },
-  'Educación': { icon: Star, color: 'from-indigo-500 to-indigo-600', light: 'bg-indigo-50 text-indigo-600 border-indigo-200', accent: 'text-indigo-500' },
-  'Moda Mujer': { icon: Heart, color: 'from-rose-500 to-rose-600', light: 'bg-rose-50 text-rose-600 border-rose-200', accent: 'text-rose-500' },
-  'Moda Hombre': { icon: Shield, color: 'from-sky-500 to-sky-600', light: 'bg-sky-50 text-sky-600 border-sky-200', accent: 'text-sky-500' },
-  'Hogar': { icon: Store, color: 'from-teal-500 to-teal-600', light: 'bg-teal-50 text-teal-600 border-teal-200', accent: 'text-teal-500' },
+  'Restaurantes': { icon: Store, tint: 'bg-orange-50', chip: 'bg-orange-100 text-orange-800', strip: 'bg-orange-500' },
+  'Belleza': { icon: Heart, tint: 'bg-pink-50', chip: 'bg-pink-100 text-pink-800', strip: 'bg-pink-500' },
+  'Deportes': { icon: Shield, tint: 'bg-emerald-50', chip: 'bg-emerald-100 text-emerald-800', strip: 'bg-emerald-500' },
+  'Mascotas': { icon: Store, tint: 'bg-amber-50', chip: 'bg-amber-100 text-amber-800', strip: 'bg-amber-500' },
+  'Hospitales': { icon: Globe, tint: 'bg-blue-50', chip: 'bg-blue-100 text-blue-800', strip: 'bg-blue-500' },
+  'Entretenimiento': { icon: Star, tint: 'bg-violet-50', chip: 'bg-violet-100 text-violet-800', strip: 'bg-violet-500' },
+  'Servicios': { icon: Sparkles, tint: 'bg-slate-50', chip: 'bg-slate-100 text-slate-800', strip: 'bg-slate-500' },
+  'Tecnología': { icon: Globe, tint: 'bg-cyan-50', chip: 'bg-cyan-100 text-cyan-800', strip: 'bg-cyan-500' },
+  'Educación': { icon: Star, tint: 'bg-indigo-50', chip: 'bg-indigo-100 text-indigo-800', strip: 'bg-indigo-500' },
+  'Moda Mujer': { icon: Heart, tint: 'bg-rose-50', chip: 'bg-rose-100 text-rose-800', strip: 'bg-rose-500' },
+  'Moda Hombre': { icon: Shield, tint: 'bg-sky-50', chip: 'bg-sky-100 text-sky-800', strip: 'bg-sky-500' },
+  'Hogar': { icon: Store, tint: 'bg-teal-50', chip: 'bg-teal-100 text-teal-800', strip: 'bg-teal-500' },
 };
 
 function getCatConfig(cat) {
-  return CATEGORY_CONFIG[cat] || { icon: Store, color: 'from-gray-500 to-gray-600', light: 'bg-gray-50 text-gray-600 border-gray-200', accent: 'text-gray-500' };
+  return CATEGORY_CONFIG[cat] || { icon: Store, tint: 'bg-gray-50', chip: 'bg-gray-100 text-gray-800', strip: 'bg-gray-500' };
+}
+
+// Extract a discount headline from a free-form benefit description.
+// Preference: "%" discounts > "2x1" > "desde Qxxx" > "gratis/GRATIS" > generic text preview
+function extractBenefitHighlight(text = '') {
+  const t = String(text).trim();
+  if (!t) return null;
+  const pct = t.match(/(\d{1,3})\s*%/);
+  if (pct) return { label: `${pct[1]}% OFF`, kind: 'pct' };
+  if (/\b2x1\b/i.test(t)) return { label: '2×1', kind: 'bogo' };
+  const qmatch = t.match(/\b(desde|from)\s*Q\s*([\d,.]+)/i);
+  if (qmatch) return { label: `Desde Q${qmatch[2]}`, kind: 'price' };
+  if (/\bgratis\b/i.test(t)) return { label: 'GRATIS', kind: 'free' };
+  // fallback: first 3 words uppercased
+  const short = t.split(/\s+/).slice(0, 3).join(' ').toUpperCase();
+  return { label: short, kind: 'text' };
+}
+
+function shortDesc(text = '', maxLen = 65) {
+  const t = String(text).trim().replace(/\s+/g, ' ');
+  if (!t) return '';
+  return t.length > maxLen ? t.slice(0, maxLen - 1).trimEnd() + '…' : t;
 }
 
 // Renders a category icon: emoji, uploaded image URL, or lucide:Name. Falls back to a Lucide component.
@@ -192,75 +216,101 @@ export default function BenefitsPage() {
 
           {/* Commerce Grid */}
           {!loading && commerces.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
               {commerces.map((c, i) => {
                 const conf = getCatConfig(c.category);
                 const catData = categories.find(x => x.name === c.category);
+                const highlight = extractBenefitHighlight(c.benefit_description);
+                const isFeatured = !!c.featured || (c.promotions && c.promotions.length > 0);
+                const hasHotDeal = highlight && highlight.kind === 'pct' && parseInt(highlight.label) >= 20;
+
                 return (
                   <Link
                     key={c._id}
                     to={`/commerce/${c._id}`}
-                    className="group bg-white rounded-2xl overflow-hidden border border-border hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+                    className={`group relative bg-white rounded-3xl overflow-hidden border transition-all duration-300 hover:shadow-[0_20px_60px_-20px_rgba(0,0,0,0.25)] hover:-translate-y-1 ${isFeatured ? 'border-[#D4AF5A] shadow-[0_4px_24px_-8px_rgba(212,175,90,0.4)]' : 'border-slate-200'}`}
                     data-testid={`commerce-card-${i}`}
                   >
-                    {/* Color accent bar */}
-                    <div className={`h-1.5 bg-gradient-to-r ${conf.color}`} />
-
-                    <div className="p-5">
-                      {/* Header */}
-                      <div className="flex items-start gap-3 mb-4">
-                        <div className="w-14 h-14 rounded-xl bg-accent flex items-center justify-center shrink-0 overflow-hidden border border-border">
-                          {c.logo_url ? (
-                            <img src={c.logo_url} alt={c.name} className="w-full h-full object-cover" />
-                          ) : catData?.icon ? (
-                            <CatIconRender icon={catData.icon} fallback={conf.icon} className="w-9 h-9" />
-                          ) : (
-                            <conf.icon className={`w-7 h-7 ${conf.accent}`} />
-                          )}
+                    {/* Featured ribbon */}
+                    {isFeatured && (
+                      <div className="absolute top-0 right-0 z-10">
+                        <div className="bg-gradient-to-br from-[#D4AF5A] to-[#B8944A] text-white text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-bl-2xl shadow-md flex items-center gap-1">
+                          <Star className="w-2.5 h-2.5 fill-current" /> Recomendado
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <h3 className="font-heading text-base font-semibold group-hover:text-primary transition-colors line-clamp-1">{c.name}</h3>
-                          <Badge className={`rounded-full text-[10px] mt-1 border ${conf.light}`}>
-                            <CatIconRender icon={catData?.icon} fallback={conf.icon} className="w-3 h-3 mr-1" /> {c.category}
-                          </Badge>
-                        </div>
-                        <ArrowRight className="w-4 h-4 text-muted-foreground/30 group-hover:text-primary group-hover:translate-x-1 transition-all shrink-0 mt-1" />
                       </div>
+                    )}
 
-                      {/* Description */}
-                      {c.description && (
-                        <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{c.description}</p>
+                    {/* Tinted header with LARGE logo */}
+                    <div className={`relative ${conf.tint} px-5 pt-7 pb-14`}>
+                      <div className={`absolute left-0 top-0 h-full w-1 ${conf.strip}`} />
+                      {/* Category chip */}
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${conf.chip}`}>
+                        <CatIconRender icon={catData?.icon} fallback={conf.icon} className="w-3 h-3" />
+                        {c.category}
+                      </span>
+                      {hasHotDeal && (
+                        <span className="ml-2 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-red-100 text-red-700">
+                          <Flame className="w-3 h-3" /> Oferta
+                        </span>
                       )}
+                    </div>
 
-                      {/* Benefit */}
-                      {c.benefit_description && (
-                        <div className="p-3 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-xl mb-3 border border-amber-100">
-                          <div className="flex items-start gap-2">
-                            <Gift className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                            <span className="text-sm font-medium text-amber-800 line-clamp-2">{c.benefit_description}</span>
+                    {/* LARGE Logo — overlapping the header bottom */}
+                    <div className="relative px-6 -mt-12">
+                      <div className="w-24 h-24 rounded-2xl bg-white shadow-lg border border-slate-100 flex items-center justify-center overflow-hidden mx-auto">
+                        {c.logo_url ? (
+                          <img src={c.logo_url} alt={c.name} className="w-full h-full object-contain p-2" />
+                        ) : catData?.icon ? (
+                          <CatIconRender icon={catData.icon} fallback={conf.icon} className="w-14 h-14 text-slate-700" />
+                        ) : (
+                          <conf.icon className="w-14 h-14 text-slate-700" />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Body */}
+                    <div className="px-6 pt-4 pb-5 text-center">
+                      {/* BENEFIT — largest element */}
+                      {highlight && (
+                        <div className="mb-2">
+                          <div className={`font-heading text-3xl sm:text-4xl font-black tracking-tight ${highlight.kind === 'pct' || highlight.kind === 'bogo' ? 'text-[#B8944A]' : 'text-slate-900'}`}>
+                            {highlight.kind === 'pct' && '🔥 '}
+                            {highlight.label}
                           </div>
                         </div>
                       )}
 
-                      {/* Promotions Count */}
-                      {c.promotions && c.promotions.length > 0 && (
-                        <div className="flex items-center gap-1.5 mb-3">
-                          <Sparkles className="w-3.5 h-3.5 text-primary" />
-                          <span className="text-xs font-semibold text-primary">{c.promotions.length} {c.promotions.length === 1 ? 'promoción activa' : 'promociones activas'}</span>
+                      {/* Merchant name */}
+                      <h3 className="font-heading text-lg font-bold text-slate-900 group-hover:text-[#B8944A] transition-colors line-clamp-1 mb-1">
+                        {c.name}
+                      </h3>
+
+                      {/* 1-line description */}
+                      {c.description && (
+                        <p className="text-xs text-slate-500 line-clamp-1 mb-4">
+                          {shortDesc(c.description)}
+                        </p>
+                      )}
+
+                      {/* Footer: location + phone */}
+                      {(c.location || c.phone) && (
+                        <div className="flex items-center justify-center gap-4 text-[11px] text-slate-400 pt-3 border-t border-slate-100">
+                          {c.location && (
+                            <span className="flex items-center gap-1 line-clamp-1"><MapPin className="w-3 h-3 shrink-0" /> {c.location}</span>
+                          )}
+                          {c.phone && (
+                            <span className="flex items-center gap-1"><Phone className="w-3 h-3 shrink-0" /> {c.phone}</span>
+                          )}
+                          {c.website && !c.location && !c.phone && (
+                            <span className="flex items-center gap-1"><ExternalLink className="w-3 h-3 shrink-0" /> Sitio web</span>
+                          )}
                         </div>
                       )}
 
-                      {/* Footer */}
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground pt-3 border-t border-border">
-                        {c.location && (
-                          <span className="flex items-center gap-1 line-clamp-1"><MapPin className="w-3 h-3 shrink-0" /> {c.location}</span>
-                        )}
-                        {c.phone && (
-                          <span className="flex items-center gap-1"><Phone className="w-3 h-3 shrink-0" /> {c.phone}</span>
-                        )}
-                        {c.website && (
-                          <span className="flex items-center gap-1"><ExternalLink className="w-3 h-3 shrink-0" /> Web</span>
-                        )}
+                      {/* CTA */}
+                      <div className="mt-4 flex items-center justify-center gap-1 text-[11px] font-semibold text-[#B8944A] group-hover:text-[#8B6F2E] transition-colors">
+                        Ver beneficio completo
+                        <ArrowUpRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                       </div>
                     </div>
                   </Link>
