@@ -154,6 +154,15 @@ Sistema CRM para club vacacional con web publica estilo Expedia, programa Kuxtal
 - [x] Weak random: secrets.choice for coupons, secrets.randbelow for scratch card
 - [x] Empty catches: 10+ catch blocks now log console.error/console.warn
 - [x] Boolean comparisons: == True/False → is True/is False in tests
+- HomePage responsive & footer cleanup (2026-02, iter 39):
+  - Footer limpiado: removida la sección "Descarga nuestra app" (App Store/Google Play) y la columna "Ayuda" (FAQ/Terms/Privacy/Contact — rutas inexistentes). Footer ahora tiene 3 columnas: Brand+redes, Navegación (Inicio/Viajes/Kuxtal Club/Aliados/Acceso socios — todas con ruta real), Contáctanos (Guatemala, email como mailto, WhatsApp).
+  - "Membresía 100% Digital" → "Plataforma Digital de Socios" (descripción más honesta).
+  - Responsive mobile mejorado en TODAS las secciones:
+    * Hero: tamaños de texto escalonados (4xl→5xl→6xl→7xl), CTAs full-width en mobile, overlay top-to-bottom en móvil para legibilidad total.
+    * Buscador: tabs scrolleables horizontalmente, fecha+viajeros en fila, Destino en fila arriba, botón Buscar full-width en móvil.
+    * Kuxtal Club: en móvil la tarjeta Golden Member va primero centrada, luego el collage 2x2 debajo (no apilado sobre collage como en desktop).
+    * Disfruta más / Aliados / CTA Final: titulares escalonados, separadores art-deco más cortos en mobile, padding vertical reducido, cards del CTA con iconos y textos más compactos.
+    * Nuevos breakpoints: xs:text-4xl para evitar cortes en pantallas 320-390px.
 - [x] Note: is None/is not None patterns in server.py are CORRECT Python idioms (not changed)
 
 ## Test Credentials
