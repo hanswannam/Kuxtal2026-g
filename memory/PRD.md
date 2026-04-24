@@ -286,3 +286,9 @@ Sistema CRM para club vacacional con web publica estilo Expedia, programa Kuxtal
   - Skeleton de loading en cream con shimmer dorado (antes gris plain).
   - Empty state editorial: círculo dorado con ícono Search, eyebrow "SIN COINCIDENCIAS" con sparkles laterales, H2 Playfair italic, CTA pill dorado metálico "Limpiar filtros y ver todo".
   - Resultado: journey Home → Search → Detalle 100% unificado en el lenguaje Luxury Magazine / Amex Black. Verificado con screenshot tool (1920x800) en preview URL.
+
+- Aliados del Home — dinámicos + curaduría editorial (2026-02, iter 51):
+  - **Backend**: Campo `featured: bool = False` en `CommerceCreate`. Filtro `?featured=true` en `GET /api/commerce`. Nuevo `PUT /api/commerce/{id}/toggle-featured` (admin, permission=commerce) con cap duro `COMMERCE_FEATURED_LIMIT = 8` (HTTP 400 con mensaje claro si se excede).
+  - **HomePage**: Reemplazado array estático `PARTNERS` por fetch a `/api/commerce`. Featured first con fallback a todos los activos si no hay curaduría. Cada card es `<Link to=/commerce/:id>` con logo (filter invert) o nombre Playfair + categoría champagne caps. CTA "y N+ aliados más" → `/benefits` si total > límite.
+  - **AdminCommerces**: Botón estrella dorada (`toggle-featured-{i}`) junto al toggle is_active. Badge ámbar "Destacado" en el card. Toast backend error si se excede cap. Verificado con 6 comercios (toggle/untoggle, cap 8, fallback).
+  - Resultado: "Nuestros aliados" es ahora 100% real del admin y curable sin tocar código.

@@ -4,7 +4,7 @@ import { Input } from '../../components/ui/input';
 import { Textarea } from '../../components/ui/textarea';
 import { Label } from '../../components/ui/label';
 import { Badge } from '../../components/ui/badge';
-import { Plus, Edit, Upload, Search, X, Store, MapPin, Facebook, Instagram, Twitter, Youtube, Trash2, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
+import { Plus, Edit, Upload, Search, X, Store, MapPin, Facebook, Instagram, Twitter, Youtube, Trash2, AlertCircle, CheckCircle2, Clock, Star } from 'lucide-react';
 import { toast } from 'sonner';
 import { DeleteWithCode } from '../../components/DeleteWithCode';
 import api from '../../lib/api';
@@ -252,15 +252,34 @@ export function AdminCommerces({ commerces, commerceForm, setCommerceForm, showC
             <div key={c._id} className={`bg-white rounded-2xl p-5 border transition-all ${c.is_active === false ? 'border-border opacity-75 hover:opacity-100' : 'border-border hover:shadow-md'}`} data-testid={`admin-commerce-${i}`}>
               <div className="flex items-start justify-between mb-2">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="font-semibold truncate">{c.name}</h3>
                     {c.is_active === false && (
                       <Badge variant="outline" className="rounded-full text-[10px] bg-red-50 text-red-700 border-red-200 shrink-0">Apagado</Badge>
+                    )}
+                    {c.featured && (
+                      <Badge variant="outline" className="rounded-full text-[10px] bg-amber-50 text-amber-800 border-amber-300 shrink-0 flex items-center gap-1" data-testid={`featured-badge-${i}`}>
+                        <Star className="w-2.5 h-2.5 fill-amber-500 text-amber-500" /> Destacado
+                      </Badge>
                     )}
                   </div>
                   <Badge variant="secondary" className="rounded-full text-xs mt-1">{c.category}</Badge>
                 </div>
                 <div className="flex gap-1 items-start">
+                  <button
+                    onClick={async () => {
+                      try {
+                        await api.put(`/commerce/${c._id}/toggle-featured`);
+                        toast.success(c.featured ? 'Removido de destacados' : 'Destacado en home');
+                        if (reloadCommerces) reloadCommerces();
+                      } catch (e) { toast.error(e.response?.data?.detail || 'Error al destacar'); }
+                    }}
+                    title={c.featured ? 'Quitar de "Nuestros aliados" en home' : 'Mostrar en "Nuestros aliados" en home (máx 8)'}
+                    className={`h-8 w-8 rounded-full flex items-center justify-center transition-all shrink-0 ${c.featured ? 'bg-amber-100 hover:bg-amber-200 text-amber-600' : 'bg-transparent hover:bg-muted text-muted-foreground'}`}
+                    data-testid={`toggle-featured-${i}`}
+                  >
+                    <Star className={`w-4 h-4 ${c.featured ? 'fill-amber-500' : ''}`} />
+                  </button>
                   <button
                     onClick={async () => {
                       try {

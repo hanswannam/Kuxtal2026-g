@@ -159,6 +159,7 @@ class CommerceCreate(BaseModel):
     benefit_description: Optional[str] = ""
     validation_code: Optional[str] = ""
     status: str = "active"
+    featured: bool = False
 
 class CommercePromotionCreate(BaseModel):
     title: str
@@ -653,7 +654,7 @@ async def delete_commerce_category(name: str, request: Request):
     return {"message": "Categoría eliminada"}
 
 @api_router.get("/commerce")
-async def list_commerce(category: Optional[str] = None, search: Optional[str] = None, status: Optional[str] = None, request: Request = None):
+async def list_commerce(category: Optional[str] = None, search: Optional[str] = None, status: Optional[str] = None, featured: Optional[bool] = None, request: Request = None):
     # Public consumers get only active/approved commerces. Admins may pass ?status=pending to see pending submissions.
     is_admin = False
     if request is not None:
@@ -671,6 +672,8 @@ async def list_commerce(category: Optional[str] = None, search: Optional[str] = 
         query = {"status": "active", "is_active": {"$ne": False}}
     if category:
         query["category"] = category
+    if featured is True:
+        query["featured"] = True
     if search:
         query["$or"] = [
             {"name": {"$regex": search, "$options": "i"}},
@@ -827,6 +830,37 @@ async def toggle_commerce_active(commerce_id: str, request: Request):
         await _broadcast_commerce_first_activation(commerce_id, target)
 
     return {"message": f"Comercio {'activado' if new_active else 'desactivado'}", "is_active": new_active}
+
+
+# Hard cap for home-page editorial curation. Matches PARTNERS_LIMIT on the frontend.
+COMMERCE_FEATURED_LIMIT = 8
+
+
+@api_router.put("/commerce/{commerce_id}/toggle-featured")
+async def toggle_commerce_featured(commerce_id: str, request: Request):
+    """Mark/unmark a commerce as featured (shown in home 'Nuestros aliados'). Admin-only. Hard cap enforced."""
+    await require_role("super_admin", "admin", permission="commerce")(request)
+    target = await db.commerce.find_one({"_id": ObjectId(commerce_id)})
+    if not target:
+        raise HTTPException(status_code=404, detail="Comercio no encontrado")
+
+    new_featured = not target.get("featured", False)
+    if new_featured:
+        current_count = await db.commerce.count_documents({"featured": True})
+        if current_count >= COMMERCE_FEATURED_LIMIT:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Límite alcanzado: máximo {COMMERCE_FEATURED_LIMIT} aliados destacados. Quita uno antes de agregar otro.",
+            )
+
+    await db.commerce.update_one(
+        {"_id": ObjectId(commerce_id)},
+        {"$set": {"featured": new_featured, "updated_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    return {
+        "message": f"Comercio {'destacado en home' if new_featured else 'removido de destacados'}",
+        "featured": new_featured,
+    }
 
 # ── Social links (footer) ──
 

@@ -87,9 +87,12 @@ export default function HomePage() {
     axios.get(`${API}/api/packages?featured=true`).then(r => setPackages(r.data.slice(0, 6))).catch(() => {});
     axios.get(`${API}/api/countries`).then(r => setCountries(r.data)).catch(() => {});
     axios.get(`${API}/api/commerce`).then(r => {
-      const list = Array.isArray(r.data) ? r.data : [];
-      setTotalPartners(list.length);
-      setPartners(list.slice(0, PARTNERS_LIMIT));
+      const all = Array.isArray(r.data) ? r.data : [];
+      const featured = all.filter(c => c.featured);
+      // Prefer featured curation; fall back to all commerces if admin hasn't curated yet
+      const showcase = featured.length > 0 ? featured : all;
+      setTotalPartners(all.length);
+      setPartners(showcase.slice(0, PARTNERS_LIMIT));
     }).catch(() => {});
   }, []);
 
