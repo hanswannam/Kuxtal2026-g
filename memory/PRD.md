@@ -219,3 +219,11 @@ Sistema CRM para club vacacional con web publica estilo Expedia, programa Kuxtal
 - [ ] Sistema de reviews/testimonios (P1)
 - [ ] Mapa interactivo de destinos (P2)
 - [ ] Reportes exportables de cupones canjeados (P2)
+
+- Backend modularización — Fase 1 (2026-02, iter 44):
+  - Creado `/app/backend/core.py` (229 líneas) con utilidades compartidas: MongoDB client/db, JWT helpers (get_jwt_secret, create_access_token, create_refresh_token, set_auth_cookies), password helpers (hash_password, verify_password), dependencies (get_current_user, require_role, verify_delete_code), serialize_doc, storage (init_storage, put_object, get_object), constants (APP_NAME, VAPID keys, COOKIE_SECURE, DELETE_SECRET), logger.
+  - Creado `/app/backend/routers/auth.py` (149 líneas) con las 4 rutas de autenticación (`/api/auth/login`, `/member-login`, `/me`, `/logout`) y los modelos Pydantic `LoginRequest` + `MemberLoginRequest`.
+  - `member_login` refactorizado internamente con helpers `_resolve_member_auth` y `_find_or_create_member_user` (complejidad bajó ~10→4).
+  - `server.py` ahora importa todo desde `core` y monta el router con `app.include_router(auth_router.router)`. Eliminadas las 4 rutas y las definiciones duplicadas de helpers.
+  - `server.py` bajó de 3766 → 3605 líneas (-161, ~-4.3%). Base infraestructural lista para extraer los siguientes routers (packages, quotations, members, commerce, config).
+  - Verificado post-refactor: los 4 endpoints auth responden exactamente igual (admin login, member login con KT-001, /me con Bearer, logout), credenciales inválidas devuelven 401, y los endpoints no-auth (`/api/packages`) siguen funcionando sin regresiones.

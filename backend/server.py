@@ -1,18 +1,9 @@
-from dotenv import load_dotenv
-from pathlib import Path
-
-ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env')
-
 from fastapi import FastAPI, APIRouter, HTTPException, Request, UploadFile, File, Response, Query, Header, Depends
 from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
+from pathlib import Path
 from bson import ObjectId
 import os
-import logging
 import uuid
-import bcrypt
-import jwt
 import requests
 from pywebpush import webpush, WebPushException
 import json as json_module
@@ -22,146 +13,47 @@ from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel, Field
 from typing import List, Optional
 
-# MongoDB
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+# Shared core: DB client, JWT/session helpers, storage, constants, logger.
+from core import (
+    db,
+    client,
+    logger,
+    hash_password,
+    verify_password,
+    create_access_token,
+    create_refresh_token,
+    set_auth_cookies,
+    get_current_user,
+    require_role,
+    serialize_doc,
+    verify_delete_code,
+    init_storage,
+    put_object,
+    get_object,
+    JWT_ALGORITHM,
+    STORAGE_URL,
+    EMERGENT_KEY,
+    APP_NAME,
+    VAPID_PUBLIC_KEY,
+    VAPID_PRIVATE_KEY,
+    VAPID_EMAIL,
+    COOKIE_SECURE,
+    DELETE_SECRET,
+    get_jwt_secret,
+    ROOT_DIR,
+)
+# JWT + bcrypt still needed for inline password handling in a few endpoints.
+import bcrypt
+import jwt
+
+from routers import auth as auth_router
 
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
-
-JWT_ALGORITHM = "HS256"
-STORAGE_URL = "https://integrations.emergentagent.com/objstore/api/v1/storage"
-EMERGENT_KEY = os.environ.get("EMERGENT_LLM_KEY")
-APP_NAME = "kuxtal-travel"
-storage_key = None
-
-VAPID_PUBLIC_KEY = os.environ.get("VAPID_PUBLIC_KEY", "")
-VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY", "").replace("\\n", "\n")
-VAPID_EMAIL = os.environ.get("VAPID_EMAIL", "mailto:info@kuxtaltravels.com")
-
-COOKIE_SECURE = os.environ.get("FRONTEND_URL", "").startswith("https")
-
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
-
-# ── Helpers ──
-
-def get_jwt_secret():
-    return os.environ["JWT_SECRET"]
-
-def hash_password(password: str) -> str:
-    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
-
-def verify_password(plain: str, hashed: str) -> bool:
-    return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
-
-def create_access_token(user_id: str, role: str) -> str:
-    payload = {"sub": user_id, "role": role, "exp": datetime.now(timezone.utc) + timedelta(hours=24), "type": "access"}
-    return jwt.encode(payload, get_jwt_secret(), algorithm=JWT_ALGORITHM)
-
-def create_refresh_token(user_id: str) -> str:
-    payload = {"sub": user_id, "exp": datetime.now(timezone.utc) + timedelta(days=7), "type": "refresh"}
-    return jwt.encode(payload, get_jwt_secret(), algorithm=JWT_ALGORITHM)
-
-async def get_current_user(request: Request) -> dict:
-    token = request.cookies.get("access_token")
-    if not token:
-        auth_header = request.headers.get("Authorization", "")
-        if auth_header.startswith("Bearer "):
-            token = auth_header[7:]
-    if not token:
-        raise HTTPException(status_code=401, detail="No autenticado")
-    try:
-        payload = jwt.decode(token, get_jwt_secret(), algorithms=[JWT_ALGORITHM])
-        if payload.get("type") != "access":
-            raise HTTPException(status_code=401, detail="Token inválido")
-        user = await db.users.find_one({"_id": ObjectId(payload["sub"])})
-        if not user:
-            raise HTTPException(status_code=401, detail="Usuario no encontrado")
-        if user.get("is_active") is False:
-            raise HTTPException(status_code=403, detail="Cuenta desactivada")
-        user["_id"] = str(user["_id"])
-        user.pop("password_hash", None)
-        return user
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expirado")
-    except (jwt.InvalidTokenError, Exception):
-        raise HTTPException(status_code=401, detail="Token inválido")
-
-def require_role(*roles, permission: str = None):
-    async def checker(request: Request):
-        user = await get_current_user(request)
-        if user.get("role") not in roles:
-            raise HTTPException(status_code=403, detail="Acceso denegado")
-        # Per-module permission enforcement for non-super_admin roles (super_admin bypass)
-        if permission and user.get("role") != "super_admin":
-            perms = user.get("permissions") or {}
-            if not perms.get(permission):
-                raise HTTPException(status_code=403, detail=f"No tienes permiso para '{permission}'")
-        return user
-    return checker
-
-def serialize_doc(doc):
-    if doc is None:
-        return None
-    doc["_id"] = str(doc["_id"])
-    return doc
-
-DELETE_SECRET = os.environ.get("DELETE_SECRET", "BORRAR YA")
-
-async def verify_delete_code(request: Request):
-    """Verify delete confirmation code from query param or body"""
-    code = request.query_params.get("delete_code", "")
-    if not code:
-        try:
-            body = await request.json()
-            code = body.get("delete_code", "")
-        except Exception:
-            pass
-    if code != DELETE_SECRET:
-        raise HTTPException(status_code=403, detail="Clave de eliminación incorrecta. Ingresa la clave secreta para eliminar.")
-
-# ── Storage ──
-
-def init_storage():
-    global storage_key
-    if storage_key:
-        return storage_key
-    try:
-        resp = requests.post(f"{STORAGE_URL}/init", json={"emergent_key": EMERGENT_KEY}, timeout=30)
-        resp.raise_for_status()
-        storage_key = resp.json()["storage_key"]
-        return storage_key
-    except Exception as e:
-        logger.error(f"Storage init failed: {e}")
-        return None
-
-def put_object(path: str, data: bytes, content_type: str) -> dict:
-    key = init_storage()
-    if not key:
-        raise HTTPException(status_code=500, detail="Storage not available")
-    resp = requests.put(f"{STORAGE_URL}/objects/{path}", headers={"X-Storage-Key": key, "Content-Type": content_type}, data=data, timeout=120)
-    resp.raise_for_status()
-    return resp.json()
-
-def get_object(path: str):
-    key = init_storage()
-    if not key:
-        raise HTTPException(status_code=500, detail="Storage not available")
-    resp = requests.get(f"{STORAGE_URL}/objects/{path}", headers={"X-Storage-Key": key}, timeout=60)
-    resp.raise_for_status()
-    return resp.content, resp.headers.get("Content-Type", "application/octet-stream")
+app.include_router(auth_router.router)
 
 # ── Pydantic Models ──
-
-class LoginRequest(BaseModel):
-    email: str
-    password: str
-
-class MemberLoginRequest(BaseModel):
-    contract_number: str
-    dpi: str
+# LoginRequest / MemberLoginRequest now live in /app/backend/routers/auth.py
 
 class MemberCreate(BaseModel):
     contract_number: str
@@ -338,89 +230,8 @@ class ReferralSubmit(BaseModel):
     message: Optional[str] = ""
 
 # ── Auth Routes ──
-
-@api_router.post("/auth/login")
-async def admin_login(req: LoginRequest, response: Response):
-    email = req.email.lower().strip()
-    user = await db.users.find_one({"email": email})
-    if not user:
-        raise HTTPException(status_code=401, detail="Credenciales inválidas")
-    if not verify_password(req.password, user["password_hash"]):
-        raise HTTPException(status_code=401, detail="Credenciales inválidas")
-    user_id = str(user["_id"])
-    access_token = create_access_token(user_id, user["role"])
-    refresh_token = create_refresh_token(user_id)
-    response.set_cookie(key="access_token", value=access_token, httponly=True, secure=COOKIE_SECURE, samesite="none" if COOKIE_SECURE else "lax", max_age=86400, path="/")
-    response.set_cookie(key="refresh_token", value=refresh_token, httponly=True, secure=COOKIE_SECURE, samesite="none" if COOKIE_SECURE else "lax", max_age=604800, path="/")
-    return {"id": user_id, "name": user.get("name", ""), "email": user["email"], "role": user["role"], "permissions": user.get("permissions"), "token": access_token}
-
-@api_router.post("/auth/member-login")
-async def member_login(req: MemberLoginRequest, response: Response):
-    member = await db.members.find_one({"contract_number": req.contract_number.strip()})
-    if not member:
-        raise HTTPException(status_code=401, detail="Número de contrato no encontrado")
-    # Check main member DPI or family member DPI
-    is_family = False
-    family_member_doc = None
-    if member.get("dpi", "") == req.dpi.strip():
-        is_family = False
-    else:
-        family_member_doc = await db.family_members.find_one({"contract_number": req.contract_number.strip(), "dpi": req.dpi.strip()})
-        if family_member_doc:
-            is_family = True
-        else:
-            raise HTTPException(status_code=401, detail="DPI incorrecto")
-    if member.get("status") != "active":
-        raise HTTPException(status_code=403, detail="Membresía inactiva")
-    login_name = family_member_doc["name"] if is_family else member["name"]
-    if is_family:
-        user = await db.users.find_one({"member_id": str(member["_id"]), "family_dpi": req.dpi.strip()})
-    else:
-        user = await db.users.find_one({
-            "member_id": str(member["_id"]),
-            "$or": [{"family_dpi": None}, {"family_dpi": {"$exists": False}}],
-        })
-    if not user:
-        user_doc = {
-            "email": f"{req.contract_number}{'_' + req.dpi.strip()[-4:] if is_family else ''}@kuxtal.member",
-            "password_hash": hash_password(req.dpi),
-            "name": login_name,
-            "role": "member",
-            "member_id": str(member["_id"]),
-            "is_family_member": is_family,
-            "created_at": datetime.now(timezone.utc).isoformat()
-        }
-        if is_family:
-            user_doc["family_dpi"] = req.dpi.strip()
-        result = await db.users.insert_one(user_doc)
-        user_id = str(result.inserted_id)
-    else:
-        user_id = str(user["_id"])
-    access_token = create_access_token(user_id, "member")
-    refresh_token = create_refresh_token(user_id)
-    response.set_cookie(key="access_token", value=access_token, httponly=True, secure=COOKIE_SECURE, samesite="none" if COOKIE_SECURE else "lax", max_age=86400, path="/")
-    response.set_cookie(key="refresh_token", value=refresh_token, httponly=True, secure=COOKIE_SECURE, samesite="none" if COOKIE_SECURE else "lax", max_age=604800, path="/")
-    member_data = serialize_doc(member)
-    return {"id": user_id, "name": login_name, "role": "member", "contract_number": req.contract_number, "member": member_data, "is_family_member": is_family, "token": access_token}
-
-@api_router.get("/auth/me")
-async def get_me(request: Request):
-    user = await get_current_user(request)
-    if user.get("role") == "member" and user.get("member_id"):
-        member = await db.members.find_one({"_id": ObjectId(user["member_id"])})
-        if member:
-            user["member"] = serialize_doc(member)
-    if user.get("role") == "commerce" and user.get("commerce_id"):
-        commerce = await db.commerce.find_one({"_id": ObjectId(user["commerce_id"])})
-        if commerce:
-            user["commerce"] = serialize_doc(commerce)
-    return user
-
-@api_router.post("/auth/logout")
-async def logout(response: Response):
-    response.delete_cookie("access_token", path="/")
-    response.delete_cookie("refresh_token", path="/")
-    return {"message": "Sesión cerrada"}
+# Moved to /app/backend/routers/auth.py (mounted at FastAPI app level).
+# Models LoginRequest / MemberLoginRequest live alongside the routes there.
 
 # ── Members CRUD (Admin) ──
 
