@@ -100,7 +100,7 @@ NO_BODY_403_CASES = [
     ("PUT", f"/api/clubs/{NONEXISTENT_ID}", "clubs"),
     ("DELETE", f"/api/regalias/{NONEXISTENT_ID}", "regalias"),
     ("PUT", f"/api/regalias/{NONEXISTENT_ID}/toggle-used", "regalias"),
-    ("DELETE", f"/api/commerce/categories/Restaurantes", "categories"),
+    ("DELETE", "/api/commerce/categories/Restaurantes", "categories"),
 ]
 
 

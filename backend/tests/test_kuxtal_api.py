@@ -578,7 +578,7 @@ class TestSearchPageFiltersAndSorting:
         if len(data) >= 2:
             durations = [p.get('duration_days', 0) for p in data]
             for i in range(len(durations) - 1):
-                assert durations[i] <= durations[i+1], f"Duration not ascending"
+                assert durations[i] <= durations[i+1], "Duration not ascending"
     
     def test_sort_by_duration_desc(self):
         """Sort by duration descending should work"""
@@ -589,7 +589,7 @@ class TestSearchPageFiltersAndSorting:
         if len(data) >= 2:
             durations = [p.get('duration_days', 0) for p in data]
             for i in range(len(durations) - 1):
-                assert durations[i] >= durations[i+1], f"Duration not descending"
+                assert durations[i] >= durations[i+1], "Duration not descending"
     
     def test_sort_by_rating(self):
         """Sort by rating should work"""
@@ -600,7 +600,7 @@ class TestSearchPageFiltersAndSorting:
         if len(data) >= 2:
             ratings = [p.get('rating', 0) for p in data]
             for i in range(len(ratings) - 1):
-                assert ratings[i] >= ratings[i+1], f"Rating not descending"
+                assert ratings[i] >= ratings[i+1], "Rating not descending"
     
     def test_min_price_filter(self):
         """Filter by minimum price should work"""

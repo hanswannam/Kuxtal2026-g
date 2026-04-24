@@ -58,7 +58,7 @@ class TestAdminAuth:
         assert response.status_code == 200
         data = response.json()
         assert data["email"] == "admin@kuxtaltravels.com"
-        print(f"Admin /me endpoint passed")
+        print("Admin /me endpoint passed")
 
 
 class TestImportFromDriveEndpoint:
@@ -257,7 +257,7 @@ class TestSearchAndFilters:
         if len(packages) > 1:
             for i in range(len(packages) - 1):
                 assert packages[i]["price"] <= packages[i+1]["price"]
-        print(f"Sort by price passed")
+        print("Sort by price passed")
 
 
 class TestOtherEndpoints:

@@ -227,3 +227,9 @@ Sistema CRM para club vacacional con web publica estilo Expedia, programa Kuxtal
   - `server.py` ahora importa todo desde `core` y monta el router con `app.include_router(auth_router.router)`. Eliminadas las 4 rutas y las definiciones duplicadas de helpers.
   - `server.py` bajó de 3766 → 3605 líneas (-161, ~-4.3%). Base infraestructural lista para extraer los siguientes routers (packages, quotations, members, commerce, config).
   - Verificado post-refactor: los 4 endpoints auth responden exactamente igual (admin login, member login con KT-001, /me con Bearer, logout), credenciales inválidas devuelven 401, y los endpoints no-auth (`/api/packages`) siguen funcionando sin regresiones.
+- Backend modularización — Fase 2 (2026-02, iter 45):
+  - Creado `/app/backend/routers/packages.py` (589 líneas) con: 7 rutas (list/get/create/update/toggle-status/delete/import-from-drive), modelo `PackageCreate`, helpers de search (`normalize_search`, `_PACKAGE_SORT_MAP`, `_is_admin_request`, `_apply_package_range_filter`, `_apply_package_search_filter`), helpers de Drive import (`extract_gdrive_file_id`, `download_gdrive_file`, `detect_mime_type` con mappings, `extract_text_from_pdf/docx/xlsx`, `extract_images_from_pdf`), y helpers de AI extraction (10 funciones privadas). Prompt `PACKAGE_EXTRACTION_PROMPT` también movido.
+  - `_broadcast_news` sigue en `server.py` y se importa tarde en `create_package` para evitar dependencia circular.
+  - `server.py` bajó **3605 → 3065 líneas** (−540, acumulado desde Fase 1: **−701 líneas, −18.6%**).
+  - Fixed 6 f-strings sin placeholder en tests (ruff --fix).
+  - Verificado end-to-end: list con filtros, get por id, create con auth, toggle-status con razón, delete con delete_code, 422 para body vacío, regresión auth OK.
