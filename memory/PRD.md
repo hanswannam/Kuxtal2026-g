@@ -133,6 +133,16 @@ Sistema CRM para club vacacional con web publica estilo Expedia, programa Kuxtal
   - Theme_color manifest y msapplication-TileColor actualizados a #0D2B45.
   - Service Worker bump a v8 para forzar re-cache.
 - CommerceDetailPage luxury redesign (2026-02, iter 36):
+- HomePage ultra-premium polish (2026-02, iter 38):
+  - Paleta extendida con acentos dorados sutiles (gold #D4AF5A + champagne #E5C989) sobre navy+lime para convivir con el logo manteniendo prestigio tipo club privado.
+  - Hero: eyebrow "CLUB PRIVADO DE VIAJES · MIEMBROS" en dorado, "es pertenecer" en italic serif Playfair Display con gradiente lime metálico, divisor art-deco sparkle dorado, textura arabesca dorada sutil y hairlines doradas arriba.
+  - Kuxtal Club section: gradiente navy→navy_deep + dot-grid dorado arabesco; título "un mundo de beneficios" en italic Playfair con gradiente dorado; botón "Ver beneficios" con gradiente dorado metálico (antes navy sólido).
+  - Tarjeta membresía rediseñada estilo **GOLDEN MEMBER**: fondo oscuro marrón chocolate con patrón arabesco cruzado dorado, borde dorado metálico, hairlines doradas, logo Kuxtal Club con glow, "ACCESO EXCLUSIVO" en texto champagne tracking amplio — visualmente alineada con el portal de socios.
+  - Disfruta más, pagando menos: eyebrow "BENEFICIOS EXCLUSIVOS" con sparkles dorados a ambos lados; "más" y "menos" en italic serif; cards con hairline dorada hover.
+  - Destinos destacados: eyebrow "DESCUBRE LA COLECCIÓN" dorado; fondo gradiente cream marble; "destacados" en italic serif lime.
+  - Aliados: fondo gradiente navy_deep→navy con dot-grid dorado, hairlines doradas arriba/abajo, eyebrow con sparkles; logos en Playfair Display serif, "y más aliados especiales" en italic dorado.
+  - CTA final: overlay más dramático, "cuando eres miembro" en italic Playfair con gradiente dorado, eyebrow "ÚNETE AL CLUB" sparkles dorados, 3 beneficios laterales ahora en dorado (Crown/Lock/ShieldCheck) con títulos champagne.
+  - Google Fonts: agregado Playfair Display (600/700/900 + italic) al index.html.
   - Aplicado el mismo tema "Amex Black / Luxury" de BenefitsPage a la vista interna de comercio.
   - Fondo radial obsidiana (#1a1a24 → #0B0B0F → #050507) con acentos dorados (#D4AF5A) y texto crema (#F4EBD0).
   - Todas las secciones refactorizadas: header card, video, galería, descripción, beneficio (card signature dorado), redes sociales, ubicación con botones Google Maps/Waze dorados (antes azul/celeste), contacto con teléfono en tono dorado (antes esmeralda), validar visita con input oscuro y botón dorado, raspa y gana con gradiente dorado sobre fondo oscuro, y promociones activas con tarjetas obsidiana.

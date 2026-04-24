@@ -18,7 +18,10 @@ const CLUB_LOGO = "https://customer-assets.emergentagent.com/job_vacation-club-p
 
 // Brand palette per design spec
 const NAVY = '#0D2B45';
+const NAVY_DEEP = '#061829';
 const LIME = '#8CC63F';
+const GOLD = '#D4AF5A';
+const CHAMPAGNE = '#E5C989';
 
 const SEARCH_TABS = [
   { id: 'paquete', label: 'Paquetes', icon: Package, placeholder: 'Cancún, Riviera Maya...' },
@@ -91,21 +94,36 @@ export default function HomePage() {
         <div className="absolute inset-0">
           <img src={HERO_IMG} alt="Resort tropical con piscina infinita" className="w-full h-full object-cover" />
           {/* Left-to-right navy overlay for readability on text side */}
-          <div className="absolute inset-0" style={{ background: `linear-gradient(100deg, ${NAVY}f2 0%, ${NAVY}cc 38%, ${NAVY}55 60%, transparent 85%)` }} />
+          <div className="absolute inset-0" style={{ background: `linear-gradient(100deg, ${NAVY_DEEP}f5 0%, ${NAVY}e0 38%, ${NAVY}55 60%, transparent 85%)` }} />
+          {/* Subtle gold radial accent */}
+          <div className="absolute inset-0 opacity-[0.18] pointer-events-none" style={{ backgroundImage: `radial-gradient(ellipse at 18% 40%, ${GOLD}55 0, transparent 35%)` }} />
+          {/* Fine arabesque texture */}
+          <div className="absolute inset-0 opacity-[0.05] pointer-events-none" style={{ backgroundImage: `linear-gradient(${GOLD}55 1px, transparent 1px), linear-gradient(90deg, ${GOLD}55 1px, transparent 1px)`, backgroundSize: '88px 88px' }} />
+          {/* Top/bottom gold hairlines */}
+          <div className="absolute top-20 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent 0%, ${GOLD}55 30%, ${GOLD}88 50%, ${GOLD}55 70%, transparent 100%)` }} />
         </div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full pt-32 pb-20">
           <div className="max-w-2xl">
-            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/25 bg-white/10 backdrop-blur-sm text-white/90 text-[10px] font-bold uppercase tracking-[0.22em] mb-6" data-testid="hero-eyebrow">
-              <Crown className="w-3 h-3" style={{ color: LIME }} /> Club de viajes exclusivo
+            <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border bg-black/20 backdrop-blur-sm text-[10px] font-bold uppercase tracking-[0.28em] mb-7" style={{ borderColor: `${GOLD}55`, color: CHAMPAGNE }} data-testid="hero-eyebrow">
+              <Crown className="w-3 h-3" style={{ color: GOLD }} /> Club privado de viajes · Miembros
             </span>
 
-            <h1 className="font-heading text-5xl sm:text-6xl lg:text-7xl text-white font-black tracking-tight leading-[1.02] mb-5" data-testid="hero-title">
+            <h1 className="font-heading text-5xl sm:text-6xl lg:text-7xl text-white font-black tracking-tight leading-[1.02] mb-3" data-testid="hero-title">
               Más que viajes,<br />
-              es <span style={{ color: LIME }}>pertenecer.</span>
+              <span className="italic font-semibold" style={{ fontFamily: '"Playfair Display", Georgia, serif', background: `linear-gradient(92deg, ${LIME} 0%, #B8E26A 50%, ${LIME} 100%)`, WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>
+                es pertenecer.
+              </span>
             </h1>
 
-            <p className="text-base sm:text-lg text-white/75 max-w-lg leading-relaxed mb-9" data-testid="hero-subtitle">
+            {/* Art-deco separator */}
+            <div className="flex items-center gap-2 my-5">
+              <div className="h-px w-12" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}99)` }} />
+              <Sparkles className="w-3 h-3" style={{ color: GOLD }} />
+              <div className="h-px w-12" style={{ background: `linear-gradient(90deg, ${GOLD}99, transparent)` }} />
+            </div>
+
+            <p className="text-base sm:text-lg text-white/75 max-w-lg leading-relaxed mb-9 italic tracking-wide" data-testid="hero-subtitle">
               Accede a experiencias exclusivas, precios especiales y beneficios únicos con Kuxtal&nbsp;Travels.
             </p>
 
@@ -124,7 +142,8 @@ export default function HomePage() {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="rounded-full h-12 px-7 font-semibold text-sm border-white/40 text-white bg-white/5 backdrop-blur-sm hover:bg-white/15 hover:border-white/70 transition-all"
+                  className="rounded-full h-12 px-7 font-semibold text-sm bg-white/5 backdrop-blur-sm hover:bg-white/15 transition-all"
+                  style={{ borderColor: `${GOLD}66`, color: CHAMPAGNE }}
                   data-testid="hero-learn-btn"
                 >
                   Conoce más
@@ -136,10 +155,10 @@ export default function HomePage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-5 max-w-3xl" data-testid="hero-perks">
               {PERKS.map((p) => (
                 <div key={p.title} className="flex flex-col items-start text-white/90 group">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-2 transition-all group-hover:scale-110" style={{ background: `${LIME}22`, border: `1px solid ${LIME}55` }}>
+                  <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-2 transition-all group-hover:scale-110" style={{ background: `${LIME}22`, border: `1px solid ${LIME}55` }}>
                     <p.icon className="w-5 h-5" strokeWidth={1.6} style={{ color: LIME }} />
                   </div>
-                  <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.12em] leading-tight">{p.title}</p>
+                  <p className="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.14em] leading-tight" style={{ color: CHAMPAGNE }}>{p.title}</p>
                 </div>
               ))}
             </div>
@@ -258,30 +277,42 @@ export default function HomePage() {
       </section>
 
       {/* ══════ KUXTAL CLUB — Tu membresía, un mundo de beneficios ══════ */}
-      <section id="kuxtal-club-section" className="relative py-20 sm:py-24 overflow-hidden" style={{ background: NAVY }} data-testid="kuxtal-club-section">
-        {/* Subtle radial lime accents */}
-        <div className="absolute inset-0 opacity-[0.08] pointer-events-none" style={{ backgroundImage: `radial-gradient(circle at 20% 30%, ${LIME} 0, transparent 40%), radial-gradient(circle at 80% 80%, ${LIME} 0, transparent 40%)` }} />
-        {/* Dot grid */}
-        <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '36px 36px' }} />
+      <section id="kuxtal-club-section" className="relative py-20 sm:py-28 overflow-hidden" style={{ background: `linear-gradient(180deg, ${NAVY_DEEP} 0%, ${NAVY} 100%)` }} data-testid="kuxtal-club-section">
+        {/* Subtle gold radial accents */}
+        <div className="absolute inset-0 opacity-[0.12] pointer-events-none" style={{ backgroundImage: `radial-gradient(circle at 20% 30%, ${GOLD} 0, transparent 40%), radial-gradient(circle at 80% 80%, ${GOLD} 0, transparent 45%)` }} />
+        {/* Arabesque dot grid */}
+        <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: `radial-gradient(circle at 1px 1px, ${GOLD} 1px, transparent 0)`, backgroundSize: '34px 34px' }} />
+        {/* Top gold hairline */}
+        <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}66, transparent)` }} />
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
           {/* Left text */}
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.25em] mb-4" style={{ color: LIME }}>
-              Kuxtal Club
+            <p className="text-xs font-bold uppercase tracking-[0.28em] mb-4" style={{ color: CHAMPAGNE }}>
+              · Kuxtal Club ·
             </p>
-            <h2 className="font-heading text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-[1.05] mb-5">
-              Tu membresía,<br />
-              un mundo de <span style={{ color: LIME }}>beneficios</span>
+            <h2 className="font-heading text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-[1.05] mb-2">
+              Tu membresía,
             </h2>
-            <p className="text-white/65 text-base leading-relaxed mb-8 max-w-lg">
-              Somos un club de viajes diseñado para personas que buscan más que un destino. Vive experiencias inolvidables y disfruta beneficios en comercios aliados.
+            <h2 className="font-heading text-3xl sm:text-4xl lg:text-5xl font-black italic tracking-tight leading-[1.05] mb-6" style={{ fontFamily: '"Playfair Display", Georgia, serif', background: `linear-gradient(92deg, ${GOLD} 0%, #F5E6B8 50%, ${GOLD} 100%)`, WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>
+              un mundo de beneficios
+            </h2>
+
+            {/* Art-deco divider */}
+            <div className="flex items-center gap-2 mb-6">
+              <div className="h-px w-12" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}88)` }} />
+              <Sparkles className="w-3 h-3" style={{ color: GOLD }} />
+              <div className="h-px w-20" style={{ background: `linear-gradient(90deg, ${GOLD}88, transparent)` }} />
+            </div>
+
+            <p className="text-white/65 text-base leading-relaxed mb-8 max-w-lg italic">
+              Somos un club de viajes diseñado para quienes buscan más que un destino. Vive experiencias inolvidables y disfruta beneficios en comercios aliados.
             </p>
             <Link to="/benefits">
               <Button
                 size="lg"
-                className="rounded-full h-12 px-7 font-bold text-sm text-white transition-all hover:-translate-y-0.5 shadow-[0_10px_30px_-6px_rgba(13,43,69,0.7)]"
-                style={{ background: '#08213A', border: `1px solid ${LIME}55` }}
+                className="rounded-full h-12 px-7 font-bold text-sm transition-all hover:-translate-y-0.5 shadow-[0_10px_30px_-6px_rgba(212,175,90,0.45)]"
+                style={{ background: `linear-gradient(135deg, #F5E6B8 0%, ${GOLD} 50%, #B8944A 100%)`, color: NAVY_DEEP, border: `1px solid ${GOLD}88` }}
                 data-testid="club-see-benefits-btn"
               >
                 Ver beneficios <ArrowUpRight className="w-4 h-4 ml-1.5" />
@@ -289,51 +320,102 @@ export default function HomePage() {
             </Link>
           </div>
 
-          {/* Right: 2x2 collage with floating membership card */}
+          {/* Right: 2x2 collage with floating GOLDEN MEMBER card */}
           <div className="relative" data-testid="club-collage">
             <div className="grid grid-cols-2 gap-3 sm:gap-4">
               {CLUB_COLLAGE.map((src, i) => (
                 <div key={src} className={`relative rounded-2xl overflow-hidden ring-1 ring-white/10 aspect-[4/3] ${i === 0 ? 'translate-y-3' : ''} ${i === 3 ? 'translate-y-3' : ''}`}>
                   <img src={src} alt="" className="w-full h-full object-cover" loading="lazy" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                 </div>
               ))}
             </div>
 
-            {/* Floating membership card */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[68%] max-w-[340px]" data-testid="membership-card">
-              <div className="relative rounded-2xl p-5 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.6)] ring-1" style={{ background: `linear-gradient(140deg, ${NAVY} 0%, #142f4b 55%, ${NAVY} 100%)`, borderColor: `${LIME}44` }}>
-                <div className="flex items-center justify-center mb-3">
-                  <img src={CLUB_LOGO} alt="Kuxtal Club" className="h-12 w-auto" />
-                </div>
-                <div className="text-center pt-2 border-t" style={{ borderColor: `${LIME}33` }}>
-                  <p className="text-white font-heading font-bold text-base tracking-tight mt-2">
-                    KUXTAL <span style={{ color: LIME }}>CLUB</span>
+            {/* Floating Golden Member card */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[72%] max-w-[360px]" data-testid="membership-card">
+              <div
+                className="relative rounded-2xl p-5 shadow-[0_35px_70px_-15px_rgba(0,0,0,0.7)] ring-1 overflow-hidden"
+                style={{
+                  background: `linear-gradient(135deg, #2a1f10 0%, #1a1408 45%, #0f0a04 100%)`,
+                  borderColor: `${GOLD}88`,
+                }}
+              >
+                {/* Arabesque gold pattern overlay */}
+                <div className="absolute inset-0 opacity-[0.15] pointer-events-none" style={{ backgroundImage: `repeating-linear-gradient(45deg, ${GOLD}22 0, ${GOLD}22 2px, transparent 2px, transparent 10px), repeating-linear-gradient(-45deg, ${GOLD}22 0, ${GOLD}22 2px, transparent 2px, transparent 10px)` }} />
+                {/* Gold shimmer sweeps */}
+                <div className="absolute inset-0 opacity-30 pointer-events-none" style={{ background: `linear-gradient(115deg, transparent 40%, ${GOLD}33 50%, transparent 60%)` }} />
+                {/* Top & bottom gold hairlines */}
+                <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}aa, transparent)` }} />
+                <div className="absolute bottom-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}aa, transparent)` }} />
+
+                <div className="relative">
+                  <p className="text-[9px] font-bold uppercase tracking-[0.3em] mb-3" style={{ color: CHAMPAGNE }}>
+                    Golden Member
                   </p>
-                  <p className="text-white/60 text-[10px] font-bold uppercase tracking-[0.2em] mt-0.5">Acceso Exclusivo</p>
+                  <div className="flex items-center justify-center py-3">
+                    <img src={CLUB_LOGO} alt="Kuxtal Club" className="h-14 w-auto drop-shadow-[0_4px_12px_rgba(212,175,90,0.35)]" />
+                  </div>
+                  <div className="flex items-center gap-2 my-3">
+                    <div className="h-px flex-1" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}77, transparent)` }} />
+                    <Sparkles className="w-2.5 h-2.5" style={{ color: GOLD }} />
+                    <div className="h-px flex-1" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}77, transparent)` }} />
+                  </div>
+                  <p
+                    className="text-center font-heading text-base tracking-[0.22em] font-bold"
+                    style={{
+                      background: `linear-gradient(92deg, #B8944A 0%, #F5E6B8 50%, ${GOLD} 100%)`,
+                      WebkitBackgroundClip: 'text',
+                      backgroundClip: 'text',
+                      color: 'transparent',
+                    }}
+                  >
+                    ACCESO EXCLUSIVO
+                  </p>
                 </div>
               </div>
             </div>
           </div>
         </div>
+
+        {/* Bottom gold hairline */}
+        <div className="absolute bottom-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}66, transparent)` }} />
       </section>
 
       {/* ══════ DISFRUTA MÁS, PAGANDO MENOS ══════ */}
-      <section className="py-20 bg-white" data-testid="perks-section">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
+      <section className="py-20 sm:py-24 relative" style={{ background: 'linear-gradient(180deg, #FFFFFF 0%, #FAF8F3 100%)' }} data-testid="perks-section">
+        {/* Subtle gold marble */}
+        <div className="absolute inset-0 opacity-[0.04] pointer-events-none" style={{ backgroundImage: `radial-gradient(circle at 20% 20%, ${GOLD} 0, transparent 40%), radial-gradient(circle at 80% 80%, ${GOLD} 0, transparent 40%)` }} />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Eyebrow with art-deco separator */}
+          <div className="flex items-center justify-center gap-3 mb-3">
+            <div className="h-px w-10" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}aa)` }} />
+            <Sparkles className="w-3 h-3" style={{ color: GOLD }} />
+            <p className="text-[11px] font-bold uppercase tracking-[0.28em]" style={{ color: '#8B6F2E' }}>Beneficios exclusivos</p>
+            <Sparkles className="w-3 h-3" style={{ color: GOLD }} />
+            <div className="h-px w-10" style={{ background: `linear-gradient(90deg, ${GOLD}aa, transparent)` }} />
+          </div>
+          <div className="text-center mb-14">
             <h2 className="font-heading text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight" style={{ color: NAVY }}>
-              Disfruta <span style={{ color: LIME }}>más</span>, pagando <span style={{ color: LIME }}>menos</span>
+              Disfruta{' '}
+              <span className="italic" style={{ fontFamily: '"Playfair Display", Georgia, serif', color: LIME }}>
+                más
+              </span>
+              , pagando{' '}
+              <span className="italic" style={{ fontFamily: '"Playfair Display", Georgia, serif', color: LIME }}>
+                menos
+              </span>
             </h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {PERKS.map((p) => (
               <div
                 key={p.title}
-                className="group rounded-2xl p-6 bg-white border border-slate-100 hover:border-slate-200 hover:shadow-[0_20px_40px_-20px_rgba(13,43,69,0.25)] transition-all hover:-translate-y-1 text-center"
+                className="group relative rounded-2xl p-6 bg-white border border-slate-100 hover:border-[color:var(--gold-border)] hover:shadow-[0_25px_50px_-20px_rgba(212,175,90,0.3)] transition-all hover:-translate-y-1 text-center overflow-hidden"
+                style={{ '--gold-border': `${GOLD}66` }}
                 data-testid={`perk-${p.title}`}
               >
-                <div className="w-14 h-14 mx-auto mb-4 rounded-2xl flex items-center justify-center transition-all group-hover:scale-110" style={{ background: `${LIME}18`, color: NAVY }}>
+                <div className="absolute top-0 left-0 right-0 h-[2px] opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}, transparent)` }} />
+                <div className="w-14 h-14 mx-auto mb-4 rounded-2xl flex items-center justify-center transition-all group-hover:scale-110" style={{ background: `${LIME}18`, color: NAVY, boxShadow: `inset 0 0 0 1px ${LIME}33` }}>
                   <p.icon className="w-7 h-7" strokeWidth={1.5} />
                 </div>
                 <h3 className="font-heading font-bold text-sm uppercase tracking-wide mb-2" style={{ color: NAVY }}>
@@ -348,13 +430,20 @@ export default function HomePage() {
 
       {/* ══════ DESTINOS DESTACADOS ══════ */}
       {packages.length > 0 && (
-        <section className="py-20 bg-slate-50" data-testid="featured-packages">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <section className="py-20 sm:py-24 relative" style={{ background: 'linear-gradient(180deg, #FAF8F3 0%, #F3EEE2 100%)' }} data-testid="featured-packages">
+          {/* Subtle gold marble */}
+          <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: `radial-gradient(circle at 20% 30%, ${GOLD} 0, transparent 40%), radial-gradient(circle at 80% 70%, ${GOLD} 0, transparent 40%)` }} />
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-end justify-between mb-10">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.22em] mb-2" style={{ color: LIME }}>Descubre</p>
-                <h2 className="font-heading text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight" style={{ color: NAVY }}>
-                  Destinos Destacados
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="h-px w-10" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}aa)` }} />
+                  <Sparkles className="w-3 h-3" style={{ color: GOLD }} />
+                  <p className="text-[11px] font-bold uppercase tracking-[0.28em]" style={{ color: '#8B6F2E' }}>Descubre la colección</p>
+                </div>
+                <h2 className="font-heading text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight" style={{ color: NAVY }}>
+                  Destinos{' '}
+                  <span className="italic" style={{ fontFamily: '"Playfair Display", Georgia, serif', color: LIME }}>destacados</span>
                 </h2>
               </div>
               <Link to="/search" className="hidden sm:flex items-center gap-1.5 text-sm font-bold transition-all hover:gap-3" style={{ color: NAVY }} data-testid="view-all-link">
@@ -433,48 +522,73 @@ export default function HomePage() {
       )}
 
       {/* ══════ NUESTROS ALIADOS ══════ */}
-      <section className="py-14 sm:py-16 relative" style={{ background: NAVY }} data-testid="partners-section">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-8">
-            <p className="text-xs sm:text-sm font-bold uppercase tracking-[0.25em] text-white/90">
-              Nuestros <span style={{ color: LIME }}>aliados</span>
+      <section className="py-14 sm:py-18 relative overflow-hidden" style={{ background: `linear-gradient(180deg, ${NAVY_DEEP} 0%, ${NAVY} 100%)` }} data-testid="partners-section">
+        {/* Arabesque grid */}
+        <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: `radial-gradient(circle at 1px 1px, ${GOLD} 1px, transparent 0)`, backgroundSize: '28px 28px' }} />
+        {/* Top & bottom gold hairlines */}
+        <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}77, transparent)` }} />
+        <div className="absolute bottom-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}77, transparent)` }} />
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-center gap-3 mb-10">
+            <div className="h-px w-12" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}aa)` }} />
+            <Sparkles className="w-3 h-3" style={{ color: GOLD }} />
+            <p className="text-[11px] sm:text-xs font-bold uppercase tracking-[0.3em]" style={{ color: CHAMPAGNE }}>
+              Nuestros aliados
             </p>
+            <Sparkles className="w-3 h-3" style={{ color: GOLD }} />
+            <div className="h-px w-12" style={{ background: `linear-gradient(90deg, ${GOLD}aa, transparent)` }} />
           </div>
-          <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-10 lg:gap-14">
+
+          <div className="flex flex-wrap items-center justify-center gap-x-10 sm:gap-x-14 gap-y-6">
             {PARTNERS.map(p => (
-              <div key={p.name} className="text-center group transition-all hover:opacity-100 opacity-75" data-testid={`partner-${p.name}`}>
-                <p className="font-heading text-xl sm:text-2xl font-black text-white tracking-tight" style={{ fontFamily: 'serif' }}>{p.name}</p>
-                {p.tag && <p className="text-[10px] uppercase tracking-[0.25em] text-white/50 mt-0.5">{p.tag}</p>}
+              <div key={p.name} className="text-center group transition-all hover:opacity-100 opacity-80" data-testid={`partner-${p.name}`}>
+                <p className="text-xl sm:text-2xl font-black text-white tracking-tight" style={{ fontFamily: '"Playfair Display", Georgia, serif' }}>{p.name}</p>
+                {p.tag && <p className="text-[10px] uppercase tracking-[0.28em] mt-0.5" style={{ color: `${CHAMPAGNE}88` }}>{p.tag}</p>}
               </div>
             ))}
             <div className="text-center">
-              <p className="text-[10px] uppercase tracking-[0.22em] font-bold" style={{ color: LIME }}>Y más aliados<br />especiales</p>
+              <p className="text-[10px] uppercase tracking-[0.26em] font-bold italic" style={{ color: GOLD, fontFamily: '"Playfair Display", Georgia, serif' }}>y más aliados<br />especiales</p>
             </div>
           </div>
         </div>
       </section>
 
       {/* ══════ CTA FINAL ══════ */}
-      <section className="relative py-20 overflow-hidden" data-testid="final-cta">
+      <section className="relative py-24 overflow-hidden" data-testid="final-cta">
         <div className="absolute inset-0">
           <img src={CTA_IMG} alt="Destino paradisíaco" className="w-full h-full object-cover" />
-          <div className="absolute inset-0" style={{ background: `linear-gradient(100deg, ${NAVY}f5 0%, ${NAVY}e8 45%, ${NAVY}c8 100%)` }} />
+          <div className="absolute inset-0" style={{ background: `linear-gradient(100deg, ${NAVY_DEEP}f5 0%, ${NAVY}e8 45%, ${NAVY}c8 100%)` }} />
+          {/* Gold radial */}
+          <div className="absolute inset-0 opacity-[0.12] pointer-events-none" style={{ backgroundImage: `radial-gradient(ellipse at 25% 50%, ${GOLD} 0, transparent 45%)` }} />
+          <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}77, transparent)` }} />
+          <div className="absolute bottom-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}77, transparent)` }} />
         </div>
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
           <div>
-            <h2 className="font-heading text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-[1.05] mb-4">
-              El mundo es mejor<br />
-              cuando eres <span style={{ color: LIME }}>miembro.</span>
+            {/* Eyebrow */}
+            <div className="flex items-center gap-2 mb-5">
+              <div className="h-px w-10" style={{ background: `linear-gradient(90deg, transparent, ${GOLD}aa)` }} />
+              <Sparkles className="w-3 h-3" style={{ color: GOLD }} />
+              <p className="text-[11px] font-bold uppercase tracking-[0.28em]" style={{ color: CHAMPAGNE }}>Únete al Club</p>
+            </div>
+
+            <h2 className="font-heading text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-[1.05] mb-2">
+              El mundo es mejor
             </h2>
-            <p className="text-white/70 text-base leading-relaxed mb-7 max-w-md">
-              Únete a Kuxtal Club y comienza a disfrutar de un mundo de beneficios desde hoy.
+            <h2 className="font-heading text-3xl sm:text-4xl lg:text-5xl font-black italic tracking-tight leading-[1.05] mb-5" style={{ fontFamily: '"Playfair Display", Georgia, serif', background: `linear-gradient(92deg, ${GOLD} 0%, #F5E6B8 50%, ${GOLD} 100%)`, WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>
+              cuando eres miembro.
+            </h2>
+
+            <p className="text-white/70 text-base leading-relaxed mb-7 max-w-md italic">
+              Únete a Kuxtal Club y comienza a disfrutar un mundo de beneficios desde hoy.
             </p>
             <Link to="/login">
               <Button
                 size="lg"
                 className="rounded-full h-13 px-8 font-bold text-sm shadow-[0_10px_30px_-6px_rgba(140,198,63,0.55)] hover:shadow-[0_14px_36px_-6px_rgba(140,198,63,0.75)] transition-all hover:-translate-y-0.5"
-                style={{ background: LIME, color: NAVY }}
+                style={{ background: LIME, color: NAVY_DEEP }}
                 data-testid="final-cta-btn"
               >
                 Hazte miembro hoy <ArrowRight className="w-4 h-4 ml-2" />
@@ -489,12 +603,12 @@ export default function HomePage() {
               { icon: Lock, title: 'Acceso Inmediato', desc: 'Comienza a disfrutar tus beneficios desde el primer día.' },
               { icon: ShieldCheck, title: 'Respaldo Kuxtal', desc: 'Más de 10 años conectando socios con experiencias únicas.' },
             ].map((b) => (
-              <div key={b.title} className="flex items-start gap-4 p-5 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:bg-white/10 transition-all">
-                <div className="shrink-0 w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: `${LIME}22`, border: `1px solid ${LIME}55` }}>
-                  <b.icon className="w-6 h-6" style={{ color: LIME }} strokeWidth={1.6} />
+              <div key={b.title} className="flex items-start gap-4 p-5 rounded-2xl bg-white/5 backdrop-blur-sm transition-all hover:bg-white/10" style={{ border: `1px solid ${GOLD}22` }}>
+                <div className="shrink-0 w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: `${GOLD}18`, border: `1px solid ${GOLD}55` }}>
+                  <b.icon className="w-6 h-6" style={{ color: GOLD }} strokeWidth={1.6} />
                 </div>
                 <div>
-                  <p className="text-sm font-bold uppercase tracking-wide mb-1" style={{ color: LIME }}>{b.title}</p>
+                  <p className="text-sm font-bold uppercase tracking-wide mb-1" style={{ color: CHAMPAGNE }}>{b.title}</p>
                   <p className="text-white/70 text-sm leading-relaxed">{b.desc}</p>
                 </div>
               </div>
