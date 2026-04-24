@@ -92,18 +92,47 @@ export default function BenefitsPage() {
   return (
     <div className="min-h-screen" data-testid="benefits-page">
       {/* Hero Header */}
-      <section className="relative pt-20 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0a0f1a] via-[#111827] to-[#1a0a0a]" />
-        <div className="absolute inset-0 opacity-[0.03]" style={{backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '40px 40px'}} />
+      <section className="relative pt-20 overflow-hidden" data-testid="benefits-hero">
+        {/* Deep obsidian base */}
+        <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 25% 20%, #1a1a24 0%, #0B0B0F 55%, #050507 100%)' }} />
+        {/* Gold accents via radials */}
+        <div className="absolute inset-0 opacity-[0.15] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 15% 25%, rgba(212,175,90,0.45) 0, transparent 35%), radial-gradient(circle at 85% 75%, rgba(212,175,90,0.25) 0, transparent 40%)' }} />
+        {/* Art-deco grid texture */}
+        <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'linear-gradient(rgba(212,175,90,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(212,175,90,0.5) 1px, transparent 1px)', backgroundSize: '72px 72px' }} />
+        {/* Top gold shimmer line */}
+        <div className="absolute top-20 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#D4AF5A]/50 to-transparent" />
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
-          <div className="flex flex-col items-center text-center sm:text-left sm:items-start gap-4 mb-8">
-            <img src={CLUB_LOGO} alt="Kuxtal Club" className="h-16 sm:h-20 w-auto" data-testid="benefits-club-logo" />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20">
+          <div className="flex flex-col items-center text-center sm:text-left sm:items-start gap-5 mb-9">
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#D4AF5A]/30 via-transparent to-[#D4AF5A]/20 blur-2xl" />
+              <img src={CLUB_LOGO} alt="Kuxtal Club" className="relative h-16 sm:h-24 w-auto drop-shadow-[0_10px_30px_rgba(200,38,62,0.45)]" data-testid="benefits-club-logo" />
+            </div>
             <div>
-              <h1 className="font-heading text-2xl sm:text-3xl lg:text-5xl font-bold text-white tracking-tight leading-tight">
-                Comercios <span className="bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 bg-clip-text text-transparent">Aliados</span>
+              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#D4AF5A]/30 bg-[#D4AF5A]/5 text-[#E5C989] text-[10px] font-bold uppercase tracking-[0.22em] backdrop-blur-sm">
+                <Sparkles className="w-3 h-3" /> Programa Exclusivo
+              </span>
+              <h1 className="font-heading text-3xl sm:text-4xl lg:text-6xl font-black text-[#F4EBD0] tracking-tight leading-[1.05] mt-4">
+                Comercios{' '}
+                <span
+                  className="inline-block"
+                  style={{
+                    background: 'linear-gradient(92deg, #B8944A 0%, #F5E6B8 45%, #D4AF5A 55%, #8B6F2E 100%)',
+                    WebkitBackgroundClip: 'text',
+                    backgroundClip: 'text',
+                    color: 'transparent',
+                    textShadow: '0 2px 20px rgba(212,175,90,0.2)',
+                  }}
+                >
+                  Aliados
+                </span>
               </h1>
-              <p className="text-white/50 mt-2 text-xs sm:text-sm max-w-lg mx-auto sm:mx-0">
+              <div className="flex items-center gap-2 my-3">
+                <div className="h-px w-10 bg-gradient-to-r from-[#D4AF5A]/60 to-transparent" />
+                <Sparkles className="w-3 h-3 text-[#D4AF5A]" />
+                <div className="h-px w-10 bg-gradient-to-r from-transparent to-[#D4AF5A]/60 hidden sm:block" />
+              </div>
+              <p className="text-[#F4EBD0]/60 text-sm sm:text-base max-w-xl mx-auto sm:mx-0 italic tracking-wide">
                 Descuentos y beneficios exclusivos en los mejores comercios de Guatemala para socios Kuxtal
               </p>
             </div>
@@ -112,24 +141,27 @@ export default function BenefitsPage() {
           {/* Search Bar */}
           <div className="max-w-2xl mx-auto sm:mx-0">
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#D4AF5A]/60" />
               <Input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Buscar comercio, categoría o beneficio..."
-                className="pl-12 h-12 rounded-xl bg-white/10 border-white/10 text-white placeholder:text-white/30 focus:bg-white/15 focus:border-amber-400/50"
+                className="pl-12 h-14 rounded-2xl bg-black/40 border-[#D4AF5A]/20 text-[#F4EBD0] placeholder:text-[#F4EBD0]/30 focus:bg-black/60 focus:border-[#D4AF5A]/60 focus:ring-2 focus:ring-[#D4AF5A]/20 backdrop-blur-sm"
                 data-testid="commerce-search"
               />
             </div>
           </div>
 
           {/* Category Grid */}
-          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2 mt-6" data-testid="category-filters">
+          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2.5 mt-7" data-testid="category-filters">
             <button
               onClick={() => setCategory('')}
-              className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
-                category === '' ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-black shadow-lg shadow-amber-500/20' : 'bg-white/10 text-white/70 hover:bg-white/15 hover:text-white border border-white/10'
+              className={`flex items-center justify-center gap-1.5 px-3 py-3 rounded-2xl text-xs sm:text-sm font-bold transition-all uppercase tracking-wider ${
+                category === ''
+                  ? 'text-[#0B0B0F] shadow-lg shadow-[#D4AF5A]/40'
+                  : 'bg-white/[0.04] text-[#F4EBD0]/70 hover:bg-[#D4AF5A]/10 hover:text-[#F4EBD0] border border-[#D4AF5A]/15 hover:border-[#D4AF5A]/40 backdrop-blur-sm'
               }`}
+              style={category === '' ? { background: 'linear-gradient(135deg, #F5E6B8 0%, #D4AF5A 50%, #B8944A 100%)' } : {}}
               data-testid="cat-all"
             >
               Todos
@@ -137,13 +169,17 @@ export default function BenefitsPage() {
             {categories.map(cat => {
               const name = cat.name;
               const conf = getCatConfig(name);
+              const isActive = category === name;
               return (
                 <button
                   key={name}
                   onClick={() => setCategory(name)}
-                  className={`flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all truncate ${
-                    category === name ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-black shadow-lg shadow-amber-500/20' : 'bg-white/10 text-white/70 hover:bg-white/15 hover:text-white border border-white/10'
+                  className={`flex items-center justify-center gap-1.5 px-3 py-3 rounded-2xl text-xs sm:text-sm font-semibold transition-all truncate uppercase tracking-wider ${
+                    isActive
+                      ? 'text-[#0B0B0F] shadow-lg shadow-[#D4AF5A]/40'
+                      : 'bg-white/[0.04] text-[#F4EBD0]/70 hover:bg-[#D4AF5A]/10 hover:text-[#F4EBD0] border border-[#D4AF5A]/15 hover:border-[#D4AF5A]/40 backdrop-blur-sm'
                   }`}
+                  style={isActive ? { background: 'linear-gradient(135deg, #F5E6B8 0%, #D4AF5A 50%, #B8944A 100%)' } : {}}
                   data-testid={`cat-${name}`}
                 >
                   <CatIconRender icon={cat.icon} fallback={conf.icon} /> {name}
@@ -152,18 +188,20 @@ export default function BenefitsPage() {
             })}
           </div>
         </div>
+        {/* Bottom gold shimmer divider */}
+        <div className="relative h-px bg-gradient-to-r from-transparent via-[#D4AF5A]/40 to-transparent" />
       </section>
 
       {/* Active Category Banner */}
       {category && activeCatConfig && (
-        <div className={`bg-gradient-to-r ${activeCatConfig.color} py-3`}>
+        <div className="bg-[#0B0B0F] border-b border-[#D4AF5A]/20 py-3">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-white">
-              <CatIconRender icon={activeCatData?.icon} fallback={activeCatConfig.icon} className="w-5 h-5" />
-              <span className="font-semibold text-sm">{category}</span>
-              <span className="text-white/70 text-sm">- {commerces.length} comercios</span>
+            <div className="flex items-center gap-2 text-[#F4EBD0]">
+              <CatIconRender icon={activeCatData?.icon} fallback={activeCatConfig.icon} className="w-5 h-5 text-[#D4AF5A]" />
+              <span className="font-semibold text-sm uppercase tracking-wider">{category}</span>
+              <span className="text-[#F4EBD0]/50 text-sm">— {commerces.length} comercios</span>
             </div>
-            <button onClick={() => setCategory('')} className="text-white/70 hover:text-white text-xs font-medium">
+            <button onClick={() => setCategory('')} className="text-[#E5C989] hover:text-[#F5E6B8] text-xs font-semibold uppercase tracking-wider">
               Ver todos
             </button>
           </div>
@@ -176,22 +214,28 @@ export default function BenefitsPage() {
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 20% 30%, #D4AF5A 0, transparent 40%), radial-gradient(circle at 80% 70%, #D4AF5A 0, transparent 40%)' }} />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Results Count */}
-          <div className="flex items-center justify-between mb-6">
-            <p className="text-sm text-muted-foreground">
-              {loading ? 'Cargando...' : `${commerces.length} ${commerces.length === 1 ? 'comercio' : 'comercios'} encontrados`}
-            </p>
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3">
+              <div className="h-px w-8 bg-[#D4AF5A]/40" />
+              <p className="text-[11px] sm:text-xs font-bold uppercase tracking-[0.22em] text-[#8B6F2E]">
+                {loading ? 'Cargando colección…' : `${commerces.length} ${commerces.length === 1 ? 'comercio exclusivo' : 'comercios exclusivos'}`}
+              </p>
+              <div className="h-px flex-1 bg-gradient-to-r from-[#D4AF5A]/40 to-transparent" />
+            </div>
           </div>
 
           {/* Loading */}
           {loading && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {[1,2,3,4,5,6].map(i => (
-                <div key={i} className="bg-white rounded-2xl overflow-hidden border border-border animate-pulse">
-                  <div className="h-3 bg-gradient-to-r from-primary/20 to-primary/5" />
-                  <div className="p-5 space-y-3">
-                    <div className="flex gap-3"><div className="w-14 h-14 bg-muted rounded-xl" /><div className="flex-1 space-y-2"><div className="h-4 bg-muted rounded w-2/3" /><div className="h-3 bg-muted rounded w-1/3" /></div></div>
-                    <div className="h-12 bg-muted rounded-xl" />
-                    <div className="h-3 bg-muted rounded w-1/2" />
+                <div key={i} className="rounded-[22px] overflow-hidden ring-1 ring-white/5 animate-pulse" style={{ background: 'linear-gradient(145deg, #0F0F14 0%, #16161C 55%, #0B0B0F 100%)' }}>
+                  <div className="h-[3px] bg-gradient-to-r from-transparent via-[#D4AF5A]/30 to-transparent" />
+                  <div className="p-6 space-y-4">
+                    <div className="h-5 w-24 bg-[#D4AF5A]/10 rounded-full" />
+                    <div className="w-28 h-28 bg-[#D4AF5A]/10 rounded-2xl mx-auto" />
+                    <div className="h-10 bg-[#D4AF5A]/10 rounded-xl w-2/3 mx-auto" />
+                    <div className="h-4 bg-white/5 rounded w-1/2 mx-auto" />
+                    <div className="h-3 bg-white/5 rounded w-3/4 mx-auto" />
                   </div>
                 </div>
               ))}
@@ -354,14 +398,39 @@ export default function BenefitsPage() {
         </div>
       </section>
 
-      {/* CTA Bottom */}
-      <section className="py-12 bg-white border-t border-border">
-        <div className="max-w-3xl mx-auto px-4 text-center">
-          <img src={CLUB_LOGO} alt="Kuxtal Club" className="h-14 w-auto mx-auto mb-4" />
-          <h3 className="font-heading text-xl font-semibold mb-2">¿Eres comercio y quieres unirte?</h3>
-          <p className="text-sm text-muted-foreground mb-5">Registra tu comercio como aliado de Kuxtal Club y atrae clientes exclusivos</p>
-          <Link to="/admin/new-commerce">
-            <Button className="rounded-full bg-primary hover:bg-primary/90 px-8" data-testid="register-commerce-btn">
+      {/* CTA Bottom — Premium */}
+      <section className="relative py-16 overflow-hidden" data-testid="benefits-cta">
+        <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at top, #1a1a24 0%, #0B0B0F 60%)' }} />
+        <div className="absolute inset-0 opacity-[0.15] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 30% 40%, rgba(212,175,90,0.4) 0, transparent 40%), radial-gradient(circle at 75% 75%, rgba(212,175,90,0.2) 0, transparent 40%)' }} />
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#D4AF5A]/50 to-transparent" />
+        <div className="relative max-w-3xl mx-auto px-4 text-center">
+          <div className="relative inline-block mb-5">
+            <div className="absolute inset-0 bg-[#D4AF5A]/25 blur-2xl" />
+            <img src={CLUB_LOGO} alt="Kuxtal Club" className="relative h-16 w-auto mx-auto drop-shadow-[0_10px_30px_rgba(212,175,90,0.3)]" />
+          </div>
+          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#D4AF5A]/30 bg-[#D4AF5A]/5 text-[#E5C989] text-[10px] font-bold uppercase tracking-[0.22em] mb-4">
+            <Sparkles className="w-3 h-3" /> Únete al club
+          </span>
+          <h3
+            className="font-heading text-2xl sm:text-3xl font-black mb-3 leading-tight"
+            style={{
+              background: 'linear-gradient(92deg, #B8944A 0%, #F5E6B8 50%, #D4AF5A 100%)',
+              WebkitBackgroundClip: 'text',
+              backgroundClip: 'text',
+              color: 'transparent',
+            }}
+          >
+            ¿Eres comercio y quieres unirte?
+          </h3>
+          <p className="text-sm text-[#F4EBD0]/55 italic tracking-wide mb-7 max-w-md mx-auto">
+            Registra tu comercio como aliado de Kuxtal Club y accede a una comunidad exclusiva de clientes
+          </p>
+          <Link to="/partners/afiliar">
+            <Button
+              className="rounded-full px-8 h-12 text-sm font-bold uppercase tracking-[0.15em] border border-[#D4AF5A]/40 shadow-[0_10px_30px_-10px_rgba(212,175,90,0.6)] hover:shadow-[0_15px_40px_-10px_rgba(212,175,90,0.8)] transition-all hover:scale-[1.03]"
+              style={{ background: 'linear-gradient(135deg, #F5E6B8 0%, #D4AF5A 50%, #B8944A 100%)', color: '#0B0B0F' }}
+              data-testid="register-commerce-btn"
+            >
               <Store className="w-4 h-4 mr-2" /> Registrar mi Comercio
             </Button>
           </Link>
