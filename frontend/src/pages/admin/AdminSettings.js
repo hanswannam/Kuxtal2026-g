@@ -248,26 +248,35 @@ export function AdminSettings({
 
       <div className="bg-white rounded-2xl p-6 border border-border" data-testid="manuals-card">
         <h2 className="font-heading text-lg font-semibold mb-1 flex items-center gap-2"><BookOpen className="w-5 h-5 text-primary" /> Manuales del sistema</h2>
-        <p className="text-sm text-muted-foreground mb-4">Descargá los PDFs oficiales con la marca Kuxtal y compartilos por WhatsApp o email.</p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <p className="text-sm text-muted-foreground mb-4">Descargá los PDFs oficiales con la marca Kuxtal o abrí la versión web online interactiva.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
           {[
             { role: 'admin', label: 'Administrador', desc: 'Para el equipo Kuxtal', emoji: '🛠️' },
             { role: 'member', label: 'Socio', desc: 'Para miembros del club', emoji: '👤' },
             { role: 'commerce', label: 'Comercio', desc: 'Para aliados', emoji: '🏪' },
           ].map(m => (
-            <Button
-              key={m.role}
-              onClick={() => downloadManual(m.role, m.label)}
-              variant="outline"
-              className="rounded-xl h-auto py-3 px-4 flex flex-col items-start gap-1 border-amber-200 hover:bg-amber-50 hover:border-amber-300"
-              data-testid={`download-manual-${m.role}`}
-            >
-              <div className="flex items-center gap-2 w-full">
-                <Download className="w-4 h-4 text-amber-600" />
-                <span className="font-semibold text-sm">{m.label}</span>
+            <div key={m.role} className="rounded-xl border border-amber-200 p-3 space-y-2" data-testid={`manual-row-${m.role}`}>
+              <div>
+                <p className="font-semibold text-sm">{m.label}</p>
+                <p className="text-[11px] text-muted-foreground">{m.desc}</p>
               </div>
-              <span className="text-[11px] text-muted-foreground font-normal">{m.desc}</span>
-            </Button>
+              <div className="flex gap-2">
+                <a
+                  href={`/manual/${m.role}`}
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-lg text-[11px] font-bold uppercase tracking-[0.1em] bg-primary text-white hover:bg-primary/90 transition-colors"
+                  data-testid={`view-manual-${m.role}`}
+                >
+                  <BookOpen className="w-3.5 h-3.5" /> Ver online
+                </a>
+                <button
+                  onClick={() => downloadManual(m.role, m.label)}
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 h-9 rounded-lg text-[11px] font-bold uppercase tracking-[0.1em] border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800 transition-colors"
+                  data-testid={`download-manual-${m.role}`}
+                >
+                  <Download className="w-3.5 h-3.5" /> PDF
+                </button>
+              </div>
+            </div>
           ))}
         </div>
       </div>

@@ -8,10 +8,11 @@ import { Badge } from '../components/ui/badge';
 import {
   Store, Gift, Users, Plus, Trash2, Calendar, Star, Edit, Save,
   Play, Image, MapPin, Phone, Globe, Facebook, Instagram, Youtube,
-  X, ExternalLink, Sparkles, Navigation, Upload, Mail, QrCode
+  X, ExternalLink, Sparkles, Navigation, Upload, Mail, QrCode, BookOpen
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../lib/api';
+import { Link } from 'react-router-dom';
 import { CommerceCouponsTab } from '../components/CommerceCouponsTab';
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -101,12 +102,21 @@ export default function CommercePortal() {
     <div className="min-h-screen pt-20 pb-12 bg-secondary/20" data-testid="commerce-portal">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
           <div>
             <h1 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight">{commerce?.name || 'Mi Comercio'}</h1>
             <p className="text-sm text-muted-foreground">Portal de administración</p>
           </div>
-          <Badge className="rounded-full bg-primary/10 text-primary border-0 px-3 hidden sm:flex">{commerce?.category}</Badge>
+          <div className="flex items-center gap-2">
+            <Badge className="rounded-full bg-primary/10 text-primary border-0 px-3 hidden sm:flex">{commerce?.category}</Badge>
+            <Link
+              to="/manual/commerce"
+              className="inline-flex items-center gap-2 px-4 h-10 rounded-full text-xs font-bold uppercase tracking-[0.15em] bg-white border border-amber-300 text-amber-800 hover:bg-amber-50 transition-colors"
+              data-testid="commerce-manual-btn"
+            >
+              <BookOpen className="w-4 h-4" /> Manual
+            </Link>
+          </div>
         </div>
 
         {/* Tabs - attractive pill buttons */}

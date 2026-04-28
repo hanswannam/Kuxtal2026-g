@@ -299,3 +299,10 @@ Sistema CRM para club vacacional con web publica estilo Expedia, programa Kuxtal
   - Endpoint: `GET /api/admin/manuals/{role}` (admin-only) → PDF binario con Content-Disposition. Verificado los 3 endpoints: admin 88KB, member 70KB, commerce 75KB.
   - UI: AdminSettings → nuevo card "Manuales del sistema" con 3 botones de descarga (ícono Download ámbar, label + descripción, hover ámbar). data-testid: `download-manual-{role}` y `manuals-card`.
   - Resultado: equipo Kuxtal puede descargar y compartir manuales por WhatsApp/email sin que el contenido quede desactualizado (lee el .md vivo cada vez que cambia).
+
+- Manuales online interactivos en cada portal (2026-02, iter 53):
+  - **Backend**: `GET /api/manuals/{role}/markdown` (md vivo) + `GET /api/manuals/{role}/pdf` (descarga). Permisos role-aware: admin ve los 3, member solo `member`, commerce solo `commerce`.
+  - **Frontend**: nueva página `ManualPage.js` (`/manual/:role`) con react-markdown + remark-gfm. Hero editorial Playfair italic, sidebar TOC sticky con search en vivo, scroll-spy IntersectionObserver, drawer mobile. Components custom: H2 navy con barra dorada lateral, H3 Playfair italic amber, blockquote cream border-oro, code navy/champagne, tablas luxury con header navy + champagne caps. Botón descargar PDF arriba y al pie con CTA dorado metálico.
+  - **App.js**: ruta `/manual/:role` protegida por todos los roles autenticados.
+  - **Accesos**: AdminSettings → cards con par "Ver online + PDF" por rol; MemberDashboard header → pill "Manual" → `/manual/member`; CommercePortal header → pill "Manual" → `/manual/commerce`.
+  - Verificado: render desktop con TOC + content luxury, scroll-spy resaltando sección activa en oro. Endpoints curl OK.

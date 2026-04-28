@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../lib/api';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
-import { FileText, Bell, MessageSquare, Package, Store, Share2, Loader2, QrCode, Gift, Building2 } from 'lucide-react';
+import { FileText, Bell, MessageSquare, Package, Store, Share2, Loader2, QrCode, Gift, Building2, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
 
 const MemberOverview = lazy(() => import('./member/MemberOverview').then(m => ({ default: m.MemberOverview })));
@@ -80,11 +80,20 @@ export default function MemberDashboard() {
   return (
     <div className="min-h-screen pt-20 pb-12 bg-secondary/20" data-testid="member-dashboard">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-6">
-          <h1 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight mb-1">
-            Hola, {member?.name || user?.name || 'Socio'}
-          </h1>
-          <p className="text-muted-foreground text-sm">Bienvenido a tu portal de socio</p>
+        <div className="mb-6 flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <h1 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight mb-1">
+              Hola, {member?.name || user?.name || 'Socio'}
+            </h1>
+            <p className="text-muted-foreground text-sm">Bienvenido a tu portal de socio</p>
+          </div>
+          <Link
+            to="/manual/member"
+            className="inline-flex items-center gap-2 px-4 h-10 rounded-full text-xs font-bold uppercase tracking-[0.15em] bg-white border border-amber-300 text-amber-800 hover:bg-amber-50 transition-colors shrink-0"
+            data-testid="member-manual-btn"
+          >
+            <BookOpen className="w-4 h-4" /> Manual
+          </Link>
         </div>
 
         <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2 sm:gap-3 mb-8" data-testid="member-tabs">

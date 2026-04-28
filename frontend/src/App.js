@@ -30,6 +30,7 @@ const CommerceWizard = lazy(() => import("./pages/CommerceWizard"));
 const PartnersLandingPage = lazy(() => import("./pages/PartnersLandingPage"));
 const CouponValidatePage = lazy(() => import("./pages/CouponValidatePage"));
 const PublicQuotationPage = lazy(() => import("./pages/PublicQuotationPage"));
+const ManualPage = lazy(() => import("./pages/ManualPage"));
 
 function PageLoader() {
   return (
@@ -94,6 +95,11 @@ function App() {
                       </ProtectedRoute>
                     } />
                     <Route path="/admin/new-commerce" element={<CommerceWizard />} />
+                    <Route path="/manual/:role" element={
+                      <ProtectedRoute roles={['member', 'commerce', 'super_admin', 'admin']}>
+                        <ManualPage />
+                      </ProtectedRoute>
+                    } />
                   </Routes>
                   <WhatsAppWidget />
                   <InstallPrompt />

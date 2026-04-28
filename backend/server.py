@@ -2362,7 +2362,7 @@ async def packages_template(request: Request):
     )
 
 # ── User manuals (PDF, branded Kuxtal) ──
-from manuals_pdf import generate_manual_pdf, get_manual_filename, MANUAL_FILES  # noqa: E402
+from manuals_pdf import generate_manual_pdf, get_manual_filename, MANUAL_FILES, MANUALS_DIR  # noqa: E402
 
 @app.get("/api/admin/manuals/{role}")
 async def download_manual(role: str, request: Request):
@@ -2374,6 +2374,50 @@ async def download_manual(role: str, request: Request):
         pdf = generate_manual_pdf(role)
     except FileNotFoundError as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
+    return Response(
+        content=pdf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{get_manual_filename(role)}"'},
+    )
+
+
+@app.get("/api/manuals/{role}/markdown")
+async def get_manual_markdown(role: str, request: Request):
+    """Devuelve el contenido markdown del manual. Cualquier usuario autenticado puede ver SU manual.
+    - admin/super_admin: cualquiera de los 3
+    - member: solo 'member'
+    - commerce: solo 'commerce'
+    """
+    user = await get_current_user(request)
+    if role not in MANUAL_FILES:
+        raise HTTPException(status_code=404, detail="Manual no encontrado")
+    user_role = user.get("role", "")
+    if user_role not in ("super_admin", "admin"):
+        # member can only access 'member', commerce only 'commerce'
+        if user_role == "member" and role != "member":
+            raise HTTPException(status_code=403, detail="Acceso denegado a este manual")
+        if user_role == "commerce" and role != "commerce":
+            raise HTTPException(status_code=403, detail="Acceso denegado a este manual")
+    filename = MANUAL_FILES[role][0]
+    md_path = MANUALS_DIR / filename
+    if not md_path.exists():
+        raise HTTPException(status_code=500, detail="Archivo de manual no encontrado")
+    return {"role": role, "title": MANUAL_FILES[role][1], "markdown": md_path.read_text(encoding="utf-8")}
+
+
+@app.get("/api/manuals/{role}/pdf")
+async def download_manual_self(role: str, request: Request):
+    """Descarga el PDF del manual para el usuario logeado (con misma lógica de permisos que markdown)."""
+    user = await get_current_user(request)
+    if role not in MANUAL_FILES:
+        raise HTTPException(status_code=404, detail="Manual no encontrado")
+    user_role = user.get("role", "")
+    if user_role not in ("super_admin", "admin"):
+        if user_role == "member" and role != "member":
+            raise HTTPException(status_code=403, detail="Acceso denegado")
+        if user_role == "commerce" and role != "commerce":
+            raise HTTPException(status_code=403, detail="Acceso denegado")
+    pdf = generate_manual_pdf(role)
     return Response(
         content=pdf,
         media_type="application/pdf",
