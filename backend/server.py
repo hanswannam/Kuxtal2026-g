@@ -1949,11 +1949,68 @@ async def seed_admin():
     elif not verify_password(admin_password, existing["password_hash"]):
         await db.users.update_one({"email": admin_email}, {"$set": {"password_hash": hash_password(admin_password)}})
         logger.info("Admin password updated")
+
+    # Additional admin accounts (only created if missing — never overwrite existing passwords)
+    extra_admins = [
+        {"email": "kclub1@kuxtaltravels.com", "password": "Kclub123$$", "name": "Kuxtal Club Admin", "role": "admin"},
+        {"email": "agente1@kuxtaltravels.com", "password": "Agente123$$$", "name": "Agente Kuxtal", "role": "admin"},
+    ]
+    for acc in extra_admins:
+        if not await db.users.find_one({"email": acc["email"]}):
+            await db.users.insert_one({
+                "email": acc["email"],
+                "password_hash": hash_password(acc["password"]),
+                "name": acc["name"],
+                "role": acc["role"],
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            })
+            logger.info("Seeded admin: %s", acc["email"])
+
     # Write test credentials
     creds_dir = Path("/app/memory")
     creds_dir.mkdir(exist_ok=True)
     with open(creds_dir / "test_credentials.md", "w") as f:
-        f.write(f"# Test Credentials\n\n## Admin\n- Email: {admin_email}\n- Password: {admin_password}\n- Role: super_admin\n\n## Auth Endpoints\n- POST /api/auth/login\n- POST /api/auth/member-login\n- GET /api/auth/me\n- POST /api/auth/logout\n")
+        f.write(
+            f"# Test Credentials\n\n## Super Admin\n- Email: {admin_email}\n- Password: {admin_password}\n- Role: super_admin\n\n"
+            "## Admin (Kuxtal Club)\n- Email: kclub1@kuxtaltravels.com\n- Password: Kclub123$$\n- Role: admin\n\n"
+            "## Admin (Agente)\n- Email: agente1@kuxtaltravels.com\n- Password: Agente123$$$\n- Role: admin\n\n"
+            "## Member (preview)\n- Login: KT-001\n- Password: 1234567890101\n\n"
+            "## Auth Endpoints\n- POST /api/auth/login\n- POST /api/auth/member-login\n- GET /api/auth/me\n- POST /api/auth/logout\n"
+        )
+
+
+class _RescuePasswordReq(BaseModel):
+    secret: str
+    email: str
+    new_password: str
+
+
+@app.post("/api/auth/rescue-password")
+async def rescue_password(req: _RescuePasswordReq):
+    """Vía de rescate: si un admin/super_admin perdió su password, puede resetearla
+    poniendo RESCUE_SECRET en el .env del backend y llamando este endpoint con esa
+    secret + el email + nueva password. Después borrá la variable del .env por seguridad.
+    """
+    rescue = os.environ.get("RESCUE_SECRET", "")
+    if not rescue or len(rescue) < 12:
+        raise HTTPException(status_code=503, detail="Rescate deshabilitado (RESCUE_SECRET no configurado)")
+    if req.secret != rescue:
+        raise HTTPException(status_code=401, detail="Secret incorrecto")
+    if len(req.new_password) < 8:
+        raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 8 caracteres")
+    email = req.email.strip().lower()
+    user = await db.users.find_one({"email": email})
+    if not user:
+        raise HTTPException(status_code=404, detail=f"Usuario {email} no existe")
+    if user.get("role") not in ("super_admin", "admin"):
+        raise HTTPException(status_code=403, detail="Solo se pueden resetear cuentas admin")
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"password_hash": hash_password(req.new_password)}},
+    )
+    logger.warning("RESCUE: password reseteada para %s", email)
+    return {"ok": True, "email": email, "role": user["role"]}
+
 
 async def seed_sample_data():
     count = await db.packages.count_documents({})
