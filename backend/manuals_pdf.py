@@ -3,15 +3,20 @@ Manuales PDF generator — Kuxtal Travels.
 
 Convierte los .md de /app/manuales/ en PDFs con branding Kuxtal
 (navy + gold + Playfair Display). Cacheado en memoria por mtime del archivo.
+
+NOTA: weasyprint requiere libs del sistema (pango/cairo). Lo importamos lazy
+para que el backend arranque incluso si esas libs no están en el contenedor
+productivo. La descarga de PDF responderá con un error claro si falta la lib.
 """
 from __future__ import annotations
 
-import os
+import logging
 from pathlib import Path
 from typing import Dict, Tuple
 
 import markdown
-from weasyprint import HTML, CSS
+
+logger = logging.getLogger("kuxtal.manuals")
 
 MANUALS_DIR = Path("/app/manuales")
 
@@ -221,7 +226,10 @@ _BRAND_HEADER = """
 
 
 def generate_manual_pdf(role: str) -> bytes:
-    """Genera (o devuelve cacheado) el PDF del manual del role indicado."""
+    """Genera (o devuelve cacheado) el PDF del manual del role indicado.
+    Importa weasyprint de forma lazy. Si la lib del sistema no está disponible,
+    levanta RuntimeError con mensaje claro.
+    """
     if role not in MANUAL_FILES:
         raise ValueError(f"Manual desconocido: {role}")
 
@@ -234,6 +242,17 @@ def generate_manual_pdf(role: str) -> bytes:
     cached = _cache.get(role)
     if cached and cached[0] == mtime:
         return cached[1]
+
+    try:
+        from weasyprint import HTML, CSS
+    except (ImportError, OSError) as e:
+        logger.error("weasyprint no disponible: %s", e)
+        raise RuntimeError(
+            "La generación de PDF no está disponible en este servidor "
+            "(falta weasyprint o sus dependencias del sistema: pango, cairo). "
+            "Por ahora podés ver el manual online en /manual/{role} o pedirle "
+            "al administrador que lo descargue desde el preview."
+        ) from e
 
     md_text = md_path.read_text(encoding="utf-8")
     html_body = markdown.markdown(

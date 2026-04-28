@@ -2431,6 +2431,8 @@ async def download_manual(role: str, request: Request):
         pdf = generate_manual_pdf(role)
     except FileNotFoundError as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
     return Response(
         content=pdf,
         media_type="application/pdf",
@@ -2474,7 +2476,10 @@ async def download_manual_self(role: str, request: Request):
             raise HTTPException(status_code=403, detail="Acceso denegado")
         if user_role == "commerce" and role != "commerce":
             raise HTTPException(status_code=403, detail="Acceso denegado")
-    pdf = generate_manual_pdf(role)
+    try:
+        pdf = generate_manual_pdf(role)
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
     return Response(
         content=pdf,
         media_type="application/pdf",
