@@ -313,3 +313,10 @@ Sistema CRM para club vacacional con web publica estilo Expedia, programa Kuxtal
   - **Frontend**: nueva pestaña "Bot WA" (icon Bot) en AdminDashboard. `AdminBot.js`: hero navy + toggle ON/OFF, secciones OpenAI/Kapso/KB/Prompt, probador en vivo, listado de conversaciones, eye-toggle para secrets, masked previews `xxxx…last4`, copy webhook URL.
   - **Permisos**: feature_key `bot` agregada. Manual admin actualizado con sección 14B (guía + costos por modelo).
   - Verificado: feature-keys incluye 'bot', UI renderiza, GET/PUT config OK, tester deshabilitado hasta guardar API key. Falta prueba E2E con keys reales del usuario.
+
+- Producción restaurada + cuentas admin sembradas (2026-04-28, iter 55):
+  - **Bug fix crítico de deploy**: agregados `weasyprint==68.1` y `Markdown==3.10.2` (+ deps: pyphen, tinycss2, tinyhtml5, cssselect2, pydyf, fonttools, brotli, zopfli, cffi) a `requirements.txt`. El backend productivo crasheaba al arrancar con `ModuleNotFoundError: No module named 'weasyprint'` porque solo se había instalado en el preview.
+  - **Import lazy** de weasyprint en `manuals_pdf.py`: backend arranca sí o sí aunque el contenedor productivo no tenga libs del sistema (pango/cairo). Endpoints PDF devuelven 503 elegante si fallan. Los manuales online (`/manual/:role`) siguen funcionando porque solo usan markdown.
+  - **Seed de cuentas admin**: en `seed_admin()` se siembran automáticamente 3 cuentas en cada arranque (solo si no existen): `admin@kuxtaltravels.com` (super_admin), `kclub1@kuxtaltravels.com` y `agente1@kuxtaltravels.com` (admin). `test_credentials.md` actualizado con todas.
+  - **Endpoint de rescate** `POST /api/auth/rescue-password` con guard via `RESCUE_SECRET` env var: permite resetear cualquier cuenta admin pasando secret + email + new_password. Util cuando una cuenta ya existe con otra password en producción.
+  - **Verificado en producción** (`https://kuxtaltravelgt.com`): los 3 logins admin responden HTTP 200 con token JWT válido. Backend responde paquetes reales del cliente.
