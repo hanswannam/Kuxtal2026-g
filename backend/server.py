@@ -1767,7 +1767,7 @@ async def list_all_users(request: Request):
 FEATURE_KEYS = [
     "dashboard", "members", "clients", "packages", "commerce", "categories",
     "clubs", "regalias", "quotations", "analytics", "announcements",
-    "push", "import", "referrals", "requests", "users", "settings",
+    "push", "bot", "import", "referrals", "requests", "users", "settings",
 ]
 
 @api_router.post("/admin/users")
@@ -2423,6 +2423,159 @@ async def download_manual_self(role: str, request: Request):
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{get_manual_filename(role)}"'},
     )
+
+
+# ── WhatsApp Bot (OpenAI + Kapso.ai) ──
+import bot_service  # noqa: E402
+
+
+class BotConfigUpdate(BaseModel):
+    enabled: Optional[bool] = None
+    openai_api_key: Optional[str] = None  # empty string = keep current
+    openai_model: Optional[str] = None
+    kapso_api_key: Optional[str] = None
+    kapso_phone_number_id: Optional[str] = None
+    kapso_webhook_secret: Optional[str] = None
+    system_prompt: Optional[str] = None
+    knowledge_base: Optional[str] = None
+    include_packages: Optional[bool] = None
+    include_commerces: Optional[bool] = None
+    include_member_data: Optional[bool] = None
+    max_history: Optional[int] = None
+
+
+class BotTestRequest(BaseModel):
+    message: str
+    session_id: Optional[str] = "admin-test"
+
+
+@app.get("/api/admin/bot/config")
+async def admin_bot_get_config(request: Request):
+    await require_role("super_admin", "admin", permission="bot")(request)
+    return await bot_service.get_bot_config(db, masked=True)
+
+
+@app.put("/api/admin/bot/config")
+async def admin_bot_update_config(req: BotConfigUpdate, request: Request):
+    await require_role("super_admin", "admin", permission="bot")(request)
+    payload = {k: v for k, v in req.model_dump().items() if v is not None}
+    return await bot_service.save_bot_config(db, payload)
+
+
+@app.post("/api/admin/bot/test")
+async def admin_bot_test(req: BotTestRequest, request: Request):
+    """Probar el bot directamente desde el admin (sin pasar por WhatsApp)."""
+    await require_role("super_admin", "admin", permission="bot")(request)
+    raw_cfg = await db.config.find_one({"key": bot_service.CONFIG_KEY})
+    if not raw_cfg or not raw_cfg.get("openai_api_key"):
+        raise HTTPException(status_code=400, detail="Configurá primero la API key de OpenAI")
+    system_prompt = await bot_service.build_full_system_prompt(db, raw_cfg, member=None)
+    session_id = req.session_id or "admin-test"
+    conv = await bot_service.get_or_create_session(db, session_id, channel="admin-test")
+    history = conv.get("messages", [])[-(raw_cfg.get("max_history") or 10):]
+    try:
+        reply = await bot_service.chat_once(
+            api_key=raw_cfg["openai_api_key"],
+            model=raw_cfg.get("openai_model") or "gpt-4o-mini",
+            system_prompt=system_prompt,
+            history=history,
+            user_message=req.message,
+            session_id=session_id,
+        )
+    except Exception as e:
+        logger.error("Bot test error: %s", e)
+        raise HTTPException(status_code=500, detail=f"Error al consultar OpenAI: {e}") from e
+    await bot_service.append_message(db, session_id, "user", req.message)
+    await bot_service.append_message(db, session_id, "assistant", reply)
+    return {"reply": reply}
+
+
+@app.get("/api/admin/bot/conversations")
+async def admin_bot_conversations(request: Request, limit: int = 50):
+    await require_role("super_admin", "admin", permission="bot")(request)
+    return await bot_service.list_conversations(db, limit=limit)
+
+
+@app.delete("/api/admin/bot/conversations/{session_id}")
+async def admin_bot_delete_conv(session_id: str, request: Request):
+    await require_role("super_admin", "admin", permission="bot")(request)
+    await db.bot_conversations.delete_one({"session_id": session_id})
+    return {"ok": True}
+
+
+@app.post("/api/webhooks/kapso/whatsapp")
+async def kapso_webhook(request: Request):
+    """Webhook público para Kapso.ai. Verifica HMAC + procesa mensajes entrantes."""
+    raw = await request.body()
+    signature = request.headers.get("X-Webhook-Signature", "")
+    event = request.headers.get("X-Webhook-Event", "")
+
+    raw_cfg = await db.config.find_one({"key": bot_service.CONFIG_KEY})
+    if not raw_cfg or not raw_cfg.get("enabled"):
+        return {"ok": True, "skipped": "bot_disabled"}
+
+    secret = raw_cfg.get("kapso_webhook_secret") or ""
+    if secret and not bot_service.verify_kapso_signature(raw, signature, secret):
+        logger.warning("Kapso webhook signature mismatch")
+        raise HTTPException(status_code=401, detail="Firma inválida")
+
+    try:
+        payload = json_module.loads(raw.decode("utf-8")) if raw else {}
+    except Exception:
+        raise HTTPException(status_code=400, detail="JSON inválido") from None
+
+    # Solo nos importan mensajes entrantes
+    if event and "message.received" not in event:
+        return {"ok": True, "ignored_event": event}
+
+    inbound = bot_service.extract_inbound_message(payload)
+    if not inbound or not inbound.get("text"):
+        return {"ok": True, "skipped": "no_text"}
+
+    sender = inbound["from"]
+    text = inbound["text"]
+    session_id = f"wa:{sender}"
+
+    # Identificar socio si su número WA coincide con member.phone
+    member = None
+    if raw_cfg.get("include_member_data"):
+        member = await db.members.find_one(
+            {"$or": [{"phone": sender}, {"phone": f"+{sender}"}, {"whatsapp": sender}]},
+            {"name": 1, "contract_number": 1, "is_active": 1, "years_of_service": 1, "_id": 0},
+        )
+
+    system_prompt = await bot_service.build_full_system_prompt(db, raw_cfg, member=member)
+    conv = await bot_service.get_or_create_session(db, session_id, channel="whatsapp")
+    history = conv.get("messages", [])[-(raw_cfg.get("max_history") or 10):]
+
+    try:
+        reply = await bot_service.chat_once(
+            api_key=raw_cfg["openai_api_key"],
+            model=raw_cfg.get("openai_model") or "gpt-4o-mini",
+            system_prompt=system_prompt,
+            history=history,
+            user_message=text,
+            session_id=session_id,
+        )
+    except Exception as e:
+        logger.error("Bot chat_once error: %s", e)
+        reply = "Disculpá, tuve un problema técnico. Voy a derivar tu mensaje al equipo Kuxtal."
+
+    await bot_service.append_message(db, session_id, "user", text)
+    await bot_service.append_message(db, session_id, "assistant", reply)
+
+    try:
+        await bot_service.send_whatsapp_message(
+            kapso_api_key=raw_cfg.get("kapso_api_key", ""),
+            phone_number_id=raw_cfg.get("kapso_phone_number_id", ""),
+            to=sender,
+            text=reply,
+        )
+    except Exception as e:
+        logger.error("Kapso send error: %s", e)
+        return {"ok": False, "error": str(e)}
+
+    return {"ok": True}
 
 async def _load_existing_member_contracts() -> set:
     """Return all existing contract_numbers to check for in-DB duplicates."""

@@ -306,3 +306,10 @@ Sistema CRM para club vacacional con web publica estilo Expedia, programa Kuxtal
   - **App.js**: ruta `/manual/:role` protegida por todos los roles autenticados.
   - **Accesos**: AdminSettings → cards con par "Ver online + PDF" por rol; MemberDashboard header → pill "Manual" → `/manual/member`; CommercePortal header → pill "Manual" → `/manual/commerce`.
   - Verificado: render desktop con TOC + content luxury, scroll-spy resaltando sección activa en oro. Endpoints curl OK.
+
+- Bot de WhatsApp con OpenAI + Kapso.ai (2026-02, iter 54):
+  - **Backend**: `/app/backend/bot_service.py`. Config en `db.config["bot_settings"]` (openai_api_key, kapso_*, system_prompt, knowledge_base, modelo, toggles include_packages/commerces/member). Builder dinámico del system prompt (prompt + KB editable + paquetes activos + comercios + datos del socio si su WA coincide). Conversation store en `db.bot_conversations` (multi-turn por session_id `wa:<phone>`).
+  - **Endpoints**: `GET/PUT /api/admin/bot/config` (mascara secrets), `POST /api/admin/bot/test`, `GET/DELETE /api/admin/bot/conversations[/{id}]`, `POST /api/webhooks/kapso/whatsapp` (verifica HMAC-SHA256, extrae mensaje Meta-style, OpenAI vía emergentintegrations LlmChat con key del cliente, responde por Kapso `POST /meta/whatsapp/messages`).
+  - **Frontend**: nueva pestaña "Bot WA" (icon Bot) en AdminDashboard. `AdminBot.js`: hero navy + toggle ON/OFF, secciones OpenAI/Kapso/KB/Prompt, probador en vivo, listado de conversaciones, eye-toggle para secrets, masked previews `xxxx…last4`, copy webhook URL.
+  - **Permisos**: feature_key `bot` agregada. Manual admin actualizado con sección 14B (guía + costos por modelo).
+  - Verificado: feature-keys incluye 'bot', UI renderiza, GET/PUT config OK, tester deshabilitado hasta guardar API key. Falta prueba E2E con keys reales del usuario.

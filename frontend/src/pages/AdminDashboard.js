@@ -4,7 +4,7 @@ import { Badge } from '../components/ui/badge';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import {
   LayoutDashboard, Users, Package, FileText, Bell, Settings,
-  Send, Store, TrendingUp, Gift, Loader2, Award, Building2, Tag, UserPlus
+  Send, Store, TrendingUp, Gift, Loader2, Award, Building2, Tag, UserPlus, Bot
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../lib/api';
@@ -24,6 +24,7 @@ const AdminUsers = lazy(() => import('./admin/AdminUsers').then(m => ({ default:
 const AdminSettings = lazy(() => import('./admin/AdminSettings').then(m => ({ default: m.AdminSettings })));
 const AdminCommerceCategories = lazy(() => import('./admin/AdminCommerceCategories').then(m => ({ default: m.AdminCommerceCategories })));
 const AdminClients = lazy(() => import('./admin/AdminClients').then(m => ({ default: m.AdminClients })));
+const AdminBot = lazy(() => import('./admin/AdminBot').then(m => ({ default: m.AdminBot })));
 
 function TabLoader() {
   return (
@@ -211,6 +212,7 @@ export default function AdminDashboard() {
     { id: 'referrals', label: 'Referidos', icon: Gift },
     { id: 'announcements', label: 'Anuncios', icon: Bell },
     { id: 'push', label: 'Push', icon: Send },
+    { id: 'bot', label: 'Bot WA', icon: Bot },
     { id: 'users', label: 'Usuarios', icon: Users },
     { id: 'settings', label: 'Config', icon: Settings },
   ];
@@ -284,6 +286,7 @@ export default function AdminDashboard() {
           {tab === 'clubs' && <AdminClubs handleImageUpload={handleImageUpload} uploading={uploading} />}
           {tab === 'regalias' && <AdminRegalias members={members} handleImageUpload={handleImageUpload} uploading={uploading} />}
           {tab === 'push' && <AdminPush pushForm={pushForm} setPushForm={setPushForm} sendPush={sendPush} pushHistory={pushHistory} />}
+          {tab === 'bot' && <AdminBot />}
           {tab === 'users' && <AdminUsers adminUsers={adminUsers} allUsers={allUsers} showUserForm={showUserForm} setShowUserForm={setShowUserForm} userForm={userForm} setUserForm={setUserForm} userView={userView} setUserView={setUserView} loadUsers={loadUsers} />}
           {tab === 'settings' && <AdminSettings whatsappPhone={whatsappPhone} setWhatsappPhone={setWhatsappPhone} saveWhatsApp={saveWhatsApp} quotSettings={quotSettings} setQuotSettings={setQuotSettings} saveQuotSettings={saveQuotSettings} stats={stats} />}
         </Suspense>

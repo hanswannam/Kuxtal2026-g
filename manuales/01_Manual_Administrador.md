@@ -214,6 +214,76 @@ El panel tiene **15 módulos** en la barra lateral. Los módulos visibles depend
 
 ---
 
+## 14B. Bot de WhatsApp (Asistente IA)
+
+Sub-módulo dedicado en el admin (**tab "Bot WA"**). Permite atender socios, comercios y prospectos por WhatsApp con OpenAI ChatGPT, conectado vía Kapso.ai.
+
+### 14B.1 Configuración inicial (una sola vez)
+
+#### a) OpenAI
+1. Conseguí tu API key en [platform.openai.com/api-keys](https://platform.openai.com/api-keys).
+2. Pegala en el campo **OpenAI → API key**.
+3. Elegí el modelo:
+   - **GPT-4o-mini** (recomendado): rápido y barato (~$0.15 por millón de tokens).
+   - **GPT-4o**: más potente, mejor en respuestas complejas.
+   - **GPT-5.2 / 5.1**: top of the line.
+
+#### b) Kapso.ai (WhatsApp)
+1. Ingresá a tu dashboard de Kapso → **API Keys** → copiá tu key.
+2. Pegala en **Kapso → API key**.
+3. En Kapso → **Phone Numbers** → copiá el ID del número y pegalo en **Phone Number ID**.
+4. En Kapso → **Webhooks → Add Webhook**:
+   - **URL**: copiá la que aparece en el admin (campo "Webhook URL").
+   - **Eventos**: suscribite a `whatsapp.message.received`.
+   - **Secret**: generá uno y pegalo también en el admin (campo "Webhook secret").
+5. Guardá la configuración.
+
+### 14B.2 Base de conocimiento
+
+El bot recibe en cada mensaje:
+- **Tu system prompt** (la personalidad y reglas).
+- **Texto editable** (FAQs, políticas, horarios, contactos — lo escribís en el admin).
+- **Datos automáticos** según los toggles:
+  - **Paquetes**: lista activa con precios público/socio.
+  - **Comercios**: aliados activos y beneficios.
+  - **Datos del socio**: si el número de WA del que escribe coincide con `phone` o `whatsapp` de un socio, le inyecta su nombre, contrato, antigüedad.
+
+> El sistema prompt por defecto ya viene optimizado (estilo concierge premium, español neutral, máx. 4-5 líneas, no inventa datos). Editá lo que quieras.
+
+### 14B.3 Probador en vivo
+
+- Columna derecha: caja de chat para probar el bot **sin gastar mensajes de WhatsApp**.
+- Usa exactamente el prompt y la base de conocimiento que estén guardadas.
+- Buena práctica: probá antes de activar el toggle público.
+
+### 14B.4 Activar / desactivar
+
+- Toggle "APAGADO/ACTIVO" en la esquina superior del card.
+- Cuando está apagado, los webhooks de Kapso reciben `{"ok": true, "skipped": "bot_disabled"}` y no responden.
+
+### 14B.5 Conversaciones
+
+- Botón "Ver historial de conversaciones" → lista todas las sesiones (por número WA o tester).
+- Cada sesión muestra: ID, último mensaje, total de mensajes, canal.
+- Podés eliminar sesiones individuales.
+
+### 14B.6 Permisos
+
+- El módulo "Bot WA" requiere el permiso `bot` en la matriz de admins.
+- `super_admin` lo ve siempre.
+
+### 14B.7 Costos esperados
+
+| Modelo | Input ($/1M tok) | Output ($/1M tok) | Costo aprox. mensaje promedio |
+|---|---|---|---|
+| GPT-4o-mini | $0.15 | $0.60 | ~$0.0005 |
+| GPT-4o | $5.00 | $20.00 | ~$0.015 |
+| GPT-5.1 | ~$10 | ~$30 | ~$0.025 |
+
+> 1.000 mensajes con GPT-4o-mini ≈ $0.50 USD.
+
+---
+
 ## 15. Eliminación protegida (CRÍTICO)
 
 Cualquier acción de **borrado** (socio, paquete, comercio, cotización, club, regalía, etc.) pide el **código secreto**:
