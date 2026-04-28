@@ -95,17 +95,37 @@ async def get_bot_config(db, *, masked: bool = True) -> Dict[str, Any]:
 
 async def save_bot_config(db, updates: Dict[str, Any]) -> Dict[str, Any]:
     """Merge updates with existing config. Empty string secrets/critical fields are ignored
-    (preserves the saved one) so el frontend no puede pisar accidentalmente con vacío."""
+    (preserves the saved one) so el frontend no puede pisar accidentalmente con vacío.
+
+    Salvaguarda anti-frontend-viejo: si en el mismo PUT vienen `enabled=false` Y `phone_id=""`,
+    asumimos que es un guardado del frontend desactualizado/cacheado y descartamos AMBOS cambios
+    (preservamos el estado anterior). Esto evita el clásico bug 'el bot se apagó solo'.
+    """
     current = await db.config.find_one({"key": CONFIG_KEY}) or default_config()
+
+    # Anti-stale-frontend safeguard
+    incoming_enabled = updates.get("enabled")
+    incoming_phone = updates.get("kapso_phone_number_id")
+    if (
+        incoming_enabled is False
+        and isinstance(incoming_phone, str)
+        and incoming_phone.strip() == ""
+        and current.get("kapso_phone_number_id")
+    ):
+        logger.warning(
+            "Anti-stale-frontend: PUT con enabled=false + phone_id='' detectado. Descartando cambios destructivos."
+        )
+        updates.pop("enabled", None)
+        updates.pop("kapso_phone_number_id", None)
+
     # Estos campos NUNCA se sobrescriben con string vacío — solo si vienen con valor real.
-    # Esto previene que el frontend (al guardar otro cambio) pise estos valores cargados.
     preserve_if_empty = (
         "openai_api_key", "kapso_api_key", "kapso_webhook_secret", "external_admin_token",
         "openai_model", "kapso_phone_number_id", "external_api_base_url", "system_prompt",
     )
     for k, v in updates.items():
         if k in preserve_if_empty and (v is None or (isinstance(v, str) and v.strip() == "")):
-            continue  # keep current
+            continue
         current[k] = v
     current["key"] = CONFIG_KEY
     current["updated_at"] = datetime.now(timezone.utc).isoformat()
