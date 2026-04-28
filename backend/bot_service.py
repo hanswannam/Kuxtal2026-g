@@ -94,11 +94,17 @@ async def get_bot_config(db, *, masked: bool = True) -> Dict[str, Any]:
 
 
 async def save_bot_config(db, updates: Dict[str, Any]) -> Dict[str, Any]:
-    """Merge updates with existing config. Empty string secrets are ignored (preserves the saved one)."""
+    """Merge updates with existing config. Empty string secrets/critical fields are ignored
+    (preserves the saved one) so el frontend no puede pisar accidentalmente con vacío."""
     current = await db.config.find_one({"key": CONFIG_KEY}) or default_config()
-    secret_keys = ("openai_api_key", "kapso_api_key", "kapso_webhook_secret", "external_admin_token")
+    # Estos campos NUNCA se sobrescriben con string vacío — solo si vienen con valor real.
+    # Esto previene que el frontend (al guardar otro cambio) pise estos valores cargados.
+    preserve_if_empty = (
+        "openai_api_key", "kapso_api_key", "kapso_webhook_secret", "external_admin_token",
+        "openai_model", "kapso_phone_number_id", "external_api_base_url", "system_prompt",
+    )
     for k, v in updates.items():
-        if k in secret_keys and (v is None or v == ""):
+        if k in preserve_if_empty and (v is None or (isinstance(v, str) and v.strip() == "")):
             continue  # keep current
         current[k] = v
     current["key"] = CONFIG_KEY
@@ -383,22 +389,54 @@ def extract_inbound_message(event_payload: Dict[str, Any]) -> Optional[Dict[str,
     - Kapso v2 (payload.message.from + payload.message.text.body)
     - Formato simple (payload.from + payload.text)
     - Meta-style anidado (payload.entry[].changes[].value.messages[])
+    - Mensajes no-texto (audio, imagen, video, etc.) → texto sintético para que el bot guíe al usuario.
     """
     try:
         # Caso 1: Kapso v2 — message en root o en data
         msg = event_payload.get("message") or (event_payload.get("data") or {}).get("message")
         if msg and isinstance(msg, dict):
             sender = msg.get("from", "")
+            msg_type = msg.get("type", "text")
+            text = ""
+
             text_node = msg.get("text") or {}
-            text = text_node.get("body") if isinstance(text_node, dict) else (text_node if isinstance(text_node, str) else "")
+            if isinstance(text_node, dict):
+                text = text_node.get("body", "")
+            elif isinstance(text_node, str):
+                text = text_node
+
+            # Fallback 1: kapso.content (texto pre-procesado por Kapso)
             if not text:
-                # Fallback: kapso.content (texto pre-procesado)
                 text = (msg.get("kapso") or {}).get("content", "")
+
+            # Fallback 2: button/interactive replies
+            if not text and msg.get("button"):
+                text = msg["button"].get("text", "") or msg["button"].get("payload", "")
+            if not text and msg.get("interactive"):
+                inter = msg["interactive"]
+                br = inter.get("button_reply") or inter.get("list_reply") or {}
+                text = br.get("title", "") or br.get("id", "")
+
+            # Fallback 3: tipo no-texto → mensaje sintético claro
+            if not text and msg_type != "text":
+                synthetic_map = {
+                    "audio": "[el cliente envió un audio]",
+                    "voice": "[el cliente envió una nota de voz]",
+                    "image": "[el cliente envió una imagen]",
+                    "video": "[el cliente envió un video]",
+                    "document": "[el cliente envió un documento]",
+                    "sticker": "[el cliente envió un sticker]",
+                    "location": "[el cliente compartió una ubicación]",
+                    "contacts": "[el cliente compartió un contacto]",
+                }
+                text = synthetic_map.get(msg_type, f"[mensaje de tipo {msg_type}]")
+
             if sender and text:
                 return {
                     "from": str(sender),
                     "text": str(text),
                     "message_id": str(msg.get("id", "")),
+                    "type": str(msg_type),
                 }
 
         # Caso 2: simple flat
@@ -410,6 +448,7 @@ def extract_inbound_message(event_payload: Dict[str, Any]) -> Optional[Dict[str,
                     "from": str(data["from"]),
                     "text": str(text_val),
                     "message_id": str(data.get("id") or data.get("message_id") or ""),
+                    "type": "text",
                 }
 
         # Caso 3: Meta-style anidado
@@ -424,6 +463,7 @@ def extract_inbound_message(event_payload: Dict[str, Any]) -> Optional[Dict[str,
                 "from": str(meta_msg.get("from", "")),
                 "text": str((meta_msg.get("text") or {}).get("body", "")),
                 "message_id": str(meta_msg.get("id", "")),
+                "type": str(meta_msg.get("type", "text")),
             }
     except Exception as e:
         logger.warning("extract_inbound_message failed: %s", e)

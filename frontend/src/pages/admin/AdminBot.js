@@ -61,22 +61,25 @@ export function AdminBot() {
   const save = async () => {
     setSaving(true);
     try {
-      const payload = { ...config };
-      // Remove masked-only fields and inject drafts only if filled
-      delete payload.openai_api_key_masked;
-      delete payload.openai_api_key_set;
-      delete payload.kapso_api_key_masked;
-      delete payload.kapso_api_key_set;
-      delete payload.kapso_webhook_secret_masked;
-      delete payload.kapso_webhook_secret_set;
-      delete payload.external_admin_token_masked;
-      delete payload.external_admin_token_set;
-      delete payload.updated_at;
-      delete payload.key;
-      payload.openai_api_key = openaiKeyDraft;
-      payload.kapso_api_key = kapsoKeyDraft;
-      payload.kapso_webhook_secret = secretDraft;
-      payload.external_admin_token = adminTokenDraft;
+      // Solo mandamos campos editables (NUNCA los _masked / _set / metadata).
+      // Para los secrets: solo mandamos el draft si el usuario lo pegó (sino vacío = backend preserva).
+      const payload = {
+        enabled: config.enabled,
+        openai_model: config.openai_model,
+        kapso_phone_number_id: config.kapso_phone_number_id || '',
+        system_prompt: config.system_prompt,
+        knowledge_base: config.knowledge_base || '',
+        include_packages: !!config.include_packages,
+        include_commerces: !!config.include_commerces,
+        include_member_data: !!config.include_member_data,
+        max_history: config.max_history || 10,
+        external_api_base_url: config.external_api_base_url || '',
+        // Drafts: empty = preserve current
+        openai_api_key: openaiKeyDraft,
+        kapso_api_key: kapsoKeyDraft,
+        kapso_webhook_secret: secretDraft,
+        external_admin_token: adminTokenDraft,
+      };
       const r = await api.put('/admin/bot/config', payload);
       setConfig(r.data);
       setOpenaiKeyDraft('');
