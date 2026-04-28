@@ -300,31 +300,51 @@ async def send_whatsapp_message(
 
 def extract_inbound_message(event_payload: Dict[str, Any]) -> Optional[Dict[str, str]]:
     """Normaliza el payload de Kapso a { from, text, message_id }.
-    Soporta el formato estándar con payload anidado tipo Meta.
+    Soporta:
+    - Kapso v2 (payload.message.from + payload.message.text.body)
+    - Formato simple (payload.from + payload.text)
+    - Meta-style anidado (payload.entry[].changes[].value.messages[])
     """
     try:
-        # Kapso envía en .data o flat — manejamos ambos
+        # Caso 1: Kapso v2 — message en root o en data
+        msg = event_payload.get("message") or (event_payload.get("data") or {}).get("message")
+        if msg and isinstance(msg, dict):
+            sender = msg.get("from", "")
+            text_node = msg.get("text") or {}
+            text = text_node.get("body") if isinstance(text_node, dict) else (text_node if isinstance(text_node, str) else "")
+            if not text:
+                # Fallback: kapso.content (texto pre-procesado)
+                text = (msg.get("kapso") or {}).get("content", "")
+            if sender and text:
+                return {
+                    "from": str(sender),
+                    "text": str(text),
+                    "message_id": str(msg.get("id", "")),
+                }
+
+        # Caso 2: simple flat
         data = event_payload.get("data") or event_payload
-        # Caso 1: simple
         if "from" in data and "text" in data:
             text_val = data["text"] if isinstance(data["text"], str) else data["text"].get("body", "")
-            return {
-                "from": data["from"],
-                "text": text_val,
-                "message_id": data.get("id") or data.get("message_id") or "",
-            }
-        # Caso 2: Meta-style
-        msg = (
+            if text_val:
+                return {
+                    "from": str(data["from"]),
+                    "text": str(text_val),
+                    "message_id": str(data.get("id") or data.get("message_id") or ""),
+                }
+
+        # Caso 3: Meta-style anidado
+        meta_msg = (
             data.get("entry", [{}])[0]
             .get("changes", [{}])[0]
             .get("value", {})
             .get("messages", [{}])[0]
         )
-        if msg:
+        if meta_msg:
             return {
-                "from": msg.get("from", ""),
-                "text": (msg.get("text") or {}).get("body", ""),
-                "message_id": msg.get("id", ""),
+                "from": str(meta_msg.get("from", "")),
+                "text": str((meta_msg.get("text") or {}).get("body", "")),
+                "message_id": str(meta_msg.get("id", "")),
             }
     except Exception as e:
         logger.warning("extract_inbound_message failed: %s", e)
