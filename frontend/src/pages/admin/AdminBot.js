@@ -74,6 +74,7 @@ export function AdminBot() {
         include_member_data: !!config.include_member_data,
         max_history: config.max_history || 10,
         external_api_base_url: config.external_api_base_url || '',
+        public_site_url: config.public_site_url || '',
         // Drafts: empty = preserve current
         openai_api_key: openaiKeyDraft,
         kapso_api_key: kapsoKeyDraft,
@@ -285,11 +286,20 @@ export function AdminBot() {
           </Section>
 
           {/* Producción */}
-          <Section title="Backend de producción (opcional)" icon={Database} testid="bot-prod">
-            <p className="text-xs text-muted-foreground mb-3">
+          <Section title="Backend de producción / URL pública" icon={Database} testid="bot-prod">
+            <Field label="URL pública del sitio (para los links que comparte el bot)" hint="Ejemplo: https://kuxtaltravelgt.com — el bot generará links como https://kuxtaltravelgt.com/trip/ID">
+              <Input
+                value={config.public_site_url || ''}
+                onChange={e => update({ public_site_url: e.target.value })}
+                placeholder="https://kuxtaltravelgt.com"
+                className="rounded-xl font-mono"
+                data-testid="public-site-url"
+              />
+            </Field>
+            <p className="text-xs text-muted-foreground mb-3 mt-4">
               Si tu CRM real corre en otro deploy (ej. <code className="font-mono bg-secondary px-1 rounded">kuxtaltravelgt.com</code>), pegá aquí el URL del backend para que el bot lea paquetes y comercios reales en lugar de los del preview.
             </p>
-            <Field label="URL del backend productivo" hint="Sin barra final. Ejemplo: https://api.kuxtaltravelgt.com">
+            <Field label="URL del backend productivo (opcional)" hint="Sin barra final. Solo si tu backend está en otro dominio que el frontend público.">
               <Input
                 value={config.external_api_base_url || ''}
                 onChange={e => update({ external_api_base_url: e.target.value })}

@@ -2506,6 +2506,7 @@ class BotConfigUpdate(BaseModel):
     max_history: Optional[int] = None
     external_api_base_url: Optional[str] = None
     external_admin_token: Optional[str] = None
+    public_site_url: Optional[str] = None
 
 
 class BotTestRequest(BaseModel):

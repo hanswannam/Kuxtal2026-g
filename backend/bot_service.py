@@ -46,6 +46,14 @@ DEFAULT_SYSTEM_PROMPT = """Sos el Asistente Oficial de Kuxtal Travels — un clu
 - Si te preguntan algo fuera de Kuxtal, redirigí amablemente al servicio del club.
 - Si el usuario está autenticado como socio, llamálo por su nombre.
 
+**Compartir LINKS — REGLA OBLIGATORIA:**
+- Cuando menciones UN paquete/viaje/experiencia específico, SIEMPRE incluí su link al final del párrafo en la forma:
+  `🔗 Ver detalle: <URL>`
+- Cuando menciones UN comercio aliado específico, incluí también:
+  `🔗 Más info: <URL>`
+- Las URLs están listadas junto a cada paquete/comercio en la base de conocimiento. Copialas EXACTAS, sin inventar.
+- Si listás varios (3 o más), basta con poner el link de los 2 que más se ajusten a lo que pide el cliente.
+
 **Cuando termines una respuesta**, si corresponde, sugerí una próxima acción ("¿Querés que te muestre los destinos disponibles?")."""
 
 
@@ -70,6 +78,7 @@ def default_config() -> Dict[str, Any]:
         "max_history": 10,
         "external_api_base_url": "",  # productive backend URL (optional)
         "external_admin_token": "",   # admin JWT for member lookups (optional)
+        "public_site_url": "https://kuxtaltravelgt.com",  # base URL para links que comparte el bot
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -122,6 +131,7 @@ async def save_bot_config(db, updates: Dict[str, Any]) -> Dict[str, Any]:
     preserve_if_empty = (
         "openai_api_key", "kapso_api_key", "kapso_webhook_secret", "external_admin_token",
         "openai_model", "kapso_phone_number_id", "external_api_base_url", "system_prompt",
+        "public_site_url",
     )
     for k, v in updates.items():
         if k in preserve_if_empty and (v is None or (isinstance(v, str) and v.strip() == "")):
@@ -137,10 +147,11 @@ async def save_bot_config(db, updates: Dict[str, Any]) -> Dict[str, Any]:
 # Knowledge base builder
 # ─────────────────────────────────────────────────────────────────────────
 
-async def _fetch_packages_summary(db, limit: int = 30, external_base: str = "") -> str:
+async def _fetch_packages_summary(db, limit: int = 30, external_base: str = "", site_url: str = "") -> str:
     """Lista compacta de paquetes activos para inyectar en el system prompt.
     Si external_base está configurado, consume el endpoint público de ese deploy
     (BD productiva) en vez de la BD local del preview.
+    site_url se usa para construir el link público a cada paquete (/trip/:id).
     """
     items: List[Dict[str, Any]] = []
     if external_base:
@@ -158,7 +169,8 @@ async def _fetch_packages_summary(db, limit: int = 30, external_base: str = "") 
         async for p in cursor:
             items.append(p)
 
-    lines = ["## Paquetes activos"]
+    site = (site_url or "").rstrip("/")
+    lines = ["## Paquetes activos (con LINK público — usá este link cuando menciones cada paquete)"]
     for p in items[:limit]:
         title = p.get("title") or "(sin título)"
         country = p.get("country") or "—"
@@ -166,6 +178,7 @@ async def _fetch_packages_summary(db, limit: int = 30, external_base: str = "") 
         price = p.get("price") or 0
         member_price = p.get("member_price") or 0
         cat = p.get("category") or "paquete"
+        pid = p.get("_id") or p.get("id") or ""
         try:
             line = f"- **{title}** · {country} · {days} días · Q.{float(price):,.0f}"
             if member_price:
@@ -173,11 +186,13 @@ async def _fetch_packages_summary(db, limit: int = 30, external_base: str = "") 
         except Exception:
             line = f"- **{title}** · {country}"
         line += f" · {cat}"
+        if site and pid:
+            line += f" · LINK: {site}/trip/{pid}"
         lines.append(line)
     return "\n".join(lines) if len(lines) > 1 else "(sin paquetes activos)"
 
 
-async def _fetch_commerces_summary(db, limit: int = 30, external_base: str = "") -> str:
+async def _fetch_commerces_summary(db, limit: int = 30, external_base: str = "", site_url: str = "") -> str:
     items: List[Dict[str, Any]] = []
     if external_base:
         url = f"{external_base.rstrip('/')}/api/commerce"
@@ -194,15 +209,19 @@ async def _fetch_commerces_summary(db, limit: int = 30, external_base: str = "")
         async for c in cursor:
             items.append(c)
 
-    lines = ["## Comercios aliados (Kuxtal Club)"]
+    site = (site_url or "").rstrip("/")
+    lines = ["## Comercios aliados (Kuxtal Club) — incluí el LINK cuando menciones cada uno"]
     for c in items[:limit]:
         name = c.get("name") or ""
         cat = c.get("category") or ""
         loc = c.get("location") or ""
         ben = c.get("benefit_description") or ""
+        cid = c.get("_id") or c.get("id") or ""
         line = f"- **{name}** ({cat}) · {loc}"
         if ben:
             line += f" → {ben}"
+        if site and cid:
+            line += f" · LINK: {site}/commerce/{cid}"
         lines.append(line)
     return "\n".join(lines) if len(lines) > 1 else "(sin comercios)"
 
@@ -234,12 +253,13 @@ async def build_full_system_prompt(
         parts.append("\n## Base de conocimiento (editable por admin)\n" + kb)
 
     external_base = (cfg.get("external_api_base_url") or "").strip()
+    site_url = (cfg.get("public_site_url") or "https://kuxtaltravelgt.com").strip()
 
     if cfg.get("include_packages"):
-        parts.append("\n" + await _fetch_packages_summary(db, external_base=external_base))
+        parts.append("\n" + await _fetch_packages_summary(db, external_base=external_base, site_url=site_url))
 
     if cfg.get("include_commerces"):
-        parts.append("\n" + await _fetch_commerces_summary(db, external_base=external_base))
+        parts.append("\n" + await _fetch_commerces_summary(db, external_base=external_base, site_url=site_url))
 
     if cfg.get("include_member_data") and member:
         parts.append("\n" + _format_member_context(member))
