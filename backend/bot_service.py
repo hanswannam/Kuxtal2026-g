@@ -68,6 +68,8 @@ def default_config() -> Dict[str, Any]:
         "include_commerces": True,
         "include_member_data": True,
         "max_history": 10,
+        "external_api_base_url": "",  # productive backend URL (optional)
+        "external_admin_token": "",   # admin JWT for member lookups (optional)
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -84,7 +86,7 @@ async def get_bot_config(db, *, masked: bool = True) -> Dict[str, Any]:
         cfg = default_config()
     cfg.pop("_id", None)
     if masked:
-        for k in ("openai_api_key", "kapso_api_key", "kapso_webhook_secret"):
+        for k in ("openai_api_key", "kapso_api_key", "kapso_webhook_secret", "external_admin_token"):
             cfg[f"{k}_masked"] = mask_secret(cfg.get(k, ""))
             cfg[f"{k}_set"] = bool(cfg.get(k))
             cfg.pop(k, None)
@@ -94,7 +96,7 @@ async def get_bot_config(db, *, masked: bool = True) -> Dict[str, Any]:
 async def save_bot_config(db, updates: Dict[str, Any]) -> Dict[str, Any]:
     """Merge updates with existing config. Empty string secrets are ignored (preserves the saved one)."""
     current = await db.config.find_one({"key": CONFIG_KEY}) or default_config()
-    secret_keys = ("openai_api_key", "kapso_api_key", "kapso_webhook_secret")
+    secret_keys = ("openai_api_key", "kapso_api_key", "kapso_webhook_secret", "external_admin_token")
     for k, v in updates.items():
         if k in secret_keys and (v is None or v == ""):
             continue  # keep current
@@ -109,29 +111,65 @@ async def save_bot_config(db, updates: Dict[str, Any]) -> Dict[str, Any]:
 # Knowledge base builder
 # ─────────────────────────────────────────────────────────────────────────
 
-async def _fetch_packages_summary(db, limit: int = 30) -> str:
-    """Lista compacta de paquetes activos para inyectar en el system prompt."""
+async def _fetch_packages_summary(db, limit: int = 30, external_base: str = "") -> str:
+    """Lista compacta de paquetes activos para inyectar en el system prompt.
+    Si external_base está configurado, consume el endpoint público de ese deploy
+    (BD productiva) en vez de la BD local del preview.
+    """
+    items: List[Dict[str, Any]] = []
+    if external_base:
+        url = f"{external_base.rstrip('/')}/api/packages"
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                r = await client.get(url, params={"limit": limit})
+                if r.status_code == 200:
+                    items = r.json() if isinstance(r.json(), list) else []
+        except Exception as e:
+            logger.warning("packages external fetch failed: %s — fallback to local", e)
+            items = []
+    if not items:
+        cursor = db.packages.find({"is_active": {"$ne": False}}).sort("featured", -1).limit(limit)
+        async for p in cursor:
+            items.append(p)
+
     lines = ["## Paquetes activos"]
-    cursor = db.packages.find({"is_active": {"$ne": False}}).sort("featured", -1).limit(limit)
-    async for p in cursor:
+    for p in items[:limit]:
         title = p.get("title") or "(sin título)"
         country = p.get("country") or "—"
         days = p.get("duration_days") or "?"
         price = p.get("price") or 0
         member_price = p.get("member_price") or 0
         cat = p.get("category") or "paquete"
-        line = f"- **{title}** · {country} · {days} días · Q.{price:,.0f}"
-        if member_price:
-            line += f" (socio Q.{member_price:,.0f})"
+        try:
+            line = f"- **{title}** · {country} · {days} días · Q.{float(price):,.0f}"
+            if member_price:
+                line += f" (socio Q.{float(member_price):,.0f})"
+        except Exception:
+            line = f"- **{title}** · {country}"
         line += f" · {cat}"
         lines.append(line)
     return "\n".join(lines) if len(lines) > 1 else "(sin paquetes activos)"
 
 
-async def _fetch_commerces_summary(db, limit: int = 30) -> str:
+async def _fetch_commerces_summary(db, limit: int = 30, external_base: str = "") -> str:
+    items: List[Dict[str, Any]] = []
+    if external_base:
+        url = f"{external_base.rstrip('/')}/api/commerce"
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                r = await client.get(url)
+                if r.status_code == 200:
+                    items = r.json() if isinstance(r.json(), list) else []
+        except Exception as e:
+            logger.warning("commerce external fetch failed: %s — fallback to local", e)
+            items = []
+    if not items:
+        cursor = db.commerce.find({"status": "active", "is_active": {"$ne": False}}).limit(limit)
+        async for c in cursor:
+            items.append(c)
+
     lines = ["## Comercios aliados (Kuxtal Club)"]
-    cursor = db.commerce.find({"status": "active", "is_active": {"$ne": False}}).limit(limit)
-    async for c in cursor:
+    for c in items[:limit]:
         name = c.get("name") or ""
         cat = c.get("category") or ""
         loc = c.get("location") or ""
@@ -169,16 +207,57 @@ async def build_full_system_prompt(
     if kb:
         parts.append("\n## Base de conocimiento (editable por admin)\n" + kb)
 
+    external_base = (cfg.get("external_api_base_url") or "").strip()
+
     if cfg.get("include_packages"):
-        parts.append("\n" + await _fetch_packages_summary(db))
+        parts.append("\n" + await _fetch_packages_summary(db, external_base=external_base))
 
     if cfg.get("include_commerces"):
-        parts.append("\n" + await _fetch_commerces_summary(db))
+        parts.append("\n" + await _fetch_commerces_summary(db, external_base=external_base))
 
     if cfg.get("include_member_data") and member:
         parts.append("\n" + _format_member_context(member))
 
     return "\n".join(parts)
+
+
+async def lookup_member_by_phone(db, phone: str, cfg: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Busca un socio por su número de WhatsApp.
+    1) Primero intenta en el backend externo (productivo) si está configurado y hay token admin.
+    2) Si no, fallback a la BD local del preview.
+    """
+    external_base = (cfg.get("external_api_base_url") or "").strip()
+    admin_token = cfg.get("external_admin_token") or ""
+
+    if external_base and admin_token:
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                r = await client.get(
+                    f"{external_base.rstrip('/')}/api/members",
+                    params={"search": phone, "limit": 5},
+                    headers={"Authorization": f"Bearer {admin_token}"},
+                )
+                if r.status_code == 200:
+                    data = r.json()
+                    items = data if isinstance(data, list) else data.get("items", [])
+                    for m in items:
+                        for field in ("phone", "whatsapp", "phone_secondary"):
+                            v = (m.get(field) or "").replace("+", "").replace(" ", "").replace("-", "")
+                            if v and v.endswith(phone[-8:]):
+                                return {
+                                    "name": m.get("name", ""),
+                                    "contract_number": m.get("contract_number", ""),
+                                    "is_active": m.get("is_active", True),
+                                    "years_of_service": m.get("years_of_service"),
+                                }
+        except Exception as e:
+            logger.warning("external member lookup failed: %s", e)
+
+    # Local fallback
+    return await db.members.find_one(
+        {"$or": [{"phone": phone}, {"phone": f"+{phone}"}, {"whatsapp": phone}]},
+        {"name": 1, "contract_number": 1, "is_active": 1, "years_of_service": 1, "_id": 0},
+    )
 
 
 # ─────────────────────────────────────────────────────────────────────────

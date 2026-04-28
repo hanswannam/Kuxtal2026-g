@@ -32,6 +32,8 @@ export function AdminBot() {
   const [openaiKeyDraft, setOpenaiKeyDraft] = useState('');
   const [kapsoKeyDraft, setKapsoKeyDraft] = useState('');
   const [secretDraft, setSecretDraft] = useState('');
+  const [adminTokenDraft, setAdminTokenDraft] = useState('');
+  const [showAdminToken, setShowAdminToken] = useState(false);
   // tester
   const [testInput, setTestInput] = useState('');
   const [testHistory, setTestHistory] = useState([]);
@@ -67,16 +69,20 @@ export function AdminBot() {
       delete payload.kapso_api_key_set;
       delete payload.kapso_webhook_secret_masked;
       delete payload.kapso_webhook_secret_set;
+      delete payload.external_admin_token_masked;
+      delete payload.external_admin_token_set;
       delete payload.updated_at;
       delete payload.key;
       payload.openai_api_key = openaiKeyDraft;
       payload.kapso_api_key = kapsoKeyDraft;
       payload.kapso_webhook_secret = secretDraft;
+      payload.external_admin_token = adminTokenDraft;
       const r = await api.put('/admin/bot/config', payload);
       setConfig(r.data);
       setOpenaiKeyDraft('');
       setKapsoKeyDraft('');
       setSecretDraft('');
+      setAdminTokenDraft('');
       toast.success('Configuración guardada');
     } catch (e) {
       toast.error(e.response?.data?.detail || 'Error al guardar');
@@ -272,6 +278,37 @@ export function AdminBot() {
               <p className="text-[11px] text-muted-foreground mt-1">
                 En Kapso → Webhooks → Add Webhook → pegá esta URL, suscribite a <code className="font-mono bg-secondary px-1 rounded">whatsapp.message.received</code> y copiá el secret aquí arriba.
               </p>
+            </Field>
+          </Section>
+
+          {/* Producción */}
+          <Section title="Backend de producción (opcional)" icon={Database} testid="bot-prod">
+            <p className="text-xs text-muted-foreground mb-3">
+              Si tu CRM real corre en otro deploy (ej. <code className="font-mono bg-secondary px-1 rounded">kuxtaltravelgt.com</code>), pegá aquí el URL del backend para que el bot lea paquetes y comercios reales en lugar de los del preview.
+            </p>
+            <Field label="URL del backend productivo" hint="Sin barra final. Ejemplo: https://api.kuxtaltravelgt.com">
+              <Input
+                value={config.external_api_base_url || ''}
+                onChange={e => update({ external_api_base_url: e.target.value })}
+                placeholder="https://kuxtaltravelgt.com"
+                className="rounded-xl font-mono"
+                data-testid="external-api-url"
+              />
+            </Field>
+            <Field label="Admin token productivo (opcional, para identificar socios por WA)" hint="JWT de un admin del CRM productivo. Necesario solo si querés que el bot reconozca al socio por su número de teléfono.">
+              <div className="relative">
+                <Input
+                  type={showAdminToken ? 'text' : 'password'}
+                  value={adminTokenDraft}
+                  onChange={e => setAdminTokenDraft(e.target.value)}
+                  placeholder={config.external_admin_token_set ? `Guardado · ${config.external_admin_token_masked}` : 'eyJhbGciOiJIUzI1NiIs...'}
+                  className="rounded-xl pr-10 font-mono text-xs"
+                  data-testid="external-admin-token"
+                />
+                <button type="button" onClick={() => setShowAdminToken(s => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" tabIndex={-1}>
+                  {showAdminToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </Field>
           </Section>
 

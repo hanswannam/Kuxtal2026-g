@@ -2442,6 +2442,8 @@ class BotConfigUpdate(BaseModel):
     include_commerces: Optional[bool] = None
     include_member_data: Optional[bool] = None
     max_history: Optional[int] = None
+    external_api_base_url: Optional[str] = None
+    external_admin_token: Optional[str] = None
 
 
 class BotTestRequest(BaseModel):
@@ -2546,13 +2548,10 @@ async def kapso_webhook(request: Request):
     session_id = f"wa:{sender}"
     logger.info("Inbound: from=%s text=%r", sender, text[:120])
 
-    # Identificar socio si su número WA coincide con member.phone
+    # Identificar socio si su número WA coincide con member.phone (productivo o local)
     member = None
     if raw_cfg.get("include_member_data"):
-        member = await db.members.find_one(
-            {"$or": [{"phone": sender}, {"phone": f"+{sender}"}, {"whatsapp": sender}]},
-            {"name": 1, "contract_number": 1, "is_active": 1, "years_of_service": 1, "_id": 0},
-        )
+        member = await bot_service.lookup_member_by_phone(db, sender, raw_cfg)
 
     system_prompt = await bot_service.build_full_system_prompt(db, raw_cfg, member=member)
     conv = await bot_service.get_or_create_session(db, session_id, channel="whatsapp")
