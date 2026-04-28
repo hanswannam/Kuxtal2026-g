@@ -292,3 +292,10 @@ Sistema CRM para club vacacional con web publica estilo Expedia, programa Kuxtal
   - **HomePage**: Reemplazado array estático `PARTNERS` por fetch a `/api/commerce`. Featured first con fallback a todos los activos si no hay curaduría. Cada card es `<Link to=/commerce/:id>` con logo (filter invert) o nombre Playfair + categoría champagne caps. CTA "y N+ aliados más" → `/benefits` si total > límite.
   - **AdminCommerces**: Botón estrella dorada (`toggle-featured-{i}`) junto al toggle is_active. Badge ámbar "Destacado" en el card. Toast backend error si se excede cap. Verificado con 6 comercios (toggle/untoggle, cap 8, fallback).
   - Resultado: "Nuestros aliados" es ahora 100% real del admin y curable sin tocar código.
+
+- Manuales PDF descargables con branding Kuxtal (2026-02, iter 52):
+  - 3 manuales en `/app/manuales/`: `01_Manual_Administrador.md` (18 secciones), `02_Manual_Socio.md` (17), `03_Manual_Comercio.md` (14) + README. Reflejan funciones reales: cotizaciones, socios con auto-user, paquetes, comercios con featured/cap 8, cupones QR/raspables, regalías, clubs, push, permisos, código `BORRAR YA`.
+  - Generador PDF: `/app/backend/manuals_pdf.py` usa `markdown` + `weasyprint`. CSS branding Kuxtal: navy `#0D2B45` H1/H2, oro `#D4AF5A` accents/borders/hairlines, Playfair Display H1-H3 italic, footer "Kuxtal Travels · pag. N/total" con número, header derecho con título del doc en oro caps. Cache por mtime de archivo.
+  - Endpoint: `GET /api/admin/manuals/{role}` (admin-only) → PDF binario con Content-Disposition. Verificado los 3 endpoints: admin 88KB, member 70KB, commerce 75KB.
+  - UI: AdminSettings → nuevo card "Manuales del sistema" con 3 botones de descarga (ícono Download ámbar, label + descripción, hover ámbar). data-testid: `download-manual-{role}` y `manuals-card`.
+  - Resultado: equipo Kuxtal puede descargar y compartir manuales por WhatsApp/email sin que el contenido quede desactualizado (lee el .md vivo cada vez que cambia).

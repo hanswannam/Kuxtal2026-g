@@ -3,7 +3,7 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Badge } from '../../components/ui/badge';
-import { Phone, MessageSquare, CreditCard, Clock, TrendingUp, Share2 } from 'lucide-react';
+import { Phone, MessageSquare, CreditCard, Clock, TrendingUp, Share2, BookOpen, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../lib/api';
 
@@ -35,6 +35,23 @@ export function AdminSettings({
       toast.error(e.response?.data?.detail || 'No se pudo guardar');
     }
     setSavingSocials(false);
+  };
+
+  const downloadManual = async (role, label) => {
+    try {
+      const res = await api.get(`/admin/manuals/${role}`, { responseType: 'blob' });
+      const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Manual_${label}_Kuxtal.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(`Manual ${label} descargado`);
+    } catch (e) {
+      toast.error('No se pudo descargar el manual');
+    }
   };
 
   const runRecalculate = async () => {
@@ -228,6 +245,32 @@ export function AdminSettings({
           {(stats.unread_chats || 0) > 0 && <Badge className="rounded-full bg-primary mt-2">{stats.unread_chats} sin leer</Badge>}
         </div>
       </a>
+
+      <div className="bg-white rounded-2xl p-6 border border-border" data-testid="manuals-card">
+        <h2 className="font-heading text-lg font-semibold mb-1 flex items-center gap-2"><BookOpen className="w-5 h-5 text-primary" /> Manuales del sistema</h2>
+        <p className="text-sm text-muted-foreground mb-4">Descargá los PDFs oficiales con la marca Kuxtal y compartilos por WhatsApp o email.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {[
+            { role: 'admin', label: 'Administrador', desc: 'Para el equipo Kuxtal', emoji: '🛠️' },
+            { role: 'member', label: 'Socio', desc: 'Para miembros del club', emoji: '👤' },
+            { role: 'commerce', label: 'Comercio', desc: 'Para aliados', emoji: '🏪' },
+          ].map(m => (
+            <Button
+              key={m.role}
+              onClick={() => downloadManual(m.role, m.label)}
+              variant="outline"
+              className="rounded-xl h-auto py-3 px-4 flex flex-col items-start gap-1 border-amber-200 hover:bg-amber-50 hover:border-amber-300"
+              data-testid={`download-manual-${m.role}`}
+            >
+              <div className="flex items-center gap-2 w-full">
+                <Download className="w-4 h-4 text-amber-600" />
+                <span className="font-semibold text-sm">{m.label}</span>
+              </div>
+              <span className="text-[11px] text-muted-foreground font-normal">{m.desc}</span>
+            </Button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

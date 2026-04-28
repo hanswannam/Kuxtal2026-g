@@ -2361,6 +2361,25 @@ async def packages_template(request: Request):
         headers={"Content-Disposition": 'attachment; filename="plantilla_paquetes.xlsx"'},
     )
 
+# ── User manuals (PDF, branded Kuxtal) ──
+from manuals_pdf import generate_manual_pdf, get_manual_filename, MANUAL_FILES  # noqa: E402
+
+@app.get("/api/admin/manuals/{role}")
+async def download_manual(role: str, request: Request):
+    """Descarga el manual PDF (admin / member / commerce). Solo super_admin/admin."""
+    await require_role("super_admin", "admin")(request)
+    if role not in MANUAL_FILES:
+        raise HTTPException(status_code=404, detail="Manual no encontrado")
+    try:
+        pdf = generate_manual_pdf(role)
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+    return Response(
+        content=pdf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{get_manual_filename(role)}"'},
+    )
+
 async def _load_existing_member_contracts() -> set:
     """Return all existing contract_numbers to check for in-DB duplicates."""
     existing = set()
