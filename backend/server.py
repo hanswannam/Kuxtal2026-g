@@ -2509,32 +2509,42 @@ async def kapso_webhook(request: Request):
     raw = await request.body()
     signature = request.headers.get("X-Webhook-Signature", "")
     event = request.headers.get("X-Webhook-Event", "")
+    logger.info("Kapso webhook recibido. event=%s sig_len=%d body_len=%d", event, len(signature), len(raw))
 
     raw_cfg = await db.config.find_one({"key": bot_service.CONFIG_KEY})
     if not raw_cfg or not raw_cfg.get("enabled"):
+        logger.info("Bot disabled, skipping")
         return {"ok": True, "skipped": "bot_disabled"}
 
     secret = raw_cfg.get("kapso_webhook_secret") or ""
     if secret and not bot_service.verify_kapso_signature(raw, signature, secret):
-        logger.warning("Kapso webhook signature mismatch")
+        logger.warning("Kapso webhook signature mismatch (sig=%s)", signature[:20])
         raise HTTPException(status_code=401, detail="Firma inválida")
 
     try:
         payload = json_module.loads(raw.decode("utf-8")) if raw else {}
     except Exception:
+        logger.error("Kapso webhook JSON parse failed")
         raise HTTPException(status_code=400, detail="JSON inválido") from None
+
+    # Log payload structure (truncated)
+    payload_keys = list(payload.keys()) if isinstance(payload, dict) else "non-dict"
+    logger.info("Kapso payload keys=%s preview=%s", payload_keys, str(payload)[:600])
 
     # Solo nos importan mensajes entrantes
     if event and "message.received" not in event:
+        logger.info("Ignoring event %s", event)
         return {"ok": True, "ignored_event": event}
 
     inbound = bot_service.extract_inbound_message(payload)
     if not inbound or not inbound.get("text"):
-        return {"ok": True, "skipped": "no_text"}
+        logger.warning("No inbound message extracted from payload: %s", str(payload)[:800])
+        return {"ok": True, "skipped": "no_text", "payload_preview": str(payload)[:300]}
 
     sender = inbound["from"]
     text = inbound["text"]
     session_id = f"wa:{sender}"
+    logger.info("Inbound: from=%s text=%r", sender, text[:120])
 
     # Identificar socio si su número WA coincide con member.phone
     member = None
@@ -2557,6 +2567,7 @@ async def kapso_webhook(request: Request):
             user_message=text,
             session_id=session_id,
         )
+        logger.info("OpenAI reply (%d chars): %s", len(reply), reply[:150])
     except Exception as e:
         logger.error("Bot chat_once error: %s", e)
         reply = "Disculpá, tuve un problema técnico. Voy a derivar tu mensaje al equipo Kuxtal."
@@ -2565,12 +2576,13 @@ async def kapso_webhook(request: Request):
     await bot_service.append_message(db, session_id, "assistant", reply)
 
     try:
-        await bot_service.send_whatsapp_message(
+        send_result = await bot_service.send_whatsapp_message(
             kapso_api_key=raw_cfg.get("kapso_api_key", ""),
             phone_number_id=raw_cfg.get("kapso_phone_number_id", ""),
             to=sender,
             text=reply,
         )
+        logger.info("Kapso send OK: %s", str(send_result)[:200])
     except Exception as e:
         logger.error("Kapso send error: %s", e)
         return {"ok": False, "error": str(e)}

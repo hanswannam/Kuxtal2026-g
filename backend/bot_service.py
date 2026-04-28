@@ -23,6 +23,7 @@ logger = logging.getLogger("kuxtal.bot")
 
 CONFIG_KEY = "bot_settings"
 KAPSO_BASE = "https://api.kapso.ai/meta/whatsapp"
+KAPSO_API_VERSION = "v24.0"
 
 DEFAULT_SYSTEM_PROMPT = """Sos el Asistente Oficial de Kuxtal Travels — un club vacacional premium.
 
@@ -277,22 +278,23 @@ async def send_whatsapp_message(
     if not kapso_api_key or not phone_number_id:
         raise RuntimeError("Kapso no configurado (api_key/phone_number_id faltan)")
 
-    url = f"{KAPSO_BASE}/messages?phone_number_id={phone_number_id}"
+    url = f"{KAPSO_BASE}/{KAPSO_API_VERSION}/{phone_number_id}/messages"
     body = {
         "messaging_product": "whatsapp",
+        "recipient_type": "individual",
         "to": to,
         "type": "text",
         "text": {"body": text[:4096]},
     }
     headers = {
-        "Authorization": f"Bearer {kapso_api_key}",
+        "X-API-Key": kapso_api_key,
         "Content-Type": "application/json",
     }
     async with httpx.AsyncClient(timeout=20.0) as client:
         r = await client.post(url, headers=headers, content=json.dumps(body))
         if r.status_code >= 300:
             logger.error("Kapso send failed %s: %s", r.status_code, r.text[:500])
-            raise RuntimeError(f"Kapso error {r.status_code}: {r.text[:200]}")
+            raise RuntimeError(f"Kapso error {r.status_code}: {r.text[:300]}")
         return r.json()
 
 
