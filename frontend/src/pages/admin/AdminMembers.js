@@ -4,7 +4,7 @@ import { Input } from '../../components/ui/input';
 import { Textarea } from '../../components/ui/textarea';
 import { Label } from '../../components/ui/label';
 import { Badge } from '../../components/ui/badge';
-import { Plus, Edit, Gift, Search, X, Upload, FileSpreadsheet } from 'lucide-react';
+import { Plus, Edit, Gift, Search, X, Upload, FileSpreadsheet, CheckSquare, Square, Power, PowerOff, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { DeleteWithCode } from '../../components/DeleteWithCode';
 import BulkImportModal from '../../components/BulkImportModal';
@@ -45,6 +45,51 @@ export function AdminMembers({ members, memberForm, setMemberForm, showMemberFor
   const [selectedRegaliaIds, setSelectedRegaliaIds] = useState([]);
   const [savingRegalias, setSavingRegalias] = useState(false);
   const [showBulkImport, setShowBulkImport] = useState(false);
+
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [bulkActionLoading, setBulkActionLoading] = useState(false);
+
+  const toggleOne = (id) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const toggleAll = () => {
+    setSelectedIds(prev => {
+      if (prev.size === filteredMembers.length && filteredMembers.length > 0) return new Set();
+      return new Set(filteredMembers.map(m => m._id));
+    });
+  };
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const runBulkAction = async (action) => {
+    if (selectedIds.size === 0) return;
+    let deleteCode = null;
+    if (action === 'delete') {
+      deleteCode = window.prompt(`Para ELIMINAR ${selectedIds.size} socios escribí el código de seguridad:`);
+      if (!deleteCode) return;
+      if (!window.confirm(`¿Eliminar definitivamente ${selectedIds.size} socios? Esta acción no se puede deshacer.`)) return;
+    } else {
+      const labels = { activate: 'activar', deactivate: 'desactivar' };
+      if (!window.confirm(`¿${labels[action]} ${selectedIds.size} socios seleccionados?`)) return;
+    }
+    setBulkActionLoading(true);
+    try {
+      const body = { member_ids: Array.from(selectedIds), action };
+      if (deleteCode) body.delete_code = deleteCode;
+      const r = await api.post('/members/bulk-action', body);
+      const labels = { activate: 'activados', deactivate: 'desactivados', delete: 'eliminados' };
+      toast.success(`${r.data.affected} socios ${labels[action]}`);
+      clearSelection();
+      if (reloadData) reloadData();
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Error en la acción masiva');
+    }
+    setBulkActionLoading(false);
+  };
 
   const downloadMemberXlsx = async (m) => {
     try {
@@ -159,11 +204,41 @@ export function AdminMembers({ members, memberForm, setMemberForm, showMemberFor
         </select>
       </div>
 
+      {/* Bulk action bar */}
+      {selectedIds.size > 0 && (
+        <div className="bg-primary/5 border border-primary/30 rounded-2xl p-3 mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fade-in" data-testid="bulk-action-bar">
+          <div className="flex items-center gap-3">
+            <Badge className="rounded-full bg-primary text-white px-3">{selectedIds.size} seleccionados</Badge>
+            <button onClick={clearSelection} className="text-xs text-muted-foreground hover:text-foreground" data-testid="clear-selection">
+              Limpiar
+            </button>
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <Button size="sm" variant="outline" onClick={() => runBulkAction('activate')} disabled={bulkActionLoading} className="rounded-full" data-testid="bulk-activate">
+              <Power className="w-3.5 h-3.5 mr-1.5 text-emerald-600" /> Activar
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => runBulkAction('deactivate')} disabled={bulkActionLoading} className="rounded-full" data-testid="bulk-deactivate">
+              <PowerOff className="w-3.5 h-3.5 mr-1.5 text-amber-600" /> Desactivar
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => runBulkAction('delete')} disabled={bulkActionLoading} className="rounded-full border-red-200 text-red-700 hover:bg-red-50" data-testid="bulk-delete">
+              <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Eliminar
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white rounded-2xl border border-border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm" data-testid="members-table">
             <thead className="bg-secondary/50">
               <tr>
+                <th className="text-left p-3 w-10">
+                  <button onClick={toggleAll} title={selectedIds.size === filteredMembers.length && filteredMembers.length > 0 ? 'Deseleccionar todos' : 'Seleccionar todos'} data-testid="select-all-members">
+                    {selectedIds.size === filteredMembers.length && filteredMembers.length > 0
+                      ? <CheckSquare className="w-4 h-4 text-primary" />
+                      : <Square className="w-4 h-4 text-muted-foreground" />}
+                  </button>
+                </th>
                 <th className="text-left p-3 font-medium">Contrato</th>
                 <th className="text-left p-3 font-medium">Nombre</th>
                 <th className="text-left p-3 font-medium hidden sm:table-cell">Teléfono</th>
@@ -174,13 +249,22 @@ export function AdminMembers({ members, memberForm, setMemberForm, showMemberFor
             <tbody>
               {filteredMembers.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="text-center text-muted-foreground py-8 text-sm" data-testid="members-empty">
+                  <td colSpan={6} className="text-center text-muted-foreground py-8 text-sm" data-testid="members-empty">
                     No se encontraron socios con los filtros aplicados
                   </td>
                 </tr>
               )}
-              {filteredMembers.map((m, i) => (
-                <tr key={m._id} className="border-t border-border hover:bg-secondary/30 transition-colors" data-testid={`member-row-${i}`}>
+              {filteredMembers.map((m, i) => {
+                const isSelected = selectedIds.has(m._id);
+                return (
+                <tr key={m._id} className={`border-t border-border hover:bg-secondary/30 transition-colors ${isSelected ? 'bg-primary/5' : ''}`} data-testid={`member-row-${i}`}>
+                  <td className="p-3">
+                    <button onClick={() => toggleOne(m._id)} data-testid={`select-member-${i}`}>
+                      {isSelected
+                        ? <CheckSquare className="w-4 h-4 text-primary" />
+                        : <Square className="w-4 h-4 text-muted-foreground" />}
+                    </button>
+                  </td>
                   <td className="p-3 font-medium">{m.contract_number}</td>
                   <td className="p-3">{m.name}</td>
                   <td className="p-3 hidden sm:table-cell">{m.phone || '-'}</td>
@@ -201,7 +285,7 @@ export function AdminMembers({ members, memberForm, setMemberForm, showMemberFor
                     </div>
                   </td>
                 </tr>
-              ))}
+              );})}
             </tbody>
           </table>
         </div>
@@ -381,6 +465,7 @@ export function AdminMembers({ members, memberForm, setMemberForm, showMemberFor
         templateEndpoint="/admin/members/template"
         importEndpoint="/admin/members/bulk-import"
         templateFilename="plantilla_socios.xlsx"
+        supportsUpdate={true}
         onImported={() => { reloadData && reloadData(); }}
       />
     </div>

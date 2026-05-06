@@ -27,12 +27,14 @@ export default function BulkImportModal({
   importEndpoint,
   templateFilename,
   onImported,
+  supportsUpdate = false,  // si true, muestra checkbox "Actualizar existentes"
 }) {
   const fileRef = useRef(null);
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [phase, setPhase] = useState('idle'); // idle | preview | committing | done
   const [result, setResult] = useState(null);
+  const [updateExisting, setUpdateExisting] = useState(false);
 
   if (!open) return null;
 
@@ -79,7 +81,9 @@ export default function BulkImportModal({
     try {
       const form = new FormData();
       form.append('file', file);
-      const r = await api.post(`${importEndpoint}?dry_run=true`, form, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const params = new URLSearchParams({ dry_run: 'true' });
+      if (updateExisting) params.set('update_existing', 'true');
+      const r = await api.post(`${importEndpoint}?${params.toString()}`, form, { headers: { 'Content-Type': 'multipart/form-data' } });
       setPreview(r.data);
       setPhase('preview');
     } catch (e) {
@@ -94,10 +98,18 @@ export default function BulkImportModal({
     try {
       const form = new FormData();
       form.append('file', file);
-      const r = await api.post(importEndpoint, form, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const params = new URLSearchParams();
+      if (updateExisting) params.set('update_existing', 'true');
+      const url = params.toString() ? `${importEndpoint}?${params.toString()}` : importEndpoint;
+      const r = await api.post(url, form, { headers: { 'Content-Type': 'multipart/form-data' } });
       setResult(r.data);
       setPhase('done');
-      toast.success(`Importados ${r.data.created?.length || 0} ${entityLabel}`);
+      const created = r.data.created?.length || 0;
+      const updated = r.data.updated?.length || 0;
+      const msg = updated > 0
+        ? `${created} creados, ${updated} actualizados`
+        : `Importados ${created} ${entityLabel}`;
+      toast.success(msg);
       onImported && onImported(r.data);
     } catch (e) {
       toast.error(e.response?.data?.detail || 'Error al importar');
@@ -153,6 +165,25 @@ export default function BulkImportModal({
                   {file && <p className="text-xs text-muted-foreground mt-2" data-testid="bulk-file-selected">📎 {file.name} — {Math.round(file.size / 1024)} KB</p>}
                 </div>
               </div>
+
+              {supportsUpdate && (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-4 flex items-start gap-3" data-testid="update-existing-block">
+                  <input
+                    id="bulk-update-existing"
+                    type="checkbox"
+                    checked={updateExisting}
+                    onChange={(e) => { setUpdateExisting(e.target.checked); setPreview(null); }}
+                    className="mt-0.5 w-4 h-4 cursor-pointer accent-amber-600"
+                    data-testid="bulk-update-existing-checkbox"
+                  />
+                  <label htmlFor="bulk-update-existing" className="cursor-pointer flex-1">
+                    <p className="font-medium text-sm text-amber-900">Actualizar registros existentes</p>
+                    <p className="text-xs text-amber-800 mt-0.5">
+                      Si activás esta opción, los <span className="font-semibold">{entityLabel}</span> cuyo número de contrato ya exista se actualizarán con los datos del archivo (en vez de marcarse como duplicados).
+                    </p>
+                  </label>
+                </div>
+              )}
             </>
           )}
 

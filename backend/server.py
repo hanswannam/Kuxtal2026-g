@@ -230,6 +230,11 @@ async def create_member(req: MemberCreate, request: Request):
     if existing:
         raise HTTPException(status_code=400, detail="Número de contrato ya existe")
     doc = req.model_dump()
+    # Normalizar teléfonos guatemaltecos para WhatsApp
+    if doc.get("phone"):
+        doc["phone"] = _normalize_gt_phone(doc["phone"])
+    if doc.get("coowner_phone"):
+        doc["coowner_phone"] = _normalize_gt_phone(doc["coowner_phone"])
     doc["created_at"] = datetime.now(timezone.utc).isoformat()
     doc["created_by"] = user["_id"]
     result = await db.members.insert_one(doc)
@@ -259,6 +264,11 @@ async def update_member(member_id: str, req: MemberCreate, request: Request):
     if not prev:
         raise HTTPException(status_code=404, detail="Socio no encontrado")
     update_data = req.model_dump()
+    # Normalizar teléfonos guatemaltecos para WhatsApp
+    if update_data.get("phone"):
+        update_data["phone"] = _normalize_gt_phone(update_data["phone"])
+    if update_data.get("coowner_phone"):
+        update_data["coowner_phone"] = _normalize_gt_phone(update_data["coowner_phone"])
     update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
     result = await db.members.update_one({"_id": ObjectId(member_id)}, {"$set": update_data})
     if result.matched_count == 0:
@@ -304,6 +314,45 @@ async def delete_member(member_id: str, request: Request):
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Socio no encontrado")
     return {"message": "Socio eliminado"}
+
+
+class _MembersBulkActionReq(BaseModel):
+    member_ids: List[str]
+    action: str  # "activate" | "deactivate" | "delete"
+    delete_code: Optional[str] = None
+
+
+@api_router.post("/members/bulk-action")
+async def members_bulk_action(req: _MembersBulkActionReq, request: Request):
+    """Acción en lote sobre socios. Para 'delete' requiere el código de seguridad."""
+    user = await require_role("super_admin", "admin", permission="members")(request)
+    if not req.member_ids:
+        raise HTTPException(status_code=400, detail="No hay socios seleccionados")
+    if req.action not in ("activate", "deactivate", "delete"):
+        raise HTTPException(status_code=400, detail="Acción no válida")
+
+    # Convert ids
+    try:
+        oids = [ObjectId(mid) for mid in req.member_ids]
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"IDs inválidos: {e}") from e
+
+    if req.action == "delete":
+        await verify_delete_code(request)
+        result = await db.members.delete_many({"_id": {"$in": oids}})
+        # Eliminar también los users vinculados
+        member_ids_str = [str(o) for o in oids]
+        await db.users.delete_many({"member_id": {"$in": member_ids_str}})
+        return {"action": "delete", "matched": len(oids), "affected": result.deleted_count}
+
+    new_status = "active" if req.action == "activate" else "inactive"
+    result = await db.members.update_many(
+        {"_id": {"$in": oids}},
+        {"$set": {"status": new_status, "is_active": new_status == "active", "updated_at": datetime.now(timezone.utc).isoformat(), "updated_by": user["_id"]}},
+    )
+    return {"action": req.action, "matched": len(oids), "affected": result.modified_count}
+
+
 
 # ── Packages CRUD + Drive import ──
 # Moved to /app/backend/routers/packages.py (mounted at FastAPI app level).
@@ -2660,6 +2709,32 @@ async def _load_existing_member_contracts() -> set:
     return existing
 
 
+def _normalize_gt_phone(value) -> str:
+    """Normaliza un teléfono guatemalteco al formato +502XXXXXXXX para WhatsApp.
+    - Si llega vacío, devuelve "".
+    - Limpia espacios, guiones, paréntesis y puntos.
+    - Si ya empieza con + (cualquier país) lo respeta.
+    - Si no empieza con 502, agrega 502 al inicio.
+    - Resultado siempre con prefijo `+`.
+    """
+    if value is None:
+        return ""
+    s = str(value).strip()
+    if not s:
+        return ""
+    # Limpiar todo lo que no sea dígito o +
+    cleaned = "".join(ch for ch in s if ch.isdigit() or ch == "+")
+    if not cleaned:
+        return ""
+    # Si ya tiene +, respetarlo (probablemente otro país)
+    if cleaned.startswith("+"):
+        return cleaned
+    # Sin prefijo: si no empieza con 502, agregarlo
+    if not cleaned.startswith("502"):
+        cleaned = "502" + cleaned
+    return f"+{cleaned}"
+
+
 def _validate_member_row(row: dict) -> tuple:
     """Return (contract, name, dpi, error_msg_or_None)."""
     contract = str(row.get("contract_number") or "").strip()
@@ -2673,6 +2748,7 @@ def _validate_member_row(row: dict) -> tuple:
 def _build_member_doc_from_row(row: dict, contract: str, name: str, dpi: str) -> dict:
     """Coerce typed fields for a single member row."""
     num_fields = {"service_years": int, "age": int, "family_members_allowed": int, "investment_amount": float}
+    phone_fields = {"phone", "coowner_phone"}
     doc = {"contract_number": contract, "name": name, "dpi": dpi, "status": "active"}
     for key, _lb, _r, _ex in MEMBER_TEMPLATE_COLS:
         if key in ("contract_number", "name", "dpi"):
@@ -2684,6 +2760,8 @@ def _build_member_doc_from_row(row: dict, contract: str, name: str, dpi: str) ->
             coerced = _coerce(val, num_fields[key])
             if coerced is not None:
                 doc[key] = coerced
+        elif key in phone_fields:
+            doc[key] = _normalize_gt_phone(val)
         else:
             doc[key] = str(val).strip() if not isinstance(val, (int, float)) else val
     return doc
@@ -2710,7 +2788,12 @@ async def _insert_member_with_login(doc: dict, contract: str, dpi: str, name: st
 
 
 @app.post("/api/admin/members/bulk-import")
-async def members_bulk_import(request: Request, file: UploadFile = File(...), dry_run: bool = Query(False)):
+async def members_bulk_import(
+    request: Request,
+    file: UploadFile = File(...),
+    dry_run: bool = Query(False),
+    update_existing: bool = Query(False, description="Si True, los socios cuyo contract_number ya existe se ACTUALIZAN; si False, se reportan como error duplicado."),
+):
     user = await require_role("super_admin", "admin")(request)
     content = await file.read()
     try:
@@ -2718,7 +2801,7 @@ async def members_bulk_import(request: Request, file: UploadFile = File(...), dr
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"No se pudo leer el archivo: {e}")
 
-    created, errors, preview = [], [], []
+    created, updated, errors, preview = [], [], [], []
     existing_contracts = await _load_existing_member_contracts()
 
     for idx, row in enumerate(rows, start=2):  # row 1 is header
@@ -2726,18 +2809,38 @@ async def members_bulk_import(request: Request, file: UploadFile = File(...), dr
         if err:
             errors.append({"row": idx, "error": err})
             continue
-        if contract in existing_contracts:
-            errors.append({"row": idx, "contract_number": contract, "error": "El número de contrato ya existe"})
+
+        is_existing = contract in existing_contracts
+
+        if is_existing and not update_existing:
+            errors.append({"row": idx, "contract_number": contract, "error": "El número de contrato ya existe (activá 'Actualizar existentes' para sobrescribir)"})
             continue
 
         doc = _build_member_doc_from_row(row, contract, name, dpi)
-        preview.append({"row": idx, **doc})
+        preview.append({"row": idx, "action": "update" if is_existing else "create", **doc})
         existing_contracts.add(contract)
 
         if not dry_run:
             try:
-                new_id = await _insert_member_with_login(doc, contract, dpi, name, user["_id"])
-                created.append({"row": idx, "id": new_id, "contract_number": contract})
+                if is_existing:
+                    # UPDATE: solo campos provistos (no toca created_at/created_by ni borra otros)
+                    update_fields = {k: v for k, v in doc.items() if k not in ("contract_number",)}
+                    update_fields["updated_at"] = datetime.now(timezone.utc).isoformat()
+                    update_fields["updated_by"] = user["_id"]
+                    await db.members.update_one(
+                        {"contract_number": contract},
+                        {"$set": update_fields},
+                    )
+                    # Sincronizar password del usuario asociado si cambió el DPI
+                    member_email = f"{contract}@kuxtal.member"
+                    await db.users.update_one(
+                        {"email": member_email},
+                        {"$set": {"password_hash": hash_password(dpi), "name": name}},
+                    )
+                    updated.append({"row": idx, "contract_number": contract})
+                else:
+                    new_id = await _insert_member_with_login(doc, contract, dpi, name, user["_id"])
+                    created.append({"row": idx, "id": new_id, "contract_number": contract})
             except Exception as e:
                 errors.append({"row": idx, "contract_number": contract, "error": str(e)})
 
@@ -2746,6 +2849,7 @@ async def members_bulk_import(request: Request, file: UploadFile = File(...), dr
         "valid": len(preview),
         "errors": errors,
         "created": created if not dry_run else [],
+        "updated": updated if not dry_run else [],
         "preview": preview if dry_run else [],
     }
 
