@@ -6,6 +6,7 @@ import { FileText, Bell, MessageSquare, Package, Store, Gift, FileSpreadsheet, L
 import { MembershipCard } from '../../components/MembershipCard';
 import { toast } from 'sonner';
 import api from '../../lib/api';
+import ImageWithFallback from '../../components/ImageWithFallback';
 
 export function MemberOverview({ member, quotations, announcements, vacationRequests, packages, commerces }) {
   const [exporting, setExporting] = useState(false);
@@ -123,7 +124,7 @@ export function MemberOverview({ member, quotations, announcements, vacationRequ
             {packages.map(pkg => (
               <a key={pkg._id} href={`/trip/${pkg._id}`} className="group rounded-xl overflow-hidden border border-border hover:shadow-md transition-all">
                 <div className="aspect-video overflow-hidden">
-                  <img src={pkg.image_url} alt={pkg.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  <ImageWithFallback src={pkg.image_url} alt={pkg.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                 </div>
                 <div className="p-3">
                   <h3 className="font-medium text-sm group-hover:text-primary transition-colors line-clamp-1">{pkg.title}</h3>

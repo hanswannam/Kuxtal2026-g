@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../lib/api';
+import ImageWithFallback from '../components/ImageWithFallback';
 import { Link } from 'react-router-dom';
 import { CommerceCouponsTab } from '../components/CommerceCouponsTab';
 
@@ -176,7 +177,7 @@ export default function CommercePortal() {
               ) : (
                 <div className="flex items-center gap-4">
                   {commerce.logo_url ? (
-                    <img src={commerce.logo_url} alt="Logo" className="w-24 h-24 rounded-2xl object-cover border border-border" />
+                    <ImageWithFallback src={commerce.logo_url} alt="Logo" className="w-24 h-24 rounded-2xl object-cover border border-border" />
                   ) : (
                     <div className="w-24 h-24 rounded-2xl bg-accent flex items-center justify-center text-4xl">🏪</div>
                   )}
@@ -411,7 +412,7 @@ export default function CommercePortal() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {promotions.map((p, i) => (
                   <div key={p._id} className="bg-white rounded-2xl overflow-hidden border border-border group hover:shadow-lg transition-all" data-testid={`commerce-promo-${i}`}>
-                    {p.image_url && <div className="aspect-video overflow-hidden"><img src={p.image_url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" /></div>}
+                    {p.image_url && <div className="aspect-video overflow-hidden"><ImageWithFallback src={p.image_url} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" /></div>}
                     <div className="p-5">
                       <div className="flex justify-between items-start mb-2">
                         <h3 className="font-semibold text-lg">{p.title}</h3>

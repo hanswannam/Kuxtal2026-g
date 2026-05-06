@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Building2, MapPin, Check, Loader2 } from 'lucide-react';
 import api from '../../lib/api';
+import ImageWithFallback from '../../components/ImageWithFallback';
 
 export function MemberClubs() {
   const [clubs, setClubs] = useState([]);
@@ -46,7 +47,7 @@ export function MemberClubs() {
                 <div className="flex items-start gap-3 mb-3">
                   <div className="w-14 h-14 rounded-xl bg-accent flex items-center justify-center shrink-0 overflow-hidden border border-border">
                     {c.logo_url ? (
-                      <img src={c.logo_url} alt={c.name} className="w-full h-full object-cover" />
+                      <ImageWithFallback src={c.logo_url} alt={c.name} className="w-full h-full object-cover" />
                     ) : (
                       <Building2 className="w-7 h-7 text-primary" />
                     )}

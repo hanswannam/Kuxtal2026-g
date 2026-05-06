@@ -3,6 +3,7 @@ import { Badge } from '../../components/ui/badge';
 import { Gift, Calendar, Loader2 } from 'lucide-react';
 import api from '../../lib/api';
 import { CountdownTimer } from '../../components/CountdownTimer';
+import ImageWithFallback from '../../components/ImageWithFallback';
 
 export function MemberRegalias() {
   const [regalias, setRegalias] = useState([]);
@@ -48,7 +49,7 @@ export function MemberRegalias() {
             >
               {r.image_url && (
                 <div className="aspect-video overflow-hidden bg-muted">
-                  <img src={r.image_url} alt={r.name} className="w-full h-full object-cover" />
+                  <ImageWithFallback src={r.image_url} alt={r.name} className="w-full h-full object-cover" />
                 </div>
               )}
               <div className="p-4">
