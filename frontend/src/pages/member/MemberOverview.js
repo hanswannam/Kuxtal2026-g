@@ -1,36 +1,10 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React from 'react';
 import { Badge } from '../../components/ui/badge';
-import { Button } from '../../components/ui/button';
-import { FileText, Bell, MessageSquare, Package, Store, Gift, FileSpreadsheet, Loader2 } from 'lucide-react';
+import { FileText, Bell, MessageSquare } from 'lucide-react';
 import { MembershipCard } from '../../components/MembershipCard';
-import { toast } from 'sonner';
-import api from '../../lib/api';
 import ImageWithFallback from '../../components/ImageWithFallback';
 
 export function MemberOverview({ member, quotations, announcements, vacationRequests, packages, commerces }) {
-  const [exporting, setExporting] = useState(false);
-
-  const downloadMyData = async () => {
-    setExporting(true);
-    try {
-      const r = await api.get('/members/me/export', { responseType: 'blob' });
-      const blob = new Blob([r.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `kuxtal_${member?.contract_number || 'mis_datos'}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-      toast.success('Tus datos se descargaron');
-    } catch (e) {
-      toast.error(e.response?.data?.detail || 'No se pudo descargar');
-    }
-    setExporting(false);
-  };
-
   return (
     <div className="space-y-6 animate-fade-in">
       {member && (
@@ -47,17 +21,6 @@ export function MemberOverview({ member, quotations, announcements, vacationRequ
         <div className="bg-white rounded-2xl p-5 sm:p-6 border border-border" data-testid="member-info-card">
           <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
             <h2 className="font-heading text-lg font-semibold">Mi Membresía</h2>
-            <Button
-              onClick={downloadMyData}
-              disabled={exporting}
-              size="sm"
-              variant="outline"
-              className="rounded-full"
-              data-testid="download-my-data-btn"
-            >
-              {exporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileSpreadsheet className="w-4 h-4 mr-2" />}
-              Descargar mis datos (Excel)
-            </Button>
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             <div className="p-3 sm:p-4 bg-accent/50 rounded-xl">
@@ -77,10 +40,22 @@ export function MemberOverview({ member, quotations, announcements, vacationRequ
               <p className="font-semibold text-base sm:text-lg">{member.family_members_allowed} personas</p>
             </div>
             {(member.investment_amount > 0 || member.investment_plan) && (
-              <div className="p-3 sm:p-4 bg-primary/5 rounded-xl border border-primary/10 col-span-2">
+              <div className="p-3 sm:p-4 bg-primary/5 rounded-xl border border-primary/10 col-span-2" data-testid="investment-box">
                 <p className="text-[10px] sm:text-xs text-primary uppercase tracking-wider mb-1 font-semibold">Inversión</p>
                 <p className="font-bold text-xl sm:text-2xl text-primary">Q.{(member.investment_amount || 0).toLocaleString()}</p>
                 {member.investment_plan && <p className="text-xs text-muted-foreground mt-1">{member.investment_plan}</p>}
+                {member.observations && (
+                  <div className="mt-3 pt-3 border-t border-primary/10" data-testid="member-observations">
+                    <p className="text-[10px] sm:text-xs text-primary uppercase tracking-wider mb-1 font-semibold">Observaciones</p>
+                    <p className="text-xs sm:text-sm text-foreground whitespace-pre-wrap leading-relaxed">{member.observations}</p>
+                  </div>
+                )}
+              </div>
+            )}
+            {!(member.investment_amount > 0 || member.investment_plan) && member.observations && (
+              <div className="p-3 sm:p-4 bg-primary/5 rounded-xl border border-primary/10 col-span-2" data-testid="member-observations">
+                <p className="text-[10px] sm:text-xs text-primary uppercase tracking-wider mb-1 font-semibold">Observaciones</p>
+                <p className="text-xs sm:text-sm text-foreground whitespace-pre-wrap leading-relaxed">{member.observations}</p>
               </div>
             )}
           </div>
