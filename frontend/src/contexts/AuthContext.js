@@ -99,6 +99,8 @@ export function AuthProvider({ children }) {
   const logout = async () => {
     try { await axios.post(`${API}/api/auth/logout`, {}, { withCredentials: true }); } catch (e) { console.warn('Logout cleanup:', e); }
     localStorage.removeItem('kuxtal_token');
+    localStorage.removeItem('kuxtal_admin_token');
+    localStorage.removeItem('kuxtal_admin_return');
     setUser(false);
   };
 

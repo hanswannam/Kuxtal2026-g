@@ -10,6 +10,7 @@ import WhatsAppWidget from "./components/WhatsAppWidget";
 import InstallPrompt from "./components/InstallPrompt";
 import PWAReinstallBanner from "./components/PWAReinstallBanner";
 import UpdatePrompt from "./components/UpdatePrompt";
+import ImpersonationBanner from "./components/ImpersonationBanner";
 import { Loader2 } from "lucide-react";
 
 // Eager: critical path pages
@@ -63,6 +64,7 @@ function App() {
               <Route path="/partners/afiliar" element={<CommerceWizard />} />
               <Route path="/*" element={
                 <>
+                  <ImpersonationBanner />
                   <Navbar />
                   <Routes>
                     <Route path="/" element={<HomePage />} />

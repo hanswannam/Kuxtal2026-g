@@ -115,6 +115,14 @@ body:has(.fixed.inset-0.z-50) [data-testid="main-navbar"] {
   pointer-events: none;
 }
 
+/* Push navbar and body down when admin is impersonating a user */
+html.impersonating [data-testid="main-navbar"] {
+  top: 36px !important;
+}
+html.impersonating body {
+  padding-top: 36px;
+}
+
 /* WhatsApp floating */
 .whatsapp-float {
   position: fixed;

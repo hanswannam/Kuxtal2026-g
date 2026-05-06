@@ -4,9 +4,10 @@ import { Input } from '../../components/ui/input';
 import { Textarea } from '../../components/ui/textarea';
 import { Label } from '../../components/ui/label';
 import { Badge } from '../../components/ui/badge';
-import { Plus, Edit, Upload, Search, X, Store, MapPin, Facebook, Instagram, Twitter, Youtube, Trash2, AlertCircle, CheckCircle2, Clock, Star } from 'lucide-react';
+import { Plus, Edit, Upload, Search, X, Store, MapPin, Facebook, Instagram, Twitter, Youtube, Trash2, AlertCircle, CheckCircle2, Clock, Star, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { DeleteWithCode } from '../../components/DeleteWithCode';
+import CredentialsModal from '../../components/CredentialsModal';
 import api from '../../lib/api';
 
 // Canonical profile-completion fields (label + value check). Changing this list changes the % calculation.
@@ -98,6 +99,7 @@ export function AdminCommerces({ commerces, commerceForm, setCommerceForm, showC
   const [localCategories, setLocalCategories] = useState(commerceCategories);
   const [pending, setPending] = useState([]);
   const [subview, setSubview] = useState('active');  // 'active' | 'pending'
+  const [credentialsTarget, setCredentialsTarget] = useState(null);
 
   const loadPending = useCallback(async () => {
     try {
@@ -296,6 +298,7 @@ export function AdminCommerces({ commerces, commerceForm, setCommerceForm, showC
                   >
                     <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${c.is_active === false ? 'translate-x-0.5' : 'translate-x-[1.4rem]'}`} />
                   </button>
+                  <Button size="sm" variant="ghost" onClick={() => setCredentialsTarget(c)} title="Credenciales / Ingresar como comercio" data-testid={`credentials-commerce-${i}`}><KeyRound className="w-3.5 h-3.5" /></Button>
                   <Button size="sm" variant="ghost" onClick={() => { setCommerceForm({...c}); setShowCommerceForm(true); }} className="text-primary" data-testid={`edit-commerce-${i}`}><Edit className="w-3.5 h-3.5" /></Button>
                   <DeleteWithCode onConfirm={(code) => deleteCommerce(c._id, code)} />
                 </div>
@@ -484,6 +487,13 @@ export function AdminCommerces({ commerces, commerceForm, setCommerceForm, showC
           </div>
         </div>
       )}
+
+      <CredentialsModal
+        open={!!credentialsTarget}
+        onClose={() => setCredentialsTarget(null)}
+        subject={credentialsTarget}
+        kind="commerce"
+      />
     </div>
   );
 }

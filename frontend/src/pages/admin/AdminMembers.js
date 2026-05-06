@@ -4,10 +4,11 @@ import { Input } from '../../components/ui/input';
 import { Textarea } from '../../components/ui/textarea';
 import { Label } from '../../components/ui/label';
 import { Badge } from '../../components/ui/badge';
-import { Plus, Edit, Gift, Search, X, Upload, FileSpreadsheet, CheckSquare, Square, Power, PowerOff, Trash2 } from 'lucide-react';
+import { Plus, Edit, Gift, Search, X, Upload, FileSpreadsheet, CheckSquare, Square, Power, PowerOff, Trash2, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { DeleteWithCode } from '../../components/DeleteWithCode';
 import BulkImportModal from '../../components/BulkImportModal';
+import CredentialsModal from '../../components/CredentialsModal';
 import api from '../../lib/api';
 
 const EMPTY_FORM = {
@@ -49,6 +50,7 @@ export function AdminMembers({ members, memberForm, setMemberForm, showMemberFor
   // Bulk selection state
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
+  const [credentialsTarget, setCredentialsTarget] = useState(null);
 
   const toggleOne = (id) => {
     setSelectedIds(prev => {
@@ -275,6 +277,9 @@ export function AdminMembers({ members, memberForm, setMemberForm, showMemberFor
                   </td>
                   <td className="p-3 text-right">
                     <div className="flex gap-1 justify-end">
+                      <Button size="sm" variant="ghost" onClick={() => setCredentialsTarget(m)} title="Credenciales / Ingresar como socio" data-testid={`credentials-member-${i}`}>
+                        <KeyRound className="w-3.5 h-3.5" />
+                      </Button>
                       <Button size="sm" variant="ghost" onClick={() => downloadMemberXlsx(m)} title="Descargar datos en Excel" data-testid={`download-member-${i}`}>
                         <FileSpreadsheet className="w-3.5 h-3.5" />
                       </Button>
@@ -467,6 +472,13 @@ export function AdminMembers({ members, memberForm, setMemberForm, showMemberFor
         templateFilename="plantilla_socios.xlsx"
         supportsUpdate={true}
         onImported={() => { reloadData && reloadData(); }}
+      />
+
+      <CredentialsModal
+        open={!!credentialsTarget}
+        onClose={() => setCredentialsTarget(null)}
+        subject={credentialsTarget}
+        kind="member"
       />
     </div>
   );

@@ -320,3 +320,20 @@ Sistema CRM para club vacacional con web publica estilo Expedia, programa Kuxtal
   - **Seed de cuentas admin**: en `seed_admin()` se siembran automáticamente 3 cuentas en cada arranque (solo si no existen): `admin@kuxtaltravels.com` (super_admin), `kclub1@kuxtaltravels.com` y `agente1@kuxtaltravels.com` (admin). `test_credentials.md` actualizado con todas.
   - **Endpoint de rescate** `POST /api/auth/rescue-password` con guard via `RESCUE_SECRET` env var: permite resetear cualquier cuenta admin pasando secret + email + new_password. Util cuando una cuenta ya existe con otra password en producción.
   - **Verificado en producción** (`https://kuxtaltravelgt.com`): los 3 logins admin responden HTTP 200 con token JWT válido. Backend responde paquetes reales del cliente.
+
+- Acceso admin a portales + envío de credenciales (2026-05-06, iter 56):
+  - **Backend** (`/app/backend/routers/auth.py`): nuevos endpoints admin-only:
+    - `POST /api/auth/impersonate/member/{id}` → genera token `member` para entrar al portal del socio. Crea fila en `users` si no existe (primer login). Setea cookies del socio via `set_auth_cookies`.
+    - `POST /api/auth/impersonate/commerce/{id}` → idem para comercios (`role="commerce"`).
+    - `POST /api/auth/restore-admin` (body: `{admin_token}`): valida JWT del admin previo, verifica role super_admin/admin, re-establece cookies del admin. Permite salir de impersonación sin re-login.
+  - **Frontend**:
+    - `CredentialsModal.js` (componente reusable kind="member"|"commerce"): muestra credenciales (Contrato+DPI / ID+Código), reveal toggle (eye), copy individual, **mensaje sugerido prerellenado** con sitio + credenciales, botones WhatsApp (`https://wa.me/{phone}` con +502 default si 8 dígitos), Email (`mailto:` con asunto y body), Copiar todo, e **Ingresar al portal** (impersonación + redirect a `/member` o `/commerce-portal`).
+    - `ImpersonationBanner.js` (sticky `fixed top-0 z-[60]`): aparece cuando `localStorage.kuxtal_admin_token` está presente. Botón "Volver al admin" llama `restore-admin`, restaura token y redirige al `/admin`.
+    - CSS: `html.impersonating` empuja navbar a `top:36px` y body a `padding-top:36px`.
+    - `AuthContext.logout` limpia también `kuxtal_admin_token` y `kuxtal_admin_return`.
+  - **Integración UI**: `AdminMembers.js` y `AdminCommerces.js` agregan botón ícono `KeyRound` en cada fila/card (`credentials-member-{i}` / `credentials-commerce-{i}`).
+  - **Verificado**: curl admin login → impersonate member/commerce devuelve token + redirect ✅; admin restore con token vuelve al rol super_admin ✅; member NO admin recibe 403 al intentar impersonar ✅; E2E playwright: modal abre, impersonación lleva a /member con banner, "Volver al admin" regresa a /admin ✅.
+
+- Portal del socio: limpieza UI (2026-05-06, iter 56):
+  - Removido botón "Descargar mis datos (Excel)" del header de Mi Membresía (`MemberOverview.js`).
+  - Nueva sub-sección **OBSERVACIONES** dentro del cuadro de Inversión (separador hairline navy). Si el socio no tiene inversión pero sí observaciones, se muestra como tarjeta independiente (`col-span-2`).
