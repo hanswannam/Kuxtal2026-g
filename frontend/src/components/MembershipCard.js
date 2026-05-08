@@ -30,10 +30,10 @@ export function MembershipCard({ name, contractNumber, startDate, endDate }) {
       <div
         className="absolute pointer-events-none"
         style={{
-          left: '6%',
+          left: '22%',
           top: '12%',
-          right: '32%',
-          bottom: '10%',
+          right: '28%',
+          bottom: '14%',
           background:
             'linear-gradient(135deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.35) 50%, rgba(0,0,0,0.15) 100%)',
           borderRadius: '14px',
@@ -43,9 +43,9 @@ export function MembershipCard({ name, contractNumber, startDate, endDate }) {
       />
 
       {/* Contenido sobre el panel */}
-      <div className="relative h-full flex flex-col justify-between p-5 sm:p-6 text-white">
+      <div className="relative h-full flex flex-col justify-between p-5 sm:p-6 text-white" style={{ paddingLeft: '24%', paddingRight: '28%' }}>
         {/* Encabezado */}
-        <div className="max-w-[68%]">
+        <div>
           <p
             className="text-[10px] sm:text-xs uppercase tracking-[0.28em] font-semibold mb-1"
             style={{ color: '#F5D27A' }}
@@ -54,7 +54,7 @@ export function MembershipCard({ name, contractNumber, startDate, endDate }) {
             Golden Member
           </p>
           <p
-            className="text-lg sm:text-xl font-bold tracking-wide"
+            className="text-base sm:text-lg font-bold tracking-wide"
             style={{ textShadow: '0 1px 2px rgba(0,0,0,0.4)' }}
             data-testid="card-contract"
           >
@@ -63,7 +63,7 @@ export function MembershipCard({ name, contractNumber, startDate, endDate }) {
         </div>
 
         {/* Pie: nombre + fechas (logo Kuxtal está en la imagen abajo-derecha) */}
-        <div className="max-w-[64%]">
+        <div>
           <p
             className="text-[9px] sm:text-[10px] uppercase tracking-widest mb-1"
             style={{ color: 'rgba(255,255,255,0.75)' }}
@@ -71,13 +71,13 @@ export function MembershipCard({ name, contractNumber, startDate, endDate }) {
             Socio principal
           </p>
           <p
-            className="font-heading text-base sm:text-lg font-bold leading-tight truncate"
+            className="font-heading text-sm sm:text-base font-bold leading-tight truncate"
             style={{ textShadow: '0 1px 2px rgba(0,0,0,0.45)' }}
             data-testid="card-name"
           >
             {name || '---'}
           </p>
-          <div className="mt-3 flex gap-4 text-[10px] sm:text-xs">
+          <div className="mt-3 flex gap-3 text-[10px] sm:text-xs">
             <div>
               <p
                 className="uppercase tracking-wider text-[8px] sm:text-[9px]"
