@@ -78,7 +78,7 @@ export default function MemberDashboard() {
   ];
 
   return (
-    <div className="min-h-screen pt-20 pb-12 bg-secondary/20" data-testid="member-dashboard">
+    <div className="min-h-screen pt-20 pb-12 member-portal-theme" data-testid="member-dashboard">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-6 flex items-start justify-between gap-3 flex-wrap">
           <div>

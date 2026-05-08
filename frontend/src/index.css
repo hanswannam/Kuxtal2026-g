@@ -123,6 +123,53 @@ html.impersonating body {
   padding-top: 36px;
 }
 
+/* ── Member Portal: Elegant Gold/Mustard theme (matches membership card) ── */
+.member-portal-theme {
+  --kt-gold: #D4AF37;
+  --kt-gold-deep: #B89327;
+  --kt-gold-soft: #F5D27A;
+  --kt-champagne: #FAF3DD;
+  --kt-cream: #FDF9EC;
+  --kt-navy: #0D2B45;
+  --kt-ink: #1A1A1A;
+  background:
+    radial-gradient(1200px 600px at 0% 0%, rgba(212,175,55,0.08), transparent 60%),
+    radial-gradient(1000px 500px at 100% 30%, rgba(245,210,122,0.10), transparent 65%),
+    #FBF8F0;
+}
+
+.member-portal-theme h1,
+.member-portal-theme .font-heading {
+  color: var(--kt-navy);
+}
+
+/* Inactive tab pills become champagne/gold-bordered */
+.member-portal-theme [data-testid="member-tabs"] button:not(.bg-primary) {
+  background: #fff;
+  border-color: rgba(212, 175, 55, 0.28);
+  color: #6b5b2e;
+}
+.member-portal-theme [data-testid="member-tabs"] button:not(.bg-primary):hover {
+  border-color: var(--kt-gold);
+  color: var(--kt-navy);
+  box-shadow: 0 6px 18px -10px rgba(212,175,55,0.55);
+}
+/* Active tab in deep navy with gold shadow ring */
+.member-portal-theme [data-testid="member-tabs"] button.bg-primary {
+  background: var(--kt-navy);
+  box-shadow: 0 8px 22px -8px rgba(13,43,69,0.45), 0 0 0 1px rgba(212,175,55,0.6) inset;
+}
+
+/* Manual pill */
+.member-portal-theme [data-testid="member-manual-btn"] {
+  border-color: var(--kt-gold);
+  color: var(--kt-gold-deep);
+  background: #fff;
+}
+.member-portal-theme [data-testid="member-manual-btn"]:hover {
+  background: var(--kt-cream);
+}
+
 /* WhatsApp floating */
 .whatsapp-float {
   position: fixed;
