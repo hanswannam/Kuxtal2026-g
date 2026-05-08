@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../lib/api';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
-import { FileText, Bell, MessageSquare, Package, Store, Share2, Loader2, QrCode, Gift, Building2, BookOpen } from 'lucide-react';
+import { FileText, Bell, MessageSquare, Package, Store, Share2, Loader2, QrCode, Gift, Building2, BookOpen, Users } from 'lucide-react';
 import { toast } from 'sonner';
 
 const MemberOverview = lazy(() => import('./member/MemberOverview').then(m => ({ default: m.MemberOverview })));
@@ -15,6 +15,7 @@ const MemberBenefits = lazy(() => import('./member/MemberBenefits').then(m => ({
 const MemberCoupons = lazy(() => import('./member/MemberCoupons').then(m => ({ default: m.MemberCoupons })));
 const MemberRegalias = lazy(() => import('./member/MemberRegalias').then(m => ({ default: m.MemberRegalias })));
 const MemberClubs = lazy(() => import('./member/MemberClubs').then(m => ({ default: m.MemberClubs })));
+const MemberFamily = lazy(() => import('./member/MemberFamily').then(m => ({ default: m.MemberFamily })));
 
 function TabLoader() {
   return (
@@ -67,6 +68,7 @@ export default function MemberDashboard() {
 
   const tabs = [
     { id: 'dashboard', label: 'Inicio', icon: Package },
+    { id: 'family', label: 'Familiares', icon: Users },
     { id: 'coupons', label: 'Cupones', icon: QrCode },
     { id: 'regalias', label: 'Regalías', icon: Gift },
     { id: 'clubs', label: 'Clubs', icon: Building2 },
@@ -96,7 +98,7 @@ export default function MemberDashboard() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2 sm:gap-3 mb-8" data-testid="member-tabs">
+        <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-10 gap-2 sm:gap-3 mb-8" data-testid="member-tabs">
           {tabs.map(t => (
             <button
               key={t.id}
@@ -116,6 +118,7 @@ export default function MemberDashboard() {
 
         <Suspense fallback={<TabLoader />}>
           {tab === 'dashboard' && <MemberOverview member={member} quotations={quotations} announcements={announcements} vacationRequests={vacationRequests} packages={packages} commerces={commerces} />}
+          {tab === 'family' && <MemberFamily member={member} isFamilyMember={!!user?.is_family_member} />}
           {tab === 'coupons' && <MemberCoupons />}
           {tab === 'quotations' && <MemberQuotations quotations={quotations} />}
           {tab === 'announcements' && <MemberAnnouncements announcements={announcements} />}

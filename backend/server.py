@@ -187,6 +187,18 @@ class FamilyMemberCreate(BaseModel):
     name: str
     dpi: str
     relationship: str = "familiar"
+    phone: Optional[str] = ""
+    email: Optional[str] = ""
+    birth_date: Optional[str] = ""
+
+
+class FamilyMemberUpdate(BaseModel):
+    name: Optional[str] = None
+    dpi: Optional[str] = None
+    relationship: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    birth_date: Optional[str] = None
 
 class ChatMessageCreate(BaseModel):
     text: str
@@ -1540,14 +1552,17 @@ async def add_family_member(member_id: str, req: FamilyMemberCreate, request: Re
         raise HTTPException(status_code=404, detail="Socio no encontrado")
     if user["role"] not in ["super_admin", "admin"] and user.get("member_id") != member_id:
         raise HTTPException(status_code=403, detail="Acceso denegado")
-    current_count = await db.family_members.count_documents({"member_id": member_id})
-    allowed = member.get("family_members_allowed", 1)
-    if current_count >= allowed:
-        raise HTTPException(status_code=400, detail=f"Límite de {allowed} familiares alcanzado")
-    existing = await db.family_members.find_one({"member_id": member_id, "dpi": req.dpi})
+    if not req.dpi.strip() or not req.name.strip():
+        raise HTTPException(status_code=400, detail="Nombre y DPI son requeridos")
+    # Prevent collision with the principal member's DPI
+    if member.get("dpi", "").strip() == req.dpi.strip():
+        raise HTTPException(status_code=400, detail="Este DPI corresponde al socio principal")
+    existing = await db.family_members.find_one({"member_id": member_id, "dpi": req.dpi.strip()})
     if existing:
         raise HTTPException(status_code=400, detail="Este DPI ya está registrado")
     doc = req.model_dump()
+    doc["dpi"] = doc["dpi"].strip()
+    doc["name"] = doc["name"].strip()
     doc["member_id"] = member_id
     doc["contract_number"] = member["contract_number"]
     doc["created_at"] = datetime.now(timezone.utc).isoformat()
@@ -1555,15 +1570,58 @@ async def add_family_member(member_id: str, req: FamilyMemberCreate, request: Re
     doc["_id"] = str(result.inserted_id)
     return doc
 
+
+@api_router.put("/members/{member_id}/family/{family_id}")
+async def update_family_member(member_id: str, family_id: str, req: FamilyMemberUpdate, request: Request):
+    user = await get_current_user(request)
+    if user["role"] not in ["super_admin", "admin"] and user.get("member_id") != member_id:
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    existing = await db.family_members.find_one({"_id": ObjectId(family_id), "member_id": member_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Familiar no encontrado")
+    updates = {k: v for k, v in req.model_dump().items() if v is not None}
+    if "dpi" in updates and updates["dpi"].strip() != existing.get("dpi", ""):
+        new_dpi = updates["dpi"].strip()
+        member = await db.members.find_one({"_id": ObjectId(member_id)})
+        if member and member.get("dpi", "").strip() == new_dpi:
+            raise HTTPException(status_code=400, detail="Este DPI corresponde al socio principal")
+        clash = await db.family_members.find_one({
+            "member_id": member_id, "dpi": new_dpi, "_id": {"$ne": ObjectId(family_id)}
+        })
+        if clash:
+            raise HTTPException(status_code=400, detail="Este DPI ya está registrado")
+        updates["dpi"] = new_dpi
+        # Sync existing user account password (DPI is the password)
+        old_user = await db.users.find_one({
+            "member_id": member_id, "family_dpi": existing.get("dpi", "")
+        })
+        if old_user:
+            await db.users.update_one(
+                {"_id": old_user["_id"]},
+                {"$set": {"family_dpi": new_dpi, "password_hash": hash_password(new_dpi)}}
+            )
+    if "name" in updates:
+        updates["name"] = updates["name"].strip()
+    updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db.family_members.update_one({"_id": ObjectId(family_id)}, {"$set": updates})
+    fresh = await db.family_members.find_one({"_id": ObjectId(family_id)})
+    return serialize_doc(fresh)
+
+
 @api_router.delete("/members/{member_id}/family/{family_id}")
 async def remove_family_member(member_id: str, family_id: str, request: Request):
     user = await get_current_user(request)
     if user["role"] not in ["super_admin", "admin"] and user.get("member_id") != member_id:
         raise HTTPException(status_code=403, detail="Acceso denegado")
-    await verify_delete_code(request)
-    result = await db.family_members.delete_one({"_id": ObjectId(family_id), "member_id": member_id})
-    if result.deleted_count == 0:
+    family = await db.family_members.find_one({"_id": ObjectId(family_id), "member_id": member_id})
+    if not family:
         raise HTTPException(status_code=404, detail="Familiar no encontrado")
+    # Members deleting their own family don't need the global delete code; admins still must provide it
+    if user["role"] in ("super_admin", "admin"):
+        await verify_delete_code(request)
+    await db.family_members.delete_one({"_id": ObjectId(family_id), "member_id": member_id})
+    # Also clean up the linked user account so they can't log in anymore
+    await db.users.delete_many({"member_id": member_id, "family_dpi": family.get("dpi")})
     return {"message": "Familiar eliminado"}
 
 # ── Stats & Analytics ──
