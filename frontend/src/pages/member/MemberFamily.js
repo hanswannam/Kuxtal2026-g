@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Edit2, Trash2, Loader2, X, Users, Eye, EyeOff, Copy, Check, AlertCircle } from 'lucide-react';
+import { Plus, Edit2, Trash2, Loader2, X, Users, Eye, EyeOff, Copy, Check, AlertCircle, MessageCircle, Mail } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
@@ -130,6 +130,14 @@ function FamilyForm({ initial, contractNumber, onSave, onCancel, saving }) {
   );
 }
 
+function sanitizePhone(raw) {
+  if (!raw) return '';
+  const digits = String(raw).replace(/\D+/g, '');
+  if (!digits) return '';
+  if (digits.length === 8) return `502${digits}`;
+  return digits;
+}
+
 function CredentialsBlock({ family, contractNumber }) {
   const [reveal, setReveal] = useState(false);
   const [copied, setCopied] = useState('');
@@ -189,6 +197,40 @@ function CredentialsBlock({ family, contractNumber }) {
         {copied === `m-${family._id}` ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
         {copied === `m-${family._id}` ? 'Mensaje copiado' : 'Copiar mensaje completo para enviarle'}
       </button>
+
+      <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <button
+          onClick={() => {
+            const phone = sanitizePhone(family.phone);
+            if (!phone) {
+              toast.error('Este familiar no tiene teléfono. Edítalo o copia el mensaje.');
+              return;
+            }
+            window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank', 'noopener');
+          }}
+          className="inline-flex items-center justify-center gap-1.5 h-9 rounded-full text-xs font-semibold text-white transition-colors"
+          style={{ background: '#25D366' }}
+          data-testid={`whatsapp-family-${family._id}`}
+        >
+          <MessageCircle className="w-3.5 h-3.5" /> Enviar por WhatsApp
+        </button>
+        <button
+          onClick={() => {
+            if (!family.email) {
+              toast.error('Este familiar no tiene email. Edítalo o copia el mensaje.');
+              return;
+            }
+            const subjectText = encodeURIComponent('Tus accesos a Kuxtal Travels');
+            const body = encodeURIComponent(message);
+            window.location.href = `mailto:${family.email}?subject=${subjectText}&body=${body}`;
+          }}
+          className="inline-flex items-center justify-center gap-1.5 h-9 rounded-full text-xs font-semibold border transition-colors hover:bg-muted"
+          style={{ borderColor: 'rgba(212,175,55,0.45)', color: NAVY }}
+          data-testid={`email-family-${family._id}`}
+        >
+          <Mail className="w-3.5 h-3.5" /> Enviar por email
+        </button>
+      </div>
     </div>
   );
 }
