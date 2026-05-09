@@ -3,6 +3,7 @@ import { Plus, Edit2, Trash2, Loader2, X, Users, Eye, EyeOff, Copy, Check, Alert
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
+import { MembershipCard } from '../../components/MembershipCard';
 import { toast } from 'sonner';
 import api from '../../lib/api';
 
@@ -244,6 +245,8 @@ export function MemberFamily({ member, isFamilyMember }) {
 
   const memberId = member?._id;
   const contractNumber = member?.contract_number || '---';
+  const memberStart = member?.membership_start || member?.contract_date;
+  const memberEnd = member?.membership_end || member?.termination_date;
 
   const load = useCallback(async () => {
     if (!memberId) return;
@@ -415,6 +418,19 @@ export function MemberFamily({ member, isFamilyMember }) {
                     </Button>
                   </div>
                 </div>
+
+                <div className="mt-4 flex justify-center sm:justify-start" data-testid={`family-card-${i}`}>
+                  <MembershipCard
+                    name={f.name}
+                    contractNumber={contractNumber}
+                    startDate={memberStart}
+                    endDate={memberEnd}
+                    tier="Co Propietario"
+                    subtitle="Familiar autorizado"
+                    downloadFilename={`tarjeta_kuxtal_copropietario_${(f.name || 'familiar').replace(/\s+/g,'_')}.png`}
+                  />
+                </div>
+
                 <CredentialsBlock family={f} contractNumber={contractNumber} />
               </div>
             ))}

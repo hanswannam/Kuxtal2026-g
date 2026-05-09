@@ -143,6 +143,11 @@ html.impersonating body {
   color: var(--kt-navy);
 }
 
+/* Membership card overrides theme: name MUST stay white on the gold/hex art */
+.member-portal-theme [data-testid="membership-card"] .font-heading {
+  color: #ffffff !important;
+}
+
 /* Inactive tab pills become champagne/gold-bordered */
 .member-portal-theme [data-testid="member-tabs"] button:not(.bg-primary) {
   background: #fff;

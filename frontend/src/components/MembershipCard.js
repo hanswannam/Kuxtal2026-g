@@ -8,9 +8,12 @@ import { toast } from 'sonner';
  * Tarjeta de membresía estilo "Golden Member" de Kuxtal Travels.
  * Usa el arte oficial (mostaza + hexágonos negros + logo Kuxtal Travels) como fondo.
  */
-export function MembershipCard({ name, contractNumber, startDate, endDate }) {
+export function MembershipCard({ name, contractNumber, startDate, endDate, tier, subtitle, downloadFilename }) {
   const cardRef = useRef(null);
   const [downloading, setDownloading] = useState(false);
+
+  const tierLabel = tier || 'Golden Member';
+  const subtitleLabel = subtitle || 'Socio principal';
 
   const fmt = (d) => {
     if (!d) return '--/--/----';
@@ -32,7 +35,7 @@ export function MembershipCard({ name, contractNumber, startDate, endDate }) {
       });
       const a = document.createElement('a');
       a.href = dataUrl;
-      a.download = `tarjeta_kuxtal_${contractNumber || 'socio'}.png`;
+      a.download = downloadFilename || `tarjeta_kuxtal_${contractNumber || 'socio'}.png`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -69,7 +72,7 @@ export function MembershipCard({ name, contractNumber, startDate, endDate }) {
               style={{ color: '#F5D27A', textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}
               data-testid="card-tier"
             >
-              Golden Member
+              {tierLabel}
             </p>
             <p
               className="text-base sm:text-lg font-bold tracking-wide"
@@ -86,11 +89,11 @@ export function MembershipCard({ name, contractNumber, startDate, endDate }) {
               className="text-[9px] sm:text-[10px] uppercase tracking-widest mb-1 font-semibold"
               style={{ color: 'rgba(255,255,255,0.95)', textShadow: '0 1px 3px rgba(0,0,0,0.7)' }}
             >
-              Socio principal
+              {subtitleLabel}
             </p>
             <p
               className="font-heading text-sm sm:text-base font-bold leading-tight truncate"
-              style={{ textShadow: '0 1px 3px rgba(0,0,0,0.75), 0 0 8px rgba(0,0,0,0.45)' }}
+              style={{ color: '#ffffff', textShadow: '0 1px 3px rgba(0,0,0,0.75), 0 0 8px rgba(0,0,0,0.45)' }}
               data-testid="card-name"
             >
               {name || '---'}
