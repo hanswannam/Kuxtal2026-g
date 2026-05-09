@@ -36,6 +36,7 @@ class QuotationRequest(BaseModel):
     contract_number: Optional[str] = ""
     message: Optional[str] = ""
     guests: int = 1
+    travel_date: Optional[str] = ""
 
 
 class QuotationSettings(BaseModel):

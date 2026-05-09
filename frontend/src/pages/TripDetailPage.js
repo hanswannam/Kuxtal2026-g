@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api from '../lib/api';
+import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/button';
-import { MapPin, Star, Calendar, Users, Check, Hotel, Mountain, ArrowLeft, Share2, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { MapPin, Star, Calendar, Users, Check, Hotel, Mountain, ArrowLeft, Share2, ChevronLeft, ChevronRight, Sparkles, Lock } from 'lucide-react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { toast } from 'sonner';
 import { CountdownTimer } from '../components/CountdownTimer';
@@ -56,12 +57,29 @@ function SectionHeading({ eyebrow, title }) {
 
 export default function TripDetailPage() {
   const { id } = useParams();
+  const { user } = useAuth();
   const [pkg, setPkg] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showQuoteForm, setShowQuoteForm] = useState(false);
-  const [quoteForm, setQuoteForm] = useState({ name: '', email: '', phone: '', contract_number: '', message: '', guests: 2 });
+  const [quoteForm, setQuoteForm] = useState({ name: '', email: '', phone: '', contract_number: '', message: '', guests: 2, travel_date: '' });
   const [galleryIndex, setGalleryIndex] = useState(0);
   useDocumentTitle(pkg?.title || 'Detalle del Paquete');
+
+  // Resolve member from auth: normal member or admin browsing as member is fine.
+  const linkedMember = user?.role === 'member' ? (user.member || null) : null;
+  const isLoggedMember = !!linkedMember;
+
+  // Pre-fill the quote form with the member's data whenever auth changes or modal opens.
+  useEffect(() => {
+    if (!isLoggedMember) return;
+    setQuoteForm(prev => ({
+      ...prev,
+      name: linkedMember.name || prev.name,
+      email: linkedMember.email || prev.email,
+      phone: linkedMember.phone || prev.phone,
+      contract_number: linkedMember.contract_number || prev.contract_number,
+    }));
+  }, [isLoggedMember, linkedMember, showQuoteForm]);
 
   useEffect(() => {
     let cancelled = false;
@@ -78,9 +96,17 @@ export default function TripDetailPage() {
     e.preventDefault();
     try {
       await api.post(`/quotations`, { ...quoteForm, package_id: id });
-      toast.success('Cotización enviada correctamente');
+      toast.success(isLoggedMember
+        ? '¡Listo! La cotización quedó guardada en tu portal.'
+        : 'Cotización enviada correctamente');
       setShowQuoteForm(false);
-      setQuoteForm({ name: '', email: '', phone: '', contract_number: '', message: '', guests: 2 });
+      setQuoteForm({
+        name: linkedMember?.name || '',
+        email: linkedMember?.email || '',
+        phone: linkedMember?.phone || '',
+        contract_number: linkedMember?.contract_number || '',
+        message: '', guests: 2, travel_date: '',
+      });
     } catch { toast.error('Error al enviar cotización'); }
   };
 
@@ -441,26 +467,40 @@ export default function TripDetailPage() {
               <p className="text-[10px] font-bold uppercase tracking-[0.28em]" style={{ color: '#8B6F2E' }}>Solicitud privada</p>
             </div>
             <h3 className="font-heading text-2xl font-black mb-1" style={{ color: NAVY, fontFamily: SERIF }}>Solicitar Cotización</h3>
-            <p className="text-sm italic mb-5" style={{ color: `${NAVY}99`, fontFamily: SERIF }}>Para: {pkg.title}</p>
+            <p className="text-sm italic mb-3" style={{ color: `${NAVY}99`, fontFamily: SERIF }}>Para: {pkg.title}</p>
+
+            {isLoggedMember && (
+              <div
+                className="rounded-xl p-3 mb-4 flex items-start gap-2 text-xs"
+                style={{ background: `${GOLD}15`, border: `1px solid ${GOLD}55`, color: NAVY }}
+                data-testid="quote-member-banner"
+              >
+                <Lock className="w-4 h-4 mt-0.5 shrink-0" style={{ color: GOLD }} />
+                <span>
+                  Estás cotizando como socio <strong>#{linkedMember.contract_number}</strong>. La cotización quedará guardada en tu portal en la pestaña <strong>Cotizaciones</strong>.
+                </span>
+              </div>
+            )}
+
             <form onSubmit={submitQuote} className="space-y-3">
               <div>
                 <label className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: `${NAVY}88` }}>Nombre completo</label>
-                <input value={quoteForm.name} onChange={e => setQuoteForm({ ...quoteForm, name: e.target.value })} required className="w-full mt-1 h-10 rounded-xl px-3 text-sm focus:outline-none transition-all" style={{ border: `1px solid ${GOLD}44`, background: '#FAF8F3' }} data-testid="quote-name" />
+                <input value={quoteForm.name} onChange={e => setQuoteForm({ ...quoteForm, name: e.target.value })} required readOnly={isLoggedMember} className={`w-full mt-1 h-10 rounded-xl px-3 text-sm focus:outline-none transition-all ${isLoggedMember ? 'cursor-not-allowed' : ''}`} style={{ border: `1px solid ${GOLD}44`, background: isLoggedMember ? '#F3EEE2' : '#FAF8F3' }} data-testid="quote-name" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: `${NAVY}88` }}>Email</label>
-                  <input type="email" value={quoteForm.email} onChange={e => setQuoteForm({ ...quoteForm, email: e.target.value })} required className="w-full mt-1 h-10 rounded-xl px-3 text-sm focus:outline-none" style={{ border: `1px solid ${GOLD}44`, background: '#FAF8F3' }} data-testid="quote-email" />
+                  <input type="email" value={quoteForm.email} onChange={e => setQuoteForm({ ...quoteForm, email: e.target.value })} required readOnly={isLoggedMember} className={`w-full mt-1 h-10 rounded-xl px-3 text-sm focus:outline-none ${isLoggedMember ? 'cursor-not-allowed' : ''}`} style={{ border: `1px solid ${GOLD}44`, background: isLoggedMember ? '#F3EEE2' : '#FAF8F3' }} data-testid="quote-email" />
                 </div>
                 <div>
                   <label className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: `${NAVY}88` }}>Teléfono</label>
-                  <input value={quoteForm.phone} onChange={e => setQuoteForm({ ...quoteForm, phone: e.target.value })} required className="w-full mt-1 h-10 rounded-xl px-3 text-sm focus:outline-none" style={{ border: `1px solid ${GOLD}44`, background: '#FAF8F3' }} data-testid="quote-phone" />
+                  <input value={quoteForm.phone} onChange={e => setQuoteForm({ ...quoteForm, phone: e.target.value })} required readOnly={isLoggedMember} className={`w-full mt-1 h-10 rounded-xl px-3 text-sm focus:outline-none ${isLoggedMember ? 'cursor-not-allowed' : ''}`} style={{ border: `1px solid ${GOLD}44`, background: isLoggedMember ? '#F3EEE2' : '#FAF8F3' }} data-testid="quote-phone" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: `${NAVY}88` }}>No. Contrato</label>
-                  <input value={quoteForm.contract_number} onChange={e => setQuoteForm({ ...quoteForm, contract_number: e.target.value })} placeholder="Opcional" className="w-full mt-1 h-10 rounded-xl px-3 text-sm focus:outline-none" style={{ border: `1px solid ${GOLD}44`, background: '#FAF8F3' }} data-testid="quote-contract" />
+                  <input value={quoteForm.contract_number} onChange={e => setQuoteForm({ ...quoteForm, contract_number: e.target.value })} placeholder={isLoggedMember ? '' : 'Opcional'} readOnly={isLoggedMember} className={`w-full mt-1 h-10 rounded-xl px-3 text-sm focus:outline-none ${isLoggedMember ? 'cursor-not-allowed' : ''}`} style={{ border: `1px solid ${GOLD}44`, background: isLoggedMember ? '#F3EEE2' : '#FAF8F3' }} data-testid="quote-contract" />
                 </div>
                 <div>
                   <label className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: `${NAVY}88` }}>Viajeros</label>
@@ -468,8 +508,12 @@ export default function TripDetailPage() {
                 </div>
               </div>
               <div>
+                <label className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: `${NAVY}88` }}>Fecha de viaje deseada</label>
+                <input type="date" value={quoteForm.travel_date} onChange={e => setQuoteForm({ ...quoteForm, travel_date: e.target.value })} className="w-full mt-1 h-10 rounded-xl px-3 text-sm focus:outline-none" style={{ border: `1px solid ${GOLD}44`, background: '#FAF8F3' }} data-testid="quote-travel-date" />
+              </div>
+              <div>
                 <label className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: `${NAVY}88` }}>Mensaje (opcional)</label>
-                <textarea value={quoteForm.message} onChange={e => setQuoteForm({ ...quoteForm, message: e.target.value })} rows={3} placeholder="Fechas preferidas, requisitos especiales..." className="w-full mt-1 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none" style={{ border: `1px solid ${GOLD}44`, background: '#FAF8F3' }} data-testid="quote-message" />
+                <textarea value={quoteForm.message} onChange={e => setQuoteForm({ ...quoteForm, message: e.target.value })} rows={3} placeholder="Fechas alternativas, requisitos especiales..." className="w-full mt-1 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none" style={{ border: `1px solid ${GOLD}44`, background: '#FAF8F3' }} data-testid="quote-message" />
               </div>
               <div className="flex gap-3 pt-3">
                 <Button type="button" variant="outline" onClick={() => setShowQuoteForm(false)} className="flex-1 rounded-xl font-bold uppercase tracking-[0.15em] text-xs" style={{ borderColor: `${GOLD}77`, color: NAVY, background: 'transparent' }}>Cancelar</Button>
