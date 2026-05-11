@@ -236,6 +236,22 @@ _STATUS_LABELS = {
 # ── Public routes ────────────────────────────────────────────────────
 # ══════════════════════════════════════════════════════════════════════
 
+@router.get("/quotations/check-email")
+async def check_quote_email(email: str = ""):
+    """Public endpoint: returns whether the email belongs to an existing member.
+    Used by the public quote form to suggest the visitor logs in. No PII leaked.
+    """
+    e = (email or "").strip().lower()
+    if not e or "@" not in e or len(e) < 5:
+        return {"member": False, "client": False}
+    member = await db.members.find_one({"email": e}, {"_id": 1, "name": 1})
+    if member:
+        first = (member.get("name") or "").split(" ")[0]
+        return {"member": True, "client": False, "first_name": first}
+    client = await db.clients.find_one({"email": e}, {"_id": 1})
+    return {"member": False, "client": bool(client)}
+
+
 @router.post("/quotations")
 async def create_quotation(req: QuotationRequest):
     now_iso = datetime.now(timezone.utc).isoformat()

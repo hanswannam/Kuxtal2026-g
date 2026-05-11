@@ -69,6 +69,21 @@ export default function TripDetailPage() {
   const linkedMember = user?.role === 'member' ? (user.member || null) : null;
   const isLoggedMember = !!linkedMember;
 
+  // Suggest login if visitor types a known-member email (public quote form).
+  const [emailMatch, setEmailMatch] = useState(null);
+  useEffect(() => {
+    if (isLoggedMember) { setEmailMatch(null); return; }
+    const e = (quoteForm.email || '').trim().toLowerCase();
+    if (!e || !e.includes('@') || e.length < 5) { setEmailMatch(null); return; }
+    const t = setTimeout(async () => {
+      try {
+        const r = await api.get(`/quotations/check-email?email=${encodeURIComponent(e)}`);
+        setEmailMatch(r.data || null);
+      } catch { setEmailMatch(null); }
+    }, 500);
+    return () => clearTimeout(t);
+  }, [quoteForm.email, isLoggedMember]);
+
   // Pre-fill the quote form with the member's data whenever auth changes or modal opens.
   useEffect(() => {
     if (!isLoggedMember) return;
@@ -479,6 +494,32 @@ export default function TripDetailPage() {
                 <span>
                   Estás cotizando como socio <strong>#{linkedMember.contract_number}</strong>. La cotización quedará guardada en tu portal en la pestaña <strong>Cotizaciones</strong>.
                 </span>
+              </div>
+            )}
+
+            {!isLoggedMember && emailMatch?.member && (
+              <div
+                className="rounded-xl p-3 mb-4 flex items-start gap-3 text-xs"
+                style={{ background: `${GOLD}18`, border: `1px solid ${GOLD}80`, color: NAVY }}
+                data-testid="quote-login-suggest"
+              >
+                <Sparkles className="w-4 h-4 mt-0.5 shrink-0" style={{ color: GOLD }} />
+                <div className="flex-1">
+                  <p className="font-semibold mb-0.5">
+                    {emailMatch.first_name ? `Hola ${emailMatch.first_name},` : 'Hola,'} este email pertenece a un socio Kuxtal.
+                  </p>
+                  <p style={{ color: `${NAVY}b3` }}>
+                    Inicia sesión para vincular esta cotización a tu cuenta y verla en tu portal.
+                  </p>
+                </div>
+                <Link
+                  to="/login"
+                  className="shrink-0 inline-flex items-center gap-1 px-3 h-8 rounded-full text-[11px] font-bold uppercase tracking-[0.15em] text-white"
+                  style={{ background: NAVY }}
+                  data-testid="quote-login-cta"
+                >
+                  Iniciar sesión
+                </Link>
               </div>
             )}
 
