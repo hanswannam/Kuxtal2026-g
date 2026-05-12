@@ -3,14 +3,13 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../lib/api';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
-import { FileText, Bell, MessageSquare, Package, Store, Share2, Loader2, QrCode, Gift, Building2, BookOpen, Users } from 'lucide-react';
+import { FileText, Bell, MessageSquare, Package, Store, Loader2, QrCode, Gift, Building2, BookOpen, Users } from 'lucide-react';
 import { toast } from 'sonner';
 
 const MemberOverview = lazy(() => import('./member/MemberOverview').then(m => ({ default: m.MemberOverview })));
 const MemberQuotations = lazy(() => import('./member/MemberQuotations').then(m => ({ default: m.MemberQuotations })));
 const MemberAnnouncements = lazy(() => import('./member/MemberAnnouncements').then(m => ({ default: m.MemberAnnouncements })));
 const MemberRequests = lazy(() => import('./member/MemberRequests').then(m => ({ default: m.MemberRequests })));
-const MemberReferrals = lazy(() => import('./member/MemberReferrals').then(m => ({ default: m.MemberReferrals })));
 const MemberBenefits = lazy(() => import('./member/MemberBenefits').then(m => ({ default: m.MemberBenefits })));
 const MemberCoupons = lazy(() => import('./member/MemberCoupons').then(m => ({ default: m.MemberCoupons })));
 const MemberRegalias = lazy(() => import('./member/MemberRegalias').then(m => ({ default: m.MemberRegalias })));
@@ -35,7 +34,6 @@ export default function MemberDashboard() {
   const [vacationRequests, setVacationRequests] = useState([]);
   const [packages, setPackages] = useState([]);
   const [commerces, setCommerces] = useState([]);
-  const [referralData, setReferralData] = useState(null);
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [reqForm, setReqForm] = useState({ destination: '', travel_date: '', guests: 1, message: '' });
 
@@ -49,7 +47,6 @@ export default function MemberDashboard() {
     api.get('/vacation-requests').then(r => setVacationRequests(r.data)).catch(e => console.error('Failed to load requests:', e));
     api.get('/packages?featured=true').then(r => setPackages(r.data.slice(0, 3))).catch(e => console.error('Failed to load packages:', e));
     api.get('/commerce').then(r => setCommerces(r.data.slice(0, 4))).catch(e => console.error('Failed to load commerce:', e));
-    api.get('/referral/my-code').then(r => setReferralData(r.data)).catch(e => console.error('Failed to load referral:', e));
   }, [user]);
 
   useEffect(() => { loadMemberData(); }, [loadMemberData]);
@@ -75,7 +72,6 @@ export default function MemberDashboard() {
     { id: 'quotations', label: 'Cotizaciones', icon: FileText },
     { id: 'announcements', label: 'Anuncios', icon: Bell },
     { id: 'requests', label: 'Solicitudes', icon: MessageSquare },
-    { id: 'referral', label: 'Referidos', icon: Share2 },
     { id: 'benefits', label: 'Beneficios', icon: Store },
   ];
 
@@ -98,7 +94,7 @@ export default function MemberDashboard() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-10 gap-2 sm:gap-3 mb-8" data-testid="member-tabs">
+        <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2 sm:gap-3 mb-8" data-testid="member-tabs">
           {tabs.map(t => (
             <button
               key={t.id}
@@ -125,7 +121,6 @@ export default function MemberDashboard() {
           {tab === 'requests' && <MemberRequests vacationRequests={vacationRequests} showRequestForm={showRequestForm} setShowRequestForm={setShowRequestForm} reqForm={reqForm} setReqForm={setReqForm} submitRequest={submitRequest} />}
           {tab === 'regalias' && <MemberRegalias />}
           {tab === 'clubs' && <MemberClubs />}
-          {tab === 'referral' && <MemberReferrals referralData={referralData} />}
           {tab === 'benefits' && <MemberBenefits commerces={commerces} />}
         </Suspense>
       </div>
