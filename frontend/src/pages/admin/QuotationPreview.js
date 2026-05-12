@@ -6,8 +6,10 @@ import { toast } from 'sonner';
 export function QuotationPreviewModal({ quot, onClose }) {
   const [copied, setCopied] = useState(false);
   const publicUrl = `${window.location.origin}/cotizacion/${quot.public_token}`;
+  const apiBase = process.env.REACT_APP_BACKEND_URL || '';
+  const pdfUrl = `${apiBase}/api/quotations/public/${quot.public_token}/pdf`;
 
-  const waMsg = buildWhatsAppMessage(quot, publicUrl);
+  const waMsg = buildWhatsAppMessage(quot, publicUrl, pdfUrl);
   const waLink = `https://wa.me/${(quot.phone || '').replace(/\D/g, '')}?text=${encodeURIComponent(waMsg)}`;
 
   const emailSubject = `Cotización Kuxtal Travels - ${quot.package_title || 'Tu viaje'}`;
@@ -44,6 +46,22 @@ export function QuotationPreviewModal({ quot, onClose }) {
               <ExternalLink className="w-3.5 h-3.5" />
             </Button>
           </div>
+          <p className="text-xs text-muted-foreground mb-2">PDF descargable directo (se incluye en el mensaje):</p>
+          <div className="flex gap-2 mb-3">
+            <code className="flex-1 text-xs bg-secondary/50 rounded-lg px-3 py-2 font-mono truncate select-all" data-testid="pdf-link">{pdfUrl}</code>
+            <Button
+              size="sm"
+              onClick={() => { navigator.clipboard.writeText(pdfUrl); toast.success('Link del PDF copiado'); }}
+              variant="outline"
+              className="rounded-xl"
+              data-testid="copy-pdf-btn"
+            >
+              <ClipboardCopy className="w-3.5 h-3.5" />
+            </Button>
+            <Button size="sm" onClick={() => window.open(pdfUrl, '_blank')} variant="outline" className="rounded-xl" data-testid="open-pdf-btn">
+              <ExternalLink className="w-3.5 h-3.5" />
+            </Button>
+          </div>
           <div className="flex flex-col sm:flex-row gap-2">
             <Button
               onClick={() => window.open(waLink, '_blank')}
@@ -69,7 +87,7 @@ export function QuotationPreviewModal({ quot, onClose }) {
   );
 }
 
-function buildWhatsAppMessage(q, publicUrl) {
+function buildWhatsAppMessage(q, publicUrl, pdfUrl) {
   const greeting = q.is_member
     ? `¡Hola ${q.name}! Como socio Kuxtal, aquí está tu cotización personalizada:`
     : `¡Hola ${q.name}! Gracias por tu interés en Kuxtal Travels. Aquí está tu cotización:`;
@@ -83,7 +101,8 @@ function buildWhatsAppMessage(q, publicUrl) {
     `👥 ${q.guests || 1} persona(s)`,
     total > 0 ? `💰 *Total: Q.${total.toLocaleString()}*` : '',
     '',
-    `Ver la cotización completa: ${publicUrl}`,
+    `🔗 Ver la cotización completa: ${publicUrl}`,
+    pdfUrl ? `📄 Descargar PDF: ${pdfUrl}` : '',
     '',
     '¡Estamos para servirte!',
     '— Kuxtal Travels',
