@@ -85,6 +85,8 @@ class MemberCreate(BaseModel):
     coowner_profession: Optional[str] = ""
     coowner_phone: Optional[str] = ""
     coowner_email: Optional[str] = ""
+    coowner_dpi: Optional[str] = ""
+    coowner_birth_date: Optional[str] = ""
     # Datos de contrato / facturación
     vigencia: Optional[str] = ""
     cuotas: Optional[str] = ""
@@ -316,6 +318,53 @@ async def update_member(member_id: str, req: MemberCreate, request: Request):
                     "created_at": datetime.now(timezone.utc).isoformat(),
                 })
     updated = await db.members.find_one({"_id": ObjectId(member_id)})
+
+    # ── Sync coowner_* changes back to the family_members collection ─────────────
+    co_name = (update_data.get("coowner_name") or "").strip()
+    existing_fam = await db.family_members.find_one({"member_id": member_id})
+    if co_name:
+        fam_updates = {
+            "name": co_name,
+            "phone": update_data.get("coowner_phone", ""),
+            "email": (update_data.get("coowner_email") or "").strip(),
+            "birth_date": (update_data.get("coowner_birth_date") or "").strip(),
+            "nationality": (update_data.get("coowner_nationality") or "").strip(),
+            "profession": (update_data.get("coowner_profession") or "").strip(),
+            "investment": (update_data.get("coowner_investment") or "").strip(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }
+        co_dpi = (update_data.get("coowner_dpi") or "").strip()
+        if co_dpi:
+            fam_updates["dpi"] = co_dpi
+        if existing_fam:
+            await db.family_members.update_one({"_id": existing_fam["_id"]}, {"$set": fam_updates})
+            # Sync the linked user's password if DPI changed
+            if co_dpi and co_dpi != existing_fam.get("dpi", ""):
+                await db.users.update_many(
+                    {"member_id": member_id, "family_dpi": existing_fam.get("dpi", "")},
+                    {"$set": {"family_dpi": co_dpi, "password_hash": hash_password(co_dpi)}}
+                )
+        else:
+            await db.family_members.insert_one({
+                "member_id": member_id,
+                "contract_number": updated.get("contract_number", ""),
+                "name": co_name,
+                "dpi": co_dpi or (updated.get("dpi", "") + "-CP"),
+                "relationship": "copropietario",
+                "phone": fam_updates["phone"],
+                "email": fam_updates["email"],
+                "birth_date": fam_updates["birth_date"],
+                "nationality": fam_updates["nationality"],
+                "profession": fam_updates["profession"],
+                "investment": fam_updates["investment"],
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "auto_synced": True,
+            })
+    elif existing_fam and update_data.get("coowner_name") == "":
+        # Coowner name was explicitly cleared → drop the linked record + user
+        await db.family_members.delete_one({"_id": existing_fam["_id"]})
+        await db.users.delete_many({"member_id": member_id, "family_dpi": existing_fam.get("dpi", "")})
+
     return serialize_doc(updated)
 
 @api_router.delete("/members/{member_id}")
@@ -1539,10 +1588,56 @@ async def get_family_members(member_id: str, request: Request):
     user = await get_current_user(request)
     if user["role"] not in ["super_admin", "admin"] and user.get("member_id") != member_id:
         raise HTTPException(status_code=403, detail="Acceso denegado")
+    # If no family record exists yet but the member has coowner_* data, materialize one
+    # automatically so the copropietario tab reflects whatever the admin loaded by CSV.
+    existing = await db.family_members.find_one({"member_id": member_id})
+    if not existing:
+        member = await db.members.find_one({"_id": ObjectId(member_id)})
+        if member and (member.get("coowner_name") or "").strip():
+            doc = {
+                "member_id": member_id,
+                "contract_number": member.get("contract_number", ""),
+                "name": (member.get("coowner_name") or "").strip(),
+                "dpi": (member.get("coowner_dpi") or "").strip() or (member.get("dpi", "") + "-CP"),
+                "relationship": "copropietario",
+                "phone": _normalize_gt_phone(member.get("coowner_phone") or ""),
+                "email": (member.get("coowner_email") or "").strip(),
+                "birth_date": (member.get("coowner_birth_date") or "").strip(),
+                "nationality": (member.get("coowner_nationality") or "").strip(),
+                "profession": (member.get("coowner_profession") or "").strip(),
+                "investment": (member.get("coowner_investment") or "").strip(),
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "auto_synced": True,
+            }
+            await db.family_members.insert_one(doc)
     family = []
     async for f in db.family_members.find({"member_id": member_id}).limit(20):
         family.append(serialize_doc(f))
     return family
+
+
+async def _sync_member_coowner_fields(member_id: str, family_doc: dict | None):
+    """Mirror the family_member into the parent Member.coowner_* fields (single source of truth)."""
+    if family_doc is None:
+        clear = {
+            "coowner_name": "", "coowner_phone": "", "coowner_email": "",
+            "coowner_dpi": "", "coowner_birth_date": "",
+            "coowner_nationality": "", "coowner_profession": "", "coowner_investment": "",
+        }
+        await db.members.update_one({"_id": ObjectId(member_id)}, {"$set": clear})
+        return
+    update = {
+        "coowner_name": family_doc.get("name", ""),
+        "coowner_phone": family_doc.get("phone", ""),
+        "coowner_email": family_doc.get("email", ""),
+        "coowner_dpi": family_doc.get("dpi", ""),
+        "coowner_birth_date": family_doc.get("birth_date", ""),
+    }
+    # Optional fields if provided
+    for k in ("nationality", "profession", "investment"):
+        if family_doc.get(k):
+            update[f"coowner_{k}"] = family_doc.get(k, "")
+    await db.members.update_one({"_id": ObjectId(member_id)}, {"$set": update})
 
 @api_router.post("/members/{member_id}/family")
 async def add_family_member(member_id: str, req: FamilyMemberCreate, request: Request):
@@ -1572,6 +1667,7 @@ async def add_family_member(member_id: str, req: FamilyMemberCreate, request: Re
     doc["created_at"] = datetime.now(timezone.utc).isoformat()
     result = await db.family_members.insert_one(doc)
     doc["_id"] = str(result.inserted_id)
+    await _sync_member_coowner_fields(member_id, doc)
     return doc
 
 
@@ -1609,6 +1705,7 @@ async def update_family_member(member_id: str, family_id: str, req: FamilyMember
     updates["updated_at"] = datetime.now(timezone.utc).isoformat()
     await db.family_members.update_one({"_id": ObjectId(family_id)}, {"$set": updates})
     fresh = await db.family_members.find_one({"_id": ObjectId(family_id)})
+    await _sync_member_coowner_fields(member_id, fresh)
     return serialize_doc(fresh)
 
 
@@ -1626,7 +1723,9 @@ async def remove_family_member(member_id: str, family_id: str, request: Request)
     await db.family_members.delete_one({"_id": ObjectId(family_id), "member_id": member_id})
     # Also clean up the linked user account so they can't log in anymore
     await db.users.delete_many({"member_id": member_id, "family_dpi": family.get("dpi")})
-    return {"message": "Familiar eliminado"}
+    # Clear the mirrored coowner_* fields on the parent Member
+    await _sync_member_coowner_fields(member_id, None)
+    return {"message": "Copropietario eliminado"}
 
 # ── Stats & Analytics ──
 
