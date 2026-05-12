@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import api from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/button';
-import { MapPin, Star, Calendar, Users, Check, Hotel, Mountain, ArrowLeft, Share2, ChevronLeft, ChevronRight, Sparkles, Lock } from 'lucide-react';
+import { MapPin, Star, Calendar, Users, Check, Hotel, Mountain, ArrowLeft, Share2, ChevronLeft, ChevronRight, Sparkles, Lock, X } from 'lucide-react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { toast } from 'sonner';
 import { CountdownTimer } from '../components/CountdownTimer';
@@ -63,7 +63,22 @@ export default function TripDetailPage() {
   const [showQuoteForm, setShowQuoteForm] = useState(false);
   const [quoteForm, setQuoteForm] = useState({ name: '', email: '', phone: '', contract_number: '', message: '', guests: 2, travel_date: '' });
   const [galleryIndex, setGalleryIndex] = useState(0);
+  const [lightbox, setLightbox] = useState(null); // {images:[], index}
   useDocumentTitle(pkg?.title || 'Detalle del Paquete');
+
+  const youtubeEmbed = (url) => {
+    if (!url) return '';
+    try {
+      const u = new URL(url);
+      let id = '';
+      if (u.hostname.includes('youtu.be')) id = u.pathname.slice(1);
+      else if (u.searchParams.get('v')) id = u.searchParams.get('v');
+      else if (u.pathname.startsWith('/embed/')) id = u.pathname.split('/embed/')[1];
+      else if (u.pathname.startsWith('/shorts/')) id = u.pathname.split('/shorts/')[1];
+      id = (id || '').split(/[?&#]/)[0];
+      return id ? `https://www.youtube.com/embed/${id}` : url;
+    } catch { return url; }
+  };
 
   // Resolve member from auth: normal member or admin browsing as member is fine.
   const linkedMember = user?.role === 'member' ? (user.member || null) : null;
@@ -309,12 +324,12 @@ export default function TripDetailPage() {
               </SectionCard>
             )}
 
-            {/* Itinerary */}
-            {Array.isArray(pkg.itinerary) && pkg.itinerary.length > 0 && (
+            {/* Itinerary (new model: itinerary_days with title+description+gallery) */}
+            {(pkg.has_itinerary || (Array.isArray(pkg.itinerary_days) && pkg.itinerary_days.length > 0)) && Array.isArray(pkg.itinerary_days) && pkg.itinerary_days.length > 0 && (
               <SectionCard testid="trip-itinerary">
                 <SectionHeading eyebrow="Programa completo" title="Itinerario día por día" />
-                <div className="space-y-4">
-                  {pkg.itinerary.map((day, i) => (
+                <div className="space-y-5">
+                  {pkg.itinerary_days.map((day, i) => (
                     <div key={`day-${i}`} className="flex gap-4">
                       <div className="flex flex-col items-center">
                         <div
@@ -328,7 +343,7 @@ export default function TripDetailPage() {
                         >
                           {day?.day || i + 1}
                         </div>
-                        {i < pkg.itinerary.length - 1 && (
+                        {i < pkg.itinerary_days.length - 1 && (
                           <div className="w-px flex-1 mt-2" style={{ background: `linear-gradient(180deg, ${GOLD}77, transparent)` }} />
                         )}
                       </div>
@@ -339,10 +354,103 @@ export default function TripDetailPage() {
                         <h3 className="font-heading font-bold text-base mb-1" style={{ color: NAVY, fontFamily: SERIF }}>
                           {day?.title || `Día ${day?.day || i + 1}`}
                         </h3>
-                        <p className="text-sm leading-relaxed" style={{ color: `${NAVY}99` }}>{day?.description || ''}</p>
+                        <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: `${NAVY}99` }}>{day?.description || ''}</p>
+                        {Array.isArray(day?.gallery) && day.gallery.length > 0 && (
+                          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-3" data-testid={`day-gallery-${i}`}>
+                            {day.gallery.slice(0, 8).map((u, gi) => (
+                              <button
+                                key={`d-${i}-g-${gi}`}
+                                onClick={() => { setLightbox({ images: day.gallery, index: gi }); }}
+                                className="aspect-square rounded-lg overflow-hidden focus:outline-none"
+                                style={{ border: `1px solid ${GOLD}55` }}
+                              >
+                                <ImageWithFallback src={u} alt={`día ${day?.day || i + 1} foto ${gi + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform" />
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
+                </div>
+              </SectionCard>
+            )}
+
+            {/* Hotels previstos */}
+            {Array.isArray(pkg.hotels) && pkg.hotels.length > 0 && (
+              <SectionCard testid="trip-hotels">
+                <SectionHeading eyebrow="Alojamiento" title="Hoteles previstos" />
+                <div className="grid grid-cols-1 gap-4">
+                  {pkg.hotels.map((h, i) => (
+                    <div
+                      key={`hotel-${i}`}
+                      className="rounded-xl p-4"
+                      style={{ background: `${GOLD}0F`, border: `1px solid ${GOLD}33` }}
+                      data-testid={`trip-hotel-${i}`}
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <Hotel className="w-4 h-4" style={{ color: GOLD }} />
+                        <h3 className="font-heading font-bold text-base" style={{ color: NAVY, fontFamily: SERIF }}>
+                          {h?.name || `Hotel ${i + 1}`}
+                        </h3>
+                      </div>
+                      {h?.description && (
+                        <p className="text-sm leading-relaxed whitespace-pre-line mb-3" style={{ color: `${NAVY}99` }}>{h.description}</p>
+                      )}
+                      {Array.isArray(h?.gallery) && h.gallery.length > 0 && (
+                        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                          {h.gallery.slice(0, 10).map((u, gi) => (
+                            <button
+                              key={`h-${i}-g-${gi}`}
+                              onClick={() => { setLightbox({ images: h.gallery, index: gi }); }}
+                              className="aspect-square rounded-lg overflow-hidden focus:outline-none"
+                              style={{ border: `1px solid ${GOLD}55` }}
+                            >
+                              <ImageWithFallback src={u} alt={`${h?.name} ${gi + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform" />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </SectionCard>
+            )}
+
+            {/* Photo Gallery */}
+            {Array.isArray(pkg.gallery) && pkg.gallery.length > 0 && (
+              <SectionCard testid="trip-photo-gallery">
+                <SectionHeading eyebrow="Memoria visual" title="Galería" />
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                  {pkg.gallery.map((u, gi) => (
+                    <button
+                      key={`gal-${gi}`}
+                      onClick={() => setLightbox({ images: pkg.gallery, index: gi })}
+                      className="aspect-square rounded-xl overflow-hidden focus:outline-none"
+                      style={{ border: `1px solid ${GOLD}55` }}
+                      data-testid={`gallery-img-${gi}`}
+                    >
+                      <ImageWithFallback src={u} alt={`Galería ${gi + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                    </button>
+                  ))}
+                </div>
+              </SectionCard>
+            )}
+
+            {/* YouTube video */}
+            {pkg.youtube_url && (
+              <SectionCard testid="trip-youtube">
+                <SectionHeading eyebrow="Inspiración" title="Video del paquete" />
+                <div className="aspect-video rounded-xl overflow-hidden" style={{ border: `1px solid ${GOLD}55`, background: '#000' }}>
+                  <iframe
+                    src={youtubeEmbed(pkg.youtube_url)}
+                    title="Video del paquete"
+                    width="100%" height="100%"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    style={{ border: 0 }}
+                    data-testid="trip-youtube-iframe"
+                  />
                 </div>
               </SectionCard>
             )}
@@ -563,6 +671,47 @@ export default function TripDetailPage() {
                 <Button type="submit" className="flex-1 rounded-xl font-bold uppercase tracking-[0.15em] text-xs" style={{ background: `linear-gradient(135deg, #F5E6B8 0%, ${GOLD} 50%, #B8944A 100%)`, color: NAVY_DEEP, border: `1px solid ${GOLD}` }} data-testid="quote-submit-btn">Enviar</Button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Image lightbox */}
+      {lightbox && Array.isArray(lightbox.images) && lightbox.images.length > 0 && (
+        <div
+          className="fixed inset-0 z-[80] bg-black/90 flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setLightbox(null)}
+          data-testid="trip-lightbox"
+        >
+          <button
+            onClick={(e) => { e.stopPropagation(); setLightbox(null); }}
+            className="absolute top-4 right-4 text-white/90 hover:text-white p-2"
+            data-testid="lightbox-close"
+          >
+            <X className="w-6 h-6" />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); setLightbox(l => ({ ...l, index: (l.index - 1 + l.images.length) % l.images.length })); }}
+            className="absolute left-3 sm:left-6 text-white/80 hover:text-white p-2"
+            data-testid="lightbox-prev"
+          >
+            <ChevronLeft className="w-8 h-8" />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); setLightbox(l => ({ ...l, index: (l.index + 1) % l.images.length })); }}
+            className="absolute right-3 sm:right-6 text-white/80 hover:text-white p-2"
+            data-testid="lightbox-next"
+          >
+            <ChevronRight className="w-8 h-8" />
+          </button>
+          <img
+            src={lightbox.images[lightbox.index]}
+            alt={`foto ${lightbox.index + 1}`}
+            className="max-w-full max-h-[88vh] rounded-lg object-contain"
+            onClick={(e) => e.stopPropagation()}
+            data-testid="lightbox-img"
+          />
+          <div className="absolute bottom-4 left-0 right-0 text-center text-white/70 text-xs font-mono">
+            {lightbox.index + 1} / {lightbox.images.length}
           </div>
         </div>
       )}

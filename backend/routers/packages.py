@@ -63,6 +63,11 @@ class PackageCreate(BaseModel):
     promo_start: Optional[str] = ""
     promo_end: Optional[str] = ""
     deactivation_reason: Optional[str] = ""
+    # ── Contenido enriquecido (FASE 1) ──────────────────────────────────
+    youtube_url: Optional[str] = ""
+    has_itinerary: bool = False
+    itinerary_days: List[dict] = []  # [{day, title, description, gallery: []}]
+    hotels: List[dict] = []          # [{name, description, gallery: []}]
 
 
 # ── Search helpers ──────────────────────────────────────────────────────

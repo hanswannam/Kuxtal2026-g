@@ -4,7 +4,7 @@ import { Textarea } from '../../components/ui/textarea';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Badge } from '../../components/ui/badge';
-import { Send, Phone, Edit2, Eye, MessageCircle, Search, X, Plus, Minus, ClipboardCopy, Check, Clock, User } from 'lucide-react';
+import { Send, Phone, Edit2, Eye, MessageCircle, Search, X, Plus, Minus, ClipboardCopy, Check, Clock, User, FileDown } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../lib/api';
 import { QuotationPreviewModal } from './QuotationPreview';
@@ -200,6 +200,25 @@ function QuotationCard({ quot, index, onEdit, onPreview, onChange }) {
         </Button>
         <Button size="sm" variant="outline" onClick={onPreview} className="rounded-full text-xs" data-testid={`preview-quot-${index}`}>
           <Eye className="w-3 h-3 mr-1" /> Ver / Compartir
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={async () => {
+            try {
+              const r = await api.get(`/quotations/${quot._id}/pdf`, { responseType: 'blob' });
+              const url = window.URL.createObjectURL(new Blob([r.data], { type: 'application/pdf' }));
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `cotizacion_${(quot.id || '').slice(-6).toUpperCase()}.pdf`;
+              a.click();
+              window.URL.revokeObjectURL(url);
+            } catch { toast.error('No se pudo descargar el PDF'); }
+          }}
+          className="rounded-full text-xs"
+          data-testid={`pdf-quot-${index}`}
+        >
+          <FileDown className="w-3 h-3 mr-1" /> PDF
         </Button>
         {quot.status === 'pending' && (
           <Button size="sm" variant="outline" onClick={() => quickStatus('in_review')} className="rounded-full text-xs">Marcar en revisión</Button>

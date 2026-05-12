@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { DeleteWithCode } from '../../components/DeleteWithCode';
 import BulkImportModal from '../../components/BulkImportModal';
 import ImageWithFallback from '../../components/ImageWithFallback';
+import PackageRichContent from '../../components/PackageRichContent';
 import api from '../../lib/api';
 
 const DEACTIVATION_PRESETS = [
@@ -121,7 +122,7 @@ export function AdminPackages({ packages, packageForm, setPackageForm, showPacka
           <Button onClick={() => setShowBulkImport(true)} variant="outline" className="rounded-full" data-testid="bulk-import-packages-btn">
             <FileSpreadsheet className="w-4 h-4 mr-2" /> Importar Excel
           </Button>
-          <Button onClick={() => { setShowPackageForm(true); setEditingPackage(null); setPackageForm({ title: '', description: '', short_description: '', country: '', agency_price: 0, price: 0, member_price: 0, duration_days: 1, category: 'paquete', includes: [], rating: 4.8, image_url: '', gallery: [], featured: false, status: 'active', promo_start: '', promo_end: '', visibility: 'public' }); }} className="rounded-full" data-testid="add-package-btn">
+          <Button onClick={() => { setShowPackageForm(true); setEditingPackage(null); setPackageForm({ title: '', description: '', short_description: '', country: '', agency_price: 0, price: 0, member_price: 0, duration_days: 1, category: 'paquete', includes: [], rating: 4.8, image_url: '', gallery: [], featured: false, status: 'active', promo_start: '', promo_end: '', visibility: 'public', youtube_url: '', has_itinerary: false, itinerary_days: [], hotels: [] }); }} className="rounded-full" data-testid="add-package-btn">
             <Plus className="w-4 h-4 mr-2" /> Nuevo Paquete
           </Button>
         </div>
@@ -345,6 +346,9 @@ export function AdminPackages({ packages, packageForm, setPackageForm, showPacka
                 </div>
                 <p className="text-[11px] text-muted-foreground mt-2">Si se define una fecha de fin, se mostrará un contador regresivo al público.</p>
               </div>
+
+              <PackageRichContent form={packageForm} setForm={setPackageForm} />
+
               <div className="flex gap-3 pt-2">
                 <Button type="button" variant="outline" onClick={() => { setShowPackageForm(false); setEditingPackage(null); }} className="flex-1 rounded-xl">Cancelar</Button>
                 <Button type="submit" className="flex-1 rounded-xl bg-primary hover:bg-primary/90" data-testid="pf-submit">Guardar</Button>

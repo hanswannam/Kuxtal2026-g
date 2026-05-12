@@ -65,7 +65,7 @@ export default function AdminDashboard() {
   const [quotationResponse, setQuotationResponse] = useState({ id: '', response: '' });
 
   const [memberForm, setMemberForm] = useState({ contract_number: '', dpi: '', name: '', email: '', phone: '', service_years: 1, membership_start: '', membership_end: '', family_members_allowed: 1, investment_amount: 0, investment_plan: '', status: 'active', contract_date: '', age: 0, marital_status: '', nationality: '', profession: '', address: '', coowner_name: '', coowner_nationality: '', coowner_profession: '', coowner_phone: '', coowner_email: '', vigencia: '', cuotas: '', bank: '', termination_date: '', tc: '', nit: '', billing_name: '', observations: '' });
-  const [packageForm, setPackageForm] = useState({ title: '', description: '', short_description: '', country: '', agency_price: 0, price: 0, member_price: 0, duration_days: 1, category: 'paquete', includes: [], rating: 4.8, image_url: '', gallery: [], featured: false, status: 'active', promo_start: '', promo_end: '', visibility: 'public' });
+  const [packageForm, setPackageForm] = useState({ title: '', description: '', short_description: '', country: '', agency_price: 0, price: 0, member_price: 0, duration_days: 1, category: 'paquete', includes: [], rating: 4.8, image_url: '', gallery: [], featured: false, status: 'active', promo_start: '', promo_end: '', visibility: 'public', youtube_url: '', has_itinerary: false, itinerary_days: [], hotels: [] });
   const [includesInput, setIncludesInput] = useState('');
   const [announcementForm, setAnnouncementForm] = useState({ title: '', content: '', link: '', target: 'all', status: 'active' });
 
@@ -118,11 +118,22 @@ export default function AdminDashboard() {
       if (editingPackage) { await api.put(`/packages/${editingPackage._id}`, data); toast.success('Paquete actualizado'); }
       else { await api.post('/packages', data); toast.success('Paquete creado'); }
       setShowPackageForm(false); setEditingPackage(null);
-      setPackageForm({ title: '', description: '', short_description: '', country: '', agency_price: 0, price: 0, member_price: 0, duration_days: 1, category: 'paquete', includes: [], rating: 4.8, image_url: '', gallery: [], featured: false, status: 'active', promo_start: '', promo_end: '', visibility: 'public' });
+      setPackageForm({ title: '', description: '', short_description: '', country: '', agency_price: 0, price: 0, member_price: 0, duration_days: 1, category: 'paquete', includes: [], rating: 4.8, image_url: '', gallery: [], featured: false, status: 'active', promo_start: '', promo_end: '', visibility: 'public', youtube_url: '', has_itinerary: false, itinerary_days: [], hotels: [] });
       loadData();
     } catch (e) { toast.error(e.response?.data?.detail || 'Error'); }
   };
-  const editPkg = (p) => { setPackageForm(p); setEditingPackage(p); setShowPackageForm(true); };
+  const editPkg = (p) => {
+    setPackageForm({
+      youtube_url: '',
+      has_itinerary: false,
+      itinerary_days: [],
+      hotels: [],
+      gallery: [],
+      ...p,
+    });
+    setEditingPackage(p);
+    setShowPackageForm(true);
+  };
   const deletePkg = async (id, code) => { await api.delete(`/packages/${id}?delete_code=${encodeURIComponent(code)}`); loadData(); toast.success('Eliminado'); };
   const addInclude = () => { if (includesInput.trim()) { setPackageForm({...packageForm, includes: [...packageForm.includes, includesInput.trim()]}); setIncludesInput(''); }};
   const removeInclude = (i) => { setPackageForm({...packageForm, includes: packageForm.includes.filter((_, idx) => idx !== i)}); };

@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { Button } from '../components/ui/button';
-import { Loader2, Check, X as XIcon, MessageCircle, Mail, Clock, AlertTriangle, Send, RefreshCw } from 'lucide-react';
+import { Loader2, Check, X as XIcon, MessageCircle, Mail, Clock, AlertTriangle, Send, RefreshCw, FileDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { QuotationCardPreview } from './admin/QuotationPreview';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
@@ -232,6 +232,20 @@ export default function PublicQuotationPage() {
             </p>
           </div>
         )}
+
+        <div className="mt-6 flex justify-center" data-testid="pdf-download-row">
+          <a
+            href={`${process.env.REACT_APP_BACKEND_URL}/api/quotations/public/${token}/pdf`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-5 h-10 rounded-full text-sm font-semibold border hover:bg-muted transition-colors"
+            style={{ borderColor: '#D4AF37', color: '#0D2B45' }}
+            data-testid="public-pdf-btn"
+          >
+            <FileDown className="w-4 h-4" />
+            Descargar cotización en PDF
+          </a>
+        </div>
 
         <div className="mt-8 text-center text-xs text-muted-foreground">
           <p>¿Tienes preguntas? Contáctanos</p>

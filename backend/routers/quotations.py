@@ -552,3 +552,86 @@ async def set_quotation_settings(req: QuotationSettings, request: Request):
         "payment_whatsapp": req.payment_whatsapp,
         "default_valid_days": days,
     }
+
+
+# ── PDF export ─────────────────────────────────────────────────────────
+from fastapi.responses import StreamingResponse  # noqa: E402
+import io  # noqa: E402
+
+
+async def _build_quotation_pdf_bytes(quotation_id_or_token: str, options: dict, by_token: bool = False) -> tuple[bytes, str]:
+    from quotation_pdf import build_quotation_pdf  # lazy (weasyprint)
+    if by_token:
+        q = await db.quotations.find_one({"public_token": quotation_id_or_token})
+    else:
+        try:
+            q = await db.quotations.find_one({"_id": ObjectId(quotation_id_or_token)})
+        except Exception:
+            q = None
+    if not q:
+        raise HTTPException(status_code=404, detail="Cotización no encontrada")
+    pkg = None
+    if q.get("package_id"):
+        try:
+            pkg = await db.packages.find_one({"_id": ObjectId(q["package_id"])})
+        except Exception:
+            pkg = None
+    pdf_bytes = build_quotation_pdf(q, pkg, options)
+    short_id = (q.get("id") or "")[-6:].upper() or "kuxtal"
+    return pdf_bytes, f"cotizacion_{short_id}.pdf"
+
+
+@router.get("/quotations/{quotation_id}/pdf")
+async def admin_quotation_pdf(
+    quotation_id: str,
+    request: Request,
+    include_itinerary: bool = True,
+    include_hotels: bool = True,
+    include_gallery: bool = True,
+):
+    """Admin downloads the quotation as a PDF. Options control which package sections are included."""
+    user = await get_current_user(request)
+    if user.get("role") not in ("super_admin", "admin"):
+        raise HTTPException(status_code=403, detail="Solo administradores")
+    options = {
+        "include_itinerary": include_itinerary,
+        "include_hotels": include_hotels,
+        "include_gallery": include_gallery,
+    }
+    try:
+        pdf_bytes, filename = await _build_quotation_pdf_bytes(quotation_id, options, by_token=False)
+    except HTTPException:
+        raise
+    except Exception as exc:  # weasyprint missing libs, etc.
+        raise HTTPException(status_code=500, detail=f"No se pudo generar el PDF: {exc}")
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.get("/quotations/public/{token}/pdf")
+async def public_quotation_pdf(
+    token: str,
+    include_itinerary: bool = True,
+    include_hotels: bool = True,
+    include_gallery: bool = True,
+):
+    """Public PDF download via the share link — no auth needed."""
+    options = {
+        "include_itinerary": include_itinerary,
+        "include_hotels": include_hotels,
+        "include_gallery": include_gallery,
+    }
+    try:
+        pdf_bytes, filename = await _build_quotation_pdf_bytes(token, options, by_token=True)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"No se pudo generar el PDF: {exc}")
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
