@@ -385,11 +385,13 @@ export default function TripDetailPage() {
                   </div>
                   {memberPrice > 0 && (
                     <div
-                      className="mt-3 flex items-center justify-between p-3 rounded-xl"
+                      className="mt-3 p-3 rounded-xl text-center"
                       style={{ background: `${GOLD}15`, border: `1px solid ${GOLD}66` }}
+                      data-testid="member-special-price"
                     >
-                      <span className="text-[10px] font-bold uppercase tracking-[0.22em]" style={{ color: CHAMPAGNE }}>Precio socio</span>
-                      <span className="text-base font-black" style={{ color: '#F5E6B8', fontFamily: SERIF }}>Q.{fmtPrice(memberPrice)}</span>
+                      <span className="text-xs font-black uppercase tracking-[0.22em]" style={{ color: '#F5E6B8', fontFamily: SERIF }}>
+                        Precio especial para socios
+                      </span>
                     </div>
                   )}
                   <p className="text-[11px] italic leading-relaxed mt-4" style={{ color: `${CHAMPAGNE}77`, fontFamily: SERIF }} data-testid="price-disclaimer">

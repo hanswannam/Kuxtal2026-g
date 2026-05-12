@@ -415,9 +415,10 @@ export default function SearchPage() {
                           color: CHAMPAGNE,
                           border: `1px solid ${GOLD}66`,
                         }}
+                        data-testid="member-special-badge"
                       >
                         <Sparkles className="w-2.5 h-2.5" style={{ color: GOLD }} />
-                        Socio · Q.{pkg.member_price.toLocaleString()}
+                        Precio especial para socios
                       </span>
                     </div>
                   )}

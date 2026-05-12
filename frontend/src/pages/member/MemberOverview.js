@@ -175,10 +175,13 @@ export function MemberOverview({ member, quotations, announcements, vacationRequ
                 </div>
                 <div className="p-3" style={{ background: '#FDF9EC' }}>
                   <h3 className="font-medium text-sm transition-colors line-clamp-1" style={{ color: NAVY }}>{pkg.title}</h3>
-                  <div className="flex items-center justify-between mt-2">
-                    <span className="text-xs" style={{ color: GOLD_DEEP }}>{pkg.duration_days} días</span>
-                    <span className="text-sm font-bold" style={{ color: NAVY }}>
-                      Q.{pkg.member_price > 0 ? pkg.member_price.toLocaleString() : pkg.price?.toLocaleString()}
+                  <div className="flex items-center justify-between mt-2 gap-2">
+                    <span className="text-xs whitespace-nowrap" style={{ color: GOLD_DEEP }}>{pkg.duration_days} días</span>
+                    <span
+                      className="text-[10px] font-bold uppercase tracking-wider text-right leading-tight"
+                      style={{ color: GOLD_DEEP }}
+                    >
+                      Precio especial<br />para socios
                     </span>
                   </div>
                 </div>
