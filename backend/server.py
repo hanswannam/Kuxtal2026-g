@@ -1703,6 +1703,8 @@ async def update_family_member(member_id: str, family_id: str, req: FamilyMember
     if "name" in updates:
         updates["name"] = updates["name"].strip()
     updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+    # Member edited their copropietario from the portal → clear admin-sync flag
+    updates["auto_synced"] = False
     await db.family_members.update_one({"_id": ObjectId(family_id)}, {"$set": updates})
     fresh = await db.family_members.find_one({"_id": ObjectId(family_id)})
     await _sync_member_coowner_fields(member_id, fresh)

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Edit2, Trash2, Loader2, X, Users, Eye, EyeOff, Copy, Check, AlertCircle, MessageCircle, Mail } from 'lucide-react';
+import { Plus, Edit2, Trash2, Loader2, X, Users, Eye, EyeOff, Copy, Check, AlertCircle, MessageCircle, Mail, ShieldCheck } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
@@ -391,12 +391,34 @@ export function MemberFamily({ member, isFamilyMember }) {
                       >
                         {f.relationship || 'familiar'}
                       </span>
+                      {f.auto_synced && (
+                        <span
+                          className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full"
+                          style={{ color: NAVY, background: 'rgba(13,43,69,0.08)', border: '1px solid rgba(13,43,69,0.2)' }}
+                          title="Datos cargados por administración. Puedes completarlos editando."
+                          data-testid={`synced-badge-${i}`}
+                        >
+                          <ShieldCheck className="w-3 h-3" />
+                          Sincronizado por admin
+                        </span>
+                      )}
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 mt-2 text-xs text-muted-foreground">
                       {f.phone && <span>📞 {f.phone}</span>}
                       {f.email && <span className="truncate">✉ {f.email}</span>}
                       {f.birth_date && <span>🎂 {f.birth_date}</span>}
                     </div>
+                    {f.auto_synced && (
+                      <button
+                        onClick={() => { setEditing(f); setShowForm(true); }}
+                        className="mt-2 text-[11px] font-semibold inline-flex items-center gap-1 hover:underline"
+                        style={{ color: GOLD_DEEP }}
+                        data-testid={`complete-data-${i}`}
+                      >
+                        <Edit2 className="w-3 h-3" />
+                        Completar mis datos
+                      </button>
+                    )}
                   </div>
                   <div className="flex gap-1 shrink-0">
                     <Button
