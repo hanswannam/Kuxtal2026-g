@@ -108,7 +108,7 @@ function FamilyForm({ initial, contractNumber, onSave, onCancel, saving }) {
       >
         <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" style={{ color: GOLD_DEEP }} />
         <span>
-          El familiar podrá iniciar sesión en el portal con el contrato <strong>#{contractNumber}</strong> y su DPI como contraseña.
+          El copropietario podrá iniciar sesión en el portal con el contrato <strong>#{contractNumber}</strong> y su DPI como contraseña.
         </span>
       </div>
 
@@ -145,7 +145,7 @@ function CredentialsBlock({ family, contractNumber }) {
   const site = (typeof window !== 'undefined') ? window.location.origin : '';
 
   const message =
-    `Hola ${family.name}, ya puedes ingresar al portal de socios de Kuxtal Travels.\n\n` +
+    `Hola ${family.name}, ya puedes ingresar al portal de socios de Kuxtal Travels como copropietario.\n\n` +
     `• Sitio: ${site}/login\n` +
     `• Número de contrato: ${contractNumber}\n` +
     `• Contraseña (DPI): ${family.dpi}`;
@@ -268,10 +268,10 @@ export function MemberFamily({ member, isFamilyMember }) {
     try {
       if (editing?._id) {
         await api.put(`/members/${memberId}/family/${editing._id}`, form);
-        toast.success('Familiar actualizado');
+        toast.success('Copropietario actualizado');
       } else {
         await api.post(`/members/${memberId}/family`, form);
-        toast.success('Familiar agregado');
+        toast.success('Copropietario agregado');
       }
       setShowForm(false);
       setEditing(null);
@@ -287,12 +287,14 @@ export function MemberFamily({ member, isFamilyMember }) {
     if (!window.confirm(`¿Eliminar a ${f.name}? Se cerrará su acceso al portal.`)) return;
     try {
       await api.delete(`/members/${memberId}/family/${f._id}`);
-      toast.success('Familiar eliminado');
+      toast.success('Copropietario eliminado');
       await load();
     } catch (e) {
       toast.error(e.response?.data?.detail || 'Error al eliminar');
     }
   };
+
+  const hasCopropietario = family.length >= 1;
 
   if (isFamilyMember) {
     return (
@@ -303,10 +305,10 @@ export function MemberFamily({ member, isFamilyMember }) {
       >
         <Users className="w-10 h-10 mx-auto mb-3" style={{ color: GOLD_DEEP }} />
         <p className="font-heading text-lg font-semibold mb-1" style={{ color: NAVY }}>
-          Solo el socio principal puede gestionar familiares
+          Solo el socio principal puede gestionar el copropietario
         </p>
         <p className="text-sm text-muted-foreground">
-          Pídele al titular del contrato que administre los accesos familiares.
+          Pídele al titular del contrato que administre el acceso.
         </p>
       </div>
     );
@@ -321,20 +323,20 @@ export function MemberFamily({ member, isFamilyMember }) {
         <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
           <div>
             <h2 className="font-heading text-lg font-semibold" style={{ color: NAVY }}>
-              <span style={{ color: GOLD_DEEP }}>·</span> Mis familiares
+              <span style={{ color: GOLD_DEEP }}>·</span> Mi copropietario
             </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Crea accesos para tus familiares. Ellos podrán entrar con el contrato <strong>#{contractNumber}</strong> y su propio DPI.
+              Asigna a una persona adicional como copropietario. Podrá entrar con el contrato <strong>#{contractNumber}</strong> y su propio DPI.
             </p>
           </div>
-          {!showForm && (
+          {!showForm && !hasCopropietario && (
             <Button
               onClick={() => { setEditing(null); setShowForm(true); }}
               className="rounded-full text-white"
               style={{ background: NAVY }}
               data-testid="add-family-btn"
             >
-              <Plus className="w-4 h-4 mr-1.5" /> Agregar familiar
+              <Plus className="w-4 h-4 mr-1.5" /> Agregar copropietario
             </Button>
           )}
         </div>
@@ -347,7 +349,7 @@ export function MemberFamily({ member, isFamilyMember }) {
           >
             <div className="flex items-center justify-between mb-3">
               <p className="font-semibold text-sm" style={{ color: NAVY }}>
-                {editing ? 'Editar familiar' : 'Nuevo familiar'}
+                {editing ? 'Editar copropietario' : 'Nuevo copropietario'}
               </p>
               <button onClick={() => { setShowForm(false); setEditing(null); }} className="p-1 rounded hover:bg-muted" data-testid="family-form-close">
                 <X className="w-4 h-4" />
@@ -368,7 +370,7 @@ export function MemberFamily({ member, isFamilyMember }) {
         ) : family.length === 0 && !showForm ? (
           <div className="py-10 text-center" data-testid="family-empty">
             <Users className="w-10 h-10 mx-auto mb-2" style={{ color: GOLD_DEEP, opacity: 0.5 }} />
-            <p className="text-sm text-muted-foreground">Aún no has agregado familiares.</p>
+            <p className="text-sm text-muted-foreground">Aún no has agregado un copropietario.</p>
           </div>
         ) : (
           <div className="space-y-3" data-testid="family-list">

@@ -1557,6 +1557,10 @@ async def add_family_member(member_id: str, req: FamilyMemberCreate, request: Re
     # Prevent collision with the principal member's DPI
     if member.get("dpi", "").strip() == req.dpi.strip():
         raise HTTPException(status_code=400, detail="Este DPI corresponde al socio principal")
+    # Only one copropietario allowed per member.
+    existing_count = await db.family_members.count_documents({"member_id": member_id})
+    if existing_count >= 1:
+        raise HTTPException(status_code=400, detail="Solo se permite un copropietario por socio. Edita o elimina el actual.")
     existing = await db.family_members.find_one({"member_id": member_id, "dpi": req.dpi.strip()})
     if existing:
         raise HTTPException(status_code=400, detail="Este DPI ya está registrado")

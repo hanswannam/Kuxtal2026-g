@@ -68,7 +68,7 @@ export default function MemberDashboard() {
 
   const tabs = [
     { id: 'dashboard', label: 'Inicio', icon: Package },
-    { id: 'family', label: 'Familiares', icon: Users },
+    { id: 'family', label: 'Copropietario', icon: Users },
     { id: 'coupons', label: 'Cupones', icon: QrCode },
     { id: 'regalias', label: 'Regalías', icon: Gift },
     { id: 'clubs', label: 'Clubs', icon: Building2 },
