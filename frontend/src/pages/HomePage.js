@@ -779,11 +779,6 @@ export default function HomePage() {
                 className="text-center group transition-all hover:opacity-100 opacity-80 hover:-translate-y-0.5"
                 data-testid={`partner-${p.name}`}
               >
-                {p.logo_url && (
-                  <div className="h-10 sm:h-12 flex items-center justify-center mb-2">
-                    <img src={p.logo_url} alt={p.name} className="max-h-full max-w-[140px] object-contain" style={{ filter: 'brightness(0) invert(1)' }} />
-                  </div>
-                )}
                 <p className="text-lg sm:text-2xl font-black text-white tracking-tight group-hover:text-[#E5C989] transition-colors" style={{ fontFamily: '"Playfair Display", Georgia, serif' }} data-testid={`partner-name-${p._id}`}>
                   {p.name}
                 </p>
