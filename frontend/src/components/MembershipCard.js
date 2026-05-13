@@ -53,7 +53,7 @@ export function MembershipCard({ name, contractNumber, startDate, endDate, tier,
         ref={cardRef}
         className="relative w-full aspect-[1.586/1] rounded-2xl overflow-hidden shadow-2xl select-none"
         style={{
-          backgroundImage: 'url(/membership-bg.webp?v=2)',
+          backgroundImage: 'url(/membership-bg.png?v=3)',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundColor: '#D4AF37',
