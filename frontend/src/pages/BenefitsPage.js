@@ -236,7 +236,7 @@ export default function BenefitsPage() {
                   <div className="h-[3px] bg-gradient-to-r from-transparent via-[#D4AF5A]/30 to-transparent" />
                   <div className="p-6 space-y-4">
                     <div className="h-5 w-24 bg-[#D4AF5A]/10 rounded-full" />
-                    <div className="w-36 h-36 bg-[#D4AF5A]/10 rounded-2xl mx-auto" />
+                    <div className="w-[166px] h-[166px] bg-[#D4AF5A]/10 rounded-2xl mx-auto" />
                     <div className="h-10 bg-[#D4AF5A]/10 rounded-xl w-2/3 mx-auto" />
                     <div className="h-4 bg-white/5 rounded w-1/2 mx-auto" />
                     <div className="h-3 bg-white/5 rounded w-3/4 mx-auto" />
@@ -317,7 +317,7 @@ export default function BenefitsPage() {
                     <div className="relative flex justify-center pt-4 pb-2">
                       <div className="relative">
                         <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-[#D4AF5A]/40 via-transparent to-[#D4AF5A]/40 blur-md" />
-                        <div className="relative w-36 h-36 rounded-2xl overflow-hidden flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #FDFCF7 0%, #F4EBD0 100%)', boxShadow: 'inset 0 0 0 2px rgba(212,175,90,0.3), 0 10px 30px -10px rgba(0,0,0,0.6)' }}>
+                        <div className="relative w-[166px] h-[166px] rounded-2xl overflow-hidden flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #FDFCF7 0%, #F4EBD0 100%)', boxShadow: 'inset 0 0 0 2px rgba(212,175,90,0.3), 0 10px 30px -10px rgba(0,0,0,0.6)' }}>
                           {c.logo_url ? (
                             <img src={c.logo_url} alt={c.name} className="w-full h-full object-contain p-3" />
                           ) : catData?.icon ? (
