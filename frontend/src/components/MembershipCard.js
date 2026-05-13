@@ -56,59 +56,65 @@ export function MembershipCard({ name, contractNumber, startDate, endDate, tier,
           backgroundImage: 'url(/membership-bg.webp)',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
-          backgroundColor: '#B89327',
+          backgroundColor: '#D4AF37',
         }}
         data-testid="membership-card"
       >
-        {/* Contenido */}
+        {/* Contenido — texto en negro plano, sin sombras ni efectos */}
         <div
-          className="relative h-full flex flex-col justify-between p-5 sm:p-6 text-white"
-          style={{ paddingLeft: '24%', paddingRight: '28%' }}
+          className="relative h-full flex flex-col justify-between"
+          style={{
+            paddingLeft: '20%',
+            paddingRight: '20%',
+            paddingTop: '14%',
+            paddingBottom: '32%',
+            color: '#000000',
+          }}
         >
           {/* Encabezado */}
           <div>
             <p
               className="text-[10px] sm:text-xs uppercase tracking-[0.28em] font-semibold mb-1"
-              style={{ color: '#F5D27A', textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}
+              style={{ color: '#000000' }}
               data-testid="card-tier"
             >
               {tierLabel}
             </p>
             <p
               className="text-base sm:text-lg font-bold tracking-wide"
-              style={{ textShadow: '0 1px 3px rgba(0,0,0,0.7), 0 0 8px rgba(0,0,0,0.4)' }}
+              style={{ color: '#000000' }}
               data-testid="card-contract"
             >
               Contrato #{contractNumber || '---'}
             </p>
           </div>
 
-          {/* Pie: nombre + fechas */}
+          {/* Pie: nombre + fechas (logos están en la imagen abajo-derecha) */}
           <div>
             <p
               className="text-[9px] sm:text-[10px] uppercase tracking-widest mb-1 font-semibold"
-              style={{ color: 'rgba(255,255,255,0.95)', textShadow: '0 1px 3px rgba(0,0,0,0.7)' }}
+              style={{ color: '#000000' }}
             >
               {subtitleLabel}
             </p>
             <p
               className="font-heading text-sm sm:text-base font-bold leading-tight truncate"
-              style={{ color: '#ffffff', textShadow: '0 1px 3px rgba(0,0,0,0.75), 0 0 8px rgba(0,0,0,0.45)' }}
+              style={{ color: '#000000' }}
               data-testid="card-name"
             >
               {name || '---'}
             </p>
-            <div className="mt-3 flex gap-3 text-[10px] sm:text-xs">
+            <div className="mt-2 flex gap-3 text-[10px] sm:text-xs">
               <div>
                 <p
                   className="uppercase tracking-wider text-[8px] sm:text-[9px] font-semibold"
-                  style={{ color: 'rgba(255,255,255,0.9)', textShadow: '0 1px 2px rgba(0,0,0,0.6)' }}
+                  style={{ color: '#000000' }}
                 >
                   Inicio
                 </p>
                 <p
                   className="font-semibold"
-                  style={{ textShadow: '0 1px 3px rgba(0,0,0,0.7)' }}
+                  style={{ color: '#000000' }}
                   data-testid="card-start"
                 >
                   {fmt(startDate)}
@@ -117,13 +123,13 @@ export function MembershipCard({ name, contractNumber, startDate, endDate, tier,
               <div>
                 <p
                   className="uppercase tracking-wider text-[8px] sm:text-[9px] font-semibold"
-                  style={{ color: 'rgba(255,255,255,0.9)', textShadow: '0 1px 2px rgba(0,0,0,0.6)' }}
+                  style={{ color: '#000000' }}
                 >
                   Vencimiento
                 </p>
                 <p
                   className="font-semibold"
-                  style={{ textShadow: '0 1px 3px rgba(0,0,0,0.7)' }}
+                  style={{ color: '#000000' }}
                   data-testid="card-end"
                 >
                   {fmt(endDate)}

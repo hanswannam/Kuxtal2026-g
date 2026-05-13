@@ -143,9 +143,9 @@ html.impersonating body {
   color: var(--kt-navy);
 }
 
-/* Membership card overrides theme: name MUST stay white on the gold/hex art */
+/* Membership card overrides theme: name in plain black on the gold/hex art */
 .member-portal-theme [data-testid="membership-card"] .font-heading {
-  color: #ffffff !important;
+  color: #000000 !important;
 }
 
 /* Inactive tab pills become champagne/gold-bordered */
