@@ -21,7 +21,7 @@ from typing import List, Optional
 import requests
 from bson import ObjectId
 from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from core import (
     db,
@@ -54,6 +54,22 @@ class PackageCreate(BaseModel):
     difficulty: Optional[str] = ""
     min_group: Optional[int] = 1
     max_group: Optional[int] = 20
+
+    @field_validator(
+        "short_description", "accommodation_type", "difficulty",
+        "image_url", "promo_start", "promo_end", "deactivation_reason",
+        "youtube_url",
+        mode="before",
+    )
+    @classmethod
+    def _coerce_str_none(cls, v):  # noqa: D401
+        """Treat null/None as empty string for legacy/Mongo nullable fields."""
+        return "" if v is None else v
+
+    @field_validator("includes", "gallery", "itinerary", "itinerary_days", "hotels", mode="before")
+    @classmethod
+    def _coerce_list_none(cls, v):
+        return [] if v is None else v
     rating: float = 4.8
     image_url: Optional[str] = ""
     gallery: List[str] = []

@@ -117,17 +117,42 @@ export default function AdminDashboard() {
     try {
       // Sanitize the payload: arrays must never be null and numerics must be numbers.
       const sanitizeArray = (v) => Array.isArray(v) ? v.filter(x => x != null) : [];
+      const str = (v) => (v == null ? '' : String(v));
+      const num = (v, def = 0) => {
+        const n = Number(v);
+        return Number.isFinite(n) ? n : def;
+      };
       const data = {
         ...packageForm,
-        price: Number(packageForm.price) || 0,
-        member_price: Number(packageForm.member_price) || 0,
-        agency_price: Number(packageForm.agency_price) || 0,
-        duration_days: Number(packageForm.duration_days) || 1,
-        rating: Number(packageForm.rating) || 0,
+        // strings — coerce null/undefined to ''
+        title: str(packageForm.title),
+        description: str(packageForm.description),
+        short_description: str(packageForm.short_description),
+        country: str(packageForm.country),
+        category: str(packageForm.category) || 'paquete',
+        accommodation_type: str(packageForm.accommodation_type),
+        difficulty: str(packageForm.difficulty),
+        image_url: str(packageForm.image_url),
+        status: str(packageForm.status) || 'active',
+        visibility: str(packageForm.visibility) || 'public',
+        promo_start: str(packageForm.promo_start),
+        promo_end: str(packageForm.promo_end),
+        deactivation_reason: str(packageForm.deactivation_reason),
+        youtube_url: str(packageForm.youtube_url),
+        // numbers
+        price: num(packageForm.price),
+        member_price: num(packageForm.member_price),
+        agency_price: num(packageForm.agency_price),
+        duration_days: num(packageForm.duration_days, 1),
+        rating: num(packageForm.rating, 4.8),
+        min_group: num(packageForm.min_group, 1),
+        max_group: num(packageForm.max_group, 20),
+        // arrays
         includes: sanitizeArray(packageForm.includes),
         gallery: sanitizeArray(packageForm.gallery),
         itinerary_days: sanitizeArray(packageForm.itinerary_days),
         hotels: sanitizeArray(packageForm.hotels),
+        // booleans
         has_itinerary: !!packageForm.has_itinerary,
         featured: !!packageForm.featured,
       };
@@ -135,6 +160,7 @@ export default function AdminDashboard() {
       delete data._id;
       delete data.created_at;
       delete data.updated_at;
+      delete data.created_by;
       delete data.itinerary; // legacy field, not part of PackageCreate
       if (editingPackage) { await api.put(`/packages/${editingPackage._id}`, data); toast.success('Paquete actualizado'); }
       else { await api.post('/packages', data); toast.success('Paquete creado'); }
