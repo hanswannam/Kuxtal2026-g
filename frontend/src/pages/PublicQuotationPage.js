@@ -154,6 +154,8 @@ export default function PublicQuotationPage() {
 
         <QuotationCardPreview quot={quot} />
 
+        <QuotationExtendedInfo quot={quot} />
+
         {/* Pay now / Renew CTA */}
         <div
           className={`mt-6 rounded-2xl p-5 border ${isExpired ? 'bg-rose-50/60 border-rose-200' : 'bg-emerald-50/60 border-emerald-200'}`}

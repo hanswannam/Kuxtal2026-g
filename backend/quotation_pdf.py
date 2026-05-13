@@ -114,10 +114,93 @@ def _fmt_money(v) -> str:
         return "Q.0.00"
 
 
-def _render_itinerary(pkg: dict) -> str:
-    days = pkg.get("itinerary_days") or pkg.get("itinerary") or []
-    if not pkg.get("has_itinerary") and not days:
+def _render_flights(q: dict) -> str:
+    if not q.get("has_flights"):
         return ""
+    fi = q.get("flight_info") or {}
+    if not isinstance(fi, dict):
+        return ""
+    dep_date = _escape(fi.get("departure_date") or "")
+    dep_time = _escape(fi.get("departure_time") or "")
+    dep_place = _escape(fi.get("departure_place") or "")
+    arr_date = _escape(fi.get("arrival_date") or "")
+    arr_time = _escape(fi.get("arrival_time") or "")
+    arr_place = _escape(fi.get("arrival_place") or "")
+    airline = _escape(fi.get("airline") or "")
+    notes = _escape(fi.get("notes") or "")
+    layovers = fi.get("layovers") or []
+
+    if not any([dep_date, dep_place, arr_date, arr_place, airline]) and not layovers:
+        return ""
+
+    layover_html = ""
+    if layovers:
+        rows = []
+        for lv in layovers:
+            if not isinstance(lv, dict):
+                continue
+            place = _escape(lv.get("place") or "")
+            date = _escape(lv.get("date") or "")
+            time = _escape(lv.get("time") or "")
+            dur = _escape(lv.get("duration") or "")
+            rows.append(
+                f'<div class="layover"><strong>🛬 {place}</strong>'
+                f'<div class="muted" style="margin-top:2pt;">{date} {time}'
+                f'{(" · " + dur) if dur else ""}</div></div>'
+            )
+        if rows:
+            layover_html = (
+                '<div style="margin-top:8pt;"><div class="label">Escalas</div>'
+                + "".join(rows) + "</div>"
+            )
+
+    return f"""
+<h2>Información de vuelo</h2>
+<div class="box">
+  {f'<div style="margin-bottom:6pt;"><span class="badge badge-navy">Aerolínea</span> <strong>{airline}</strong></div>' if airline else ''}
+  <div class="row">
+    <div class="col">
+      <div class="label">Salida</div>
+      <div class="value">{dep_place or '—'}</div>
+      <div class="muted">{dep_date} {dep_time}</div>
+    </div>
+    <div class="col">
+      <div class="label">Llegada</div>
+      <div class="value">{arr_place or '—'}</div>
+      <div class="muted">{arr_date} {arr_time}</div>
+    </div>
+  </div>
+  {layover_html}
+  {f'<div style="margin-top:8pt;" class="muted">{notes}</div>' if notes else ''}
+</div>
+"""
+
+
+def _render_package_overview(q: dict, pkg) -> str:
+    """Render the package description and includes from snapshot first, falling back to pkg doc."""
+    desc = q.get("package_description") or (pkg or {}).get("description") or ""
+    short = q.get("package_short_description") or (pkg or {}).get("short_description") or ""
+    includes = q.get("package_includes") or (pkg or {}).get("includes") or []
+    img = q.get("package_image_url") or (pkg or {}).get("image_url") or ""
+
+    sections = []
+    if short:
+        sections.append(f'<p class="muted" style="font-style:italic;margin:0 0 6pt 0;">{_escape(short)}</p>')
+    if img:
+        sections.append(f'<div style="margin:6pt 0;"><img src="{_escape(img)}" style="width:100%;max-height:180pt;object-fit:cover;border-radius:6pt;" /></div>')
+    if desc:
+        sections.append(f'<p style="white-space:pre-wrap;">{_escape(desc).replace(chr(10), "<br/>")}</p>')
+    if includes:
+        items = "".join(f'<li>{_escape(it)}</li>' for it in includes if it)
+        sections.append(f'<div style="margin-top:8pt;"><div class="label">El precio incluye</div><ul style="margin:6pt 0;padding-left:18pt;">{items}</ul></div>')
+
+    if not sections:
+        return ""
+    return f'<h2>Sobre el viaje</h2>{"".join(sections)}'
+
+
+def _render_itinerary(pkg_or_q: dict) -> str:
+    days = pkg_or_q.get("itinerary_days") or pkg_or_q.get("package_itinerary_days") or pkg_or_q.get("itinerary") or []
     if not days:
         return ""
     rows = []
@@ -138,8 +221,8 @@ def _render_itinerary(pkg: dict) -> str:
     return f'<h2>Itinerario día por día</h2>{"".join(rows)}'
 
 
-def _render_hotels(pkg: dict) -> str:
-    hotels = pkg.get("hotels") or []
+def _render_hotels(source: dict) -> str:
+    hotels = source.get("hotels") or source.get("package_hotels") or []
     if not hotels:
         return ""
     rows = []
@@ -158,8 +241,8 @@ def _render_hotels(pkg: dict) -> str:
     return f'<h2>Hoteles previstos</h2>{"".join(rows)}'
 
 
-def _render_gallery(pkg: dict) -> str:
-    gal = pkg.get("gallery") or []
+def _render_gallery(source: dict) -> str:
+    gal = source.get("gallery") or source.get("package_gallery") or []
     if not gal:
         return ""
     imgs = "".join(f'<img src="{_escape(u)}" />' for u in gal[:12])
@@ -193,13 +276,27 @@ def build_quotation_pdf(q: dict, pkg: Optional[dict], options: dict) -> bytes:
     short_id = (q.get("id") or "")[-6:].upper()
 
     pkg_section = ""
-    if pkg:
-        if include_itinerary:
-            pkg_section += _render_itinerary(pkg)
-        if include_hotels:
-            pkg_section += _render_hotels(pkg)
-        if include_gallery:
-            pkg_section += _render_gallery(pkg)
+    # Snapshot fields in `q` take precedence; the live pkg (if any) is fallback for visuals.
+    overview_html = _render_package_overview(q, pkg)
+    if overview_html:
+        pkg_section += overview_html
+    flight_html = _render_flights(q)
+    if flight_html:
+        pkg_section += flight_html
+    if include_itinerary:
+        # Prefer snapshot itinerary, fallback to live package itinerary
+        snapshot = {"itinerary_days": q.get("package_itinerary_days") or []}
+        pkg_section += _render_itinerary(snapshot) or _render_itinerary(pkg or {})
+    if include_hotels:
+        pkg_section += _render_hotels(q) or _render_hotels(pkg or {})
+    if include_gallery:
+        pkg_section += _render_gallery(q) or _render_gallery(pkg or {})
+
+    # Layover micro-styling
+    extra_css = """
+      .layover { background:#fff; border:1pt solid rgba(212,175,55,0.30); border-radius:5pt;
+                 padding:6pt 8pt; margin-top:4pt; font-size:9.5pt; }
+    """
 
     html_body = f"""
 <!DOCTYPE html>
@@ -254,5 +351,5 @@ def build_quotation_pdf(q: dict, pkg: Optional[dict], options: dict) -> bytes:
   </div>
 </body></html>
 """
-    pdf_bytes = HTML(string=html_body).write_pdf(stylesheets=[CSS(string=_PDF_CSS)])
+    pdf_bytes = HTML(string=html_body).write_pdf(stylesheets=[CSS(string=_PDF_CSS + extra_css)])
     return pdf_bytes

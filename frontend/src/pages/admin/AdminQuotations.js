@@ -4,7 +4,7 @@ import { Textarea } from '../../components/ui/textarea';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Badge } from '../../components/ui/badge';
-import { Send, Phone, Edit2, Eye, MessageCircle, Search, X, Plus, Minus, ClipboardCopy, Check, Clock, User, FileDown } from 'lucide-react';
+import { Send, Phone, Edit2, Eye, MessageCircle, Search, X, Plus, Minus, ClipboardCopy, Check, Clock, User, FileDown, Plane, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../lib/api';
 import { QuotationPreviewModal } from './QuotationPreview';
@@ -18,6 +18,118 @@ const STATUS_META = {
   rejected:  { label: 'Rechazada',   class: 'bg-rose-50 text-rose-700 border-rose-200' },
   closed:    { label: 'Cerrada',     class: 'bg-gray-100 text-gray-700 border-gray-200' },
 };
+
+function FlightSection({ form, setForm }) {
+  const fi = form.flight_info || {};
+  const setFi = (patch) => setForm(f => ({ ...f, flight_info: { ...(f.flight_info || {}), ...patch } }));
+  const updLayover = (i, patch) => {
+    const arr = [...((fi.layovers) || [])];
+    arr[i] = { ...arr[i], ...patch };
+    setFi({ layovers: arr });
+  };
+  const addLayover = () => setFi({ layovers: [...((fi.layovers) || []), { place: '', date: '', time: '', duration: '' }] });
+  const removeLayover = (i) => setFi({ layovers: ((fi.layovers) || []).filter((_, idx) => idx !== i) });
+
+  return (
+    <div className="mt-5 rounded-xl p-4" style={{ background: '#FDF9EC', border: '1px solid rgba(212,175,55,0.35)' }} data-testid="flight-section">
+      <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+        <div className="flex items-center gap-2">
+          <Plane className="w-4 h-4" style={{ color: '#B89327' }} />
+          <p className="text-sm font-semibold" style={{ color: '#0D2B45' }}>Información de vuelos</p>
+        </div>
+        <label className="inline-flex items-center gap-2 text-xs font-medium cursor-pointer">
+          <input
+            type="checkbox"
+            checked={!!form.has_flights}
+            onChange={(e) => setForm(f => ({ ...f, has_flights: e.target.checked }))}
+            data-testid="flight-has"
+          />
+          ¿Esta cotización incluye vuelos?
+        </label>
+      </div>
+
+      {form.has_flights && (
+        <div className="space-y-3 bg-white rounded-lg p-3" style={{ border: '1px solid rgba(212,175,55,0.30)' }}>
+          <div>
+            <Label className="text-[10px] uppercase tracking-wider font-bold">Aerolínea</Label>
+            <Input
+              value={fi.airline || ''}
+              onChange={(e) => setFi({ airline: e.target.value })}
+              placeholder="Avianca, Copa, Delta..."
+              className="rounded-xl mt-1"
+              data-testid="flight-airline"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="rounded-lg p-3" style={{ background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.25)' }}>
+              <p className="text-[10px] uppercase tracking-widest font-bold mb-2" style={{ color: '#B89327' }}>Salida</p>
+              <Input value={fi.departure_place || ''} onChange={(e) => setFi({ departure_place: e.target.value })} placeholder="Lugar (ej: Guatemala GUA)" className="rounded-xl mb-2" data-testid="flight-dep-place" />
+              <div className="grid grid-cols-2 gap-2">
+                <Input type="date" value={fi.departure_date || ''} onChange={(e) => setFi({ departure_date: e.target.value })} className="rounded-xl" data-testid="flight-dep-date" />
+                <Input type="time" value={fi.departure_time || ''} onChange={(e) => setFi({ departure_time: e.target.value })} className="rounded-xl" data-testid="flight-dep-time" />
+              </div>
+            </div>
+            <div className="rounded-lg p-3" style={{ background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.25)' }}>
+              <p className="text-[10px] uppercase tracking-widest font-bold mb-2" style={{ color: '#B89327' }}>Llegada</p>
+              <Input value={fi.arrival_place || ''} onChange={(e) => setFi({ arrival_place: e.target.value })} placeholder="Lugar (ej: Cartagena CTG)" className="rounded-xl mb-2" data-testid="flight-arr-place" />
+              <div className="grid grid-cols-2 gap-2">
+                <Input type="date" value={fi.arrival_date || ''} onChange={(e) => setFi({ arrival_date: e.target.value })} className="rounded-xl" data-testid="flight-arr-date" />
+                <Input type="time" value={fi.arrival_time || ''} onChange={(e) => setFi({ arrival_time: e.target.value })} className="rounded-xl" data-testid="flight-arr-time" />
+              </div>
+            </div>
+          </div>
+
+          {/* Escalas */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <Label className="text-[10px] uppercase tracking-wider font-bold">Escalas</Label>
+              <Button type="button" size="sm" variant="outline" onClick={addLayover} className="rounded-full text-xs" data-testid="flight-add-layover">
+                <Plus className="w-3 h-3 mr-1" /> Añadir escala
+              </Button>
+            </div>
+            {((fi.layovers) || []).length === 0 ? (
+              <p className="text-[11px] text-muted-foreground italic">Sin escalas. El vuelo es directo.</p>
+            ) : (
+              <div className="space-y-2">
+                {(fi.layovers || []).map((lv, i) => (
+                  <div key={i} className="rounded-lg p-2 bg-secondary/40 border" data-testid={`flight-layover-${i}`}>
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider" style={{ background: '#0D2B45', color: '#F5D27A' }}>
+                        <MapPin className="w-3 h-3" /> Escala {i + 1}
+                      </span>
+                      <button type="button" onClick={() => removeLayover(i)} className="text-red-700 hover:bg-red-50 rounded p-1" data-testid={`flight-remove-layover-${i}`}>
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    <Input value={lv.place || ''} onChange={(e) => updLayover(i, { place: e.target.value })} placeholder="Lugar (ej: Bogotá BOG)" className="rounded-xl mb-1" data-testid={`flight-layover-place-${i}`} />
+                    <div className="grid grid-cols-3 gap-1.5">
+                      <Input type="date" value={lv.date || ''} onChange={(e) => updLayover(i, { date: e.target.value })} className="rounded-xl text-xs" data-testid={`flight-layover-date-${i}`} />
+                      <Input type="time" value={lv.time || ''} onChange={(e) => updLayover(i, { time: e.target.value })} className="rounded-xl text-xs" data-testid={`flight-layover-time-${i}`} />
+                      <Input value={lv.duration || ''} onChange={(e) => updLayover(i, { duration: e.target.value })} placeholder="Duración (2h 30m)" className="rounded-xl text-xs" data-testid={`flight-layover-duration-${i}`} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <Label className="text-[10px] uppercase tracking-wider font-bold">Notas del vuelo</Label>
+            <Textarea
+              value={fi.notes || ''}
+              onChange={(e) => setFi({ notes: e.target.value })}
+              rows={2}
+              placeholder="Equipaje, restricciones, número de vuelo..."
+              className="rounded-xl mt-1"
+              data-testid="flight-notes"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function AdminQuotations({ quotations: initialQuotations }) {
   const [quotations, setQuotations] = useState(initialQuotations);
@@ -245,6 +357,11 @@ function QuotationEditor({ quot, onClose, onSaved }) {
     extras: quot.extras || [],
     package_id: quot.package_id || '',
     valid_until: quot.valid_until ? String(quot.valid_until).slice(0, 10) : '',
+    has_flights: !!quot.has_flights,
+    flight_info: quot.flight_info || {
+      airline: '', departure_date: '', departure_time: '', departure_place: '',
+      arrival_date: '', arrival_time: '', arrival_place: '', notes: '', layovers: [],
+    },
   });
   const [extraInput, setExtraInput] = useState({ name: '', price: 0 });
   const [newNote, setNewNote] = useState('');
@@ -426,6 +543,8 @@ function QuotationEditor({ quot, onClose, onSaved }) {
             </div>
           </div>
         </div>
+
+        <FlightSection form={form} setForm={setForm} />
 
         <div className="flex gap-3 pt-5 mt-5 border-t border-border">
           <Button variant="outline" onClick={onClose} className="flex-1 rounded-xl">Cancelar</Button>

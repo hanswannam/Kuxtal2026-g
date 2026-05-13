@@ -116,6 +116,15 @@ async def _attach_package_to_quote(doc: dict, package_id: str, is_member: bool, 
         "unit_price": unit_price,
         "member_unit_price": member_unit_price,
         "total": round(applied_price * (guests or 1), 2),
+        # Snapshot completo del paquete dentro de la cotización
+        "package_description": pkg.get("description", ""),
+        "package_short_description": pkg.get("short_description", ""),
+        "package_image_url": pkg.get("image_url", ""),
+        "package_includes": pkg.get("includes") or [],
+        "package_gallery": pkg.get("gallery") or [],
+        "package_youtube_url": pkg.get("youtube_url", ""),
+        "package_itinerary_days": pkg.get("itinerary_days") or [],
+        "package_hotels": pkg.get("hotels") or [],
     })
 
 
@@ -407,6 +416,12 @@ async def update_quotation(quotation_id: str, request: Request):
         "discount", "extras", "internal_notes", "customer_notes", "package_id",
         "package_title", "package_country", "package_duration_days", "response", "response_html",
         "valid_until",
+        # Vuelos
+        "has_flights", "flight_info",
+        # Snapshot extendido del paquete (admin puede editar para personalizar)
+        "package_description", "package_short_description",
+        "package_includes", "package_gallery", "package_youtube_url",
+        "package_itinerary_days", "package_hotels", "package_image_url",
     }
     updates = {k: v for k, v in body.items() if k in allowed_fields}
 
@@ -418,6 +433,15 @@ async def update_quotation(quotation_id: str, request: Request):
                 updates["package_title"] = pkg.get("title", "")
                 updates["package_country"] = pkg.get("country", "")
                 updates["package_duration_days"] = pkg.get("duration_days", 0)
+                # Auto-snapshot full package content so cotización es independiente del paquete
+                updates.setdefault("package_description", pkg.get("description", ""))
+                updates.setdefault("package_short_description", pkg.get("short_description", ""))
+                updates.setdefault("package_includes", pkg.get("includes") or [])
+                updates.setdefault("package_gallery", pkg.get("gallery") or [])
+                updates.setdefault("package_youtube_url", pkg.get("youtube_url", ""))
+                updates.setdefault("package_itinerary_days", pkg.get("itinerary_days") or [])
+                updates.setdefault("package_hotels", pkg.get("hotels") or [])
+                updates.setdefault("package_image_url", pkg.get("image_url", ""))
         except Exception:
             pass
 
