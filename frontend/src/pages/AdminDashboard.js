@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { formatApiError } from '../lib/errors';
 import { Badge } from '../components/ui/badge';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import {
@@ -142,7 +143,7 @@ export default function AdminDashboard() {
       loadData();
     } catch (e) {
       console.error('savePackage failed:', e);
-      toast.error(e.response?.data?.detail || e.message || 'Error al guardar el paquete');
+      toast.error(formatApiError(e, 'Error al guardar el paquete'));
     }
   };
   const editPkg = (p) => {
