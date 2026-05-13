@@ -114,23 +114,49 @@ export default function AdminDashboard() {
   const savePackage = async (e) => {
     e.preventDefault();
     try {
-      const data = { ...packageForm, price: Number(packageForm.price), member_price: Number(packageForm.member_price), duration_days: Number(packageForm.duration_days) };
+      // Sanitize the payload: arrays must never be null and numerics must be numbers.
+      const sanitizeArray = (v) => Array.isArray(v) ? v.filter(x => x != null) : [];
+      const data = {
+        ...packageForm,
+        price: Number(packageForm.price) || 0,
+        member_price: Number(packageForm.member_price) || 0,
+        agency_price: Number(packageForm.agency_price) || 0,
+        duration_days: Number(packageForm.duration_days) || 1,
+        rating: Number(packageForm.rating) || 0,
+        includes: sanitizeArray(packageForm.includes),
+        gallery: sanitizeArray(packageForm.gallery),
+        itinerary_days: sanitizeArray(packageForm.itinerary_days),
+        hotels: sanitizeArray(packageForm.hotels),
+        has_itinerary: !!packageForm.has_itinerary,
+        featured: !!packageForm.featured,
+      };
+      // Strip MongoDB internal fields that the backend rejects.
+      delete data._id;
+      delete data.created_at;
+      delete data.updated_at;
+      delete data.itinerary; // legacy field, not part of PackageCreate
       if (editingPackage) { await api.put(`/packages/${editingPackage._id}`, data); toast.success('Paquete actualizado'); }
       else { await api.post('/packages', data); toast.success('Paquete creado'); }
       setShowPackageForm(false); setEditingPackage(null);
       setPackageForm({ title: '', description: '', short_description: '', country: '', agency_price: 0, price: 0, member_price: 0, duration_days: 1, category: 'paquete', includes: [], rating: 4.8, image_url: '', gallery: [], featured: false, status: 'active', promo_start: '', promo_end: '', visibility: 'public', youtube_url: '', has_itinerary: false, itinerary_days: [], hotels: [] });
       loadData();
-    } catch (e) { toast.error(e.response?.data?.detail || 'Error'); }
+    } catch (e) {
+      console.error('savePackage failed:', e);
+      toast.error(e.response?.data?.detail || e.message || 'Error al guardar el paquete');
+    }
   };
   const editPkg = (p) => {
-    setPackageForm({
-      youtube_url: '',
-      has_itinerary: false,
-      itinerary_days: [],
-      hotels: [],
-      gallery: [],
+    // Normalize legacy/missing fields so React renders never see null arrays.
+    const safe = {
       ...p,
-    });
+      includes: Array.isArray(p?.includes) ? p.includes : [],
+      gallery: Array.isArray(p?.gallery) ? p.gallery : [],
+      itinerary_days: Array.isArray(p?.itinerary_days) ? p.itinerary_days : [],
+      hotels: Array.isArray(p?.hotels) ? p.hotels : [],
+      youtube_url: p?.youtube_url || '',
+      has_itinerary: !!p?.has_itinerary,
+    };
+    setPackageForm(safe);
     setEditingPackage(p);
     setShowPackageForm(true);
   };

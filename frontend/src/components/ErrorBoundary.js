@@ -18,22 +18,29 @@ export class ErrorBoundary extends React.Component {
 
   render() {
     if (this.state.hasError) {
+      const errMessage = this.state.error?.message || String(this.state.error || '');
       return (
         <div className="min-h-[400px] flex items-center justify-center p-8" data-testid="error-boundary">
           <div className="text-center max-w-md">
             <div className="w-16 h-16 rounded-2xl bg-destructive/10 flex items-center justify-center mx-auto mb-4">
               <AlertTriangle className="w-8 h-8 text-destructive" />
             </div>
-            <h2 className="font-heading text-xl font-semibold mb-2">Algo salio mal</h2>
-            <p className="text-sm text-muted-foreground mb-6">
-              Ocurrio un error inesperado. Por favor intenta recargar la pagina.
+            <h2 className="font-heading text-xl font-semibold mb-2">Algo salió mal</h2>
+            <p className="text-sm text-muted-foreground mb-3">
+              Ocurrió un error inesperado. Por favor intenta recargar la página.
             </p>
+            {errMessage && (
+              <details className="mb-4 text-left">
+                <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">Ver detalle técnico</summary>
+                <pre className="mt-2 text-[10px] bg-muted rounded-lg p-3 overflow-auto max-h-40 whitespace-pre-wrap break-words text-left">{errMessage}</pre>
+              </details>
+            )}
             <Button
               onClick={() => { this.setState({ hasError: false, error: null }); window.location.reload(); }}
               className="rounded-full bg-primary hover:bg-primary/90"
               data-testid="error-boundary-reload"
             >
-              <RefreshCw className="w-4 h-4 mr-2" /> Recargar Pagina
+              <RefreshCw className="w-4 h-4 mr-2" /> Recargar página
             </Button>
           </div>
         </div>
