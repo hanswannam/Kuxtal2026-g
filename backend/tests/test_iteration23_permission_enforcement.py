@@ -16,7 +16,7 @@ import requests
 
 BASE_URL = os.environ.get(
     "REACT_APP_BACKEND_URL",
-    "https://vacation-club-portal.preview.emergentagent.com",
+    "https://travel-crm-portal-2.preview.emergentagent.com",
 ).rstrip("/")
 
 SUPER_ADMIN_EMAIL = os.environ.get("TEST_ADMIN_EMAIL", "admin@kuxtaltravels.com")

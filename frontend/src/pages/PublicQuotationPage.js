@@ -2,10 +2,264 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { Button } from '../components/ui/button';
-import { Loader2, Check, X as XIcon, MessageCircle, Mail, Clock, AlertTriangle, Send, RefreshCw, FileDown } from 'lucide-react';
+import { Loader2, Check, X as XIcon, MessageCircle, Mail, Clock, AlertTriangle, Send, RefreshCw, FileDown, Plane, MapPin, Hotel as HotelIcon, Calendar as CalendarIcon, Youtube, Image as ImageIcon, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { QuotationCardPreview } from './admin/QuotationPreview';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
+
+const NAVY = '#0D2B45';
+const GOLD = '#D4AF37';
+const GOLD_DEEP = '#B89327';
+
+function fmtDate(s) {
+  if (!s) return '';
+  try {
+    const d = new Date(s.length <= 10 ? `${s}T00:00:00` : s);
+    if (isNaN(d.getTime())) return s;
+    return d.toLocaleDateString('es', { day: '2-digit', month: 'short', year: 'numeric' });
+  } catch {
+    return s;
+  }
+}
+
+function ytEmbedUrl(url) {
+  if (!url) return '';
+  try {
+    const u = new URL(url);
+    if (u.hostname.includes('youtu.be')) return `https://www.youtube.com/embed/${u.pathname.slice(1)}`;
+    if (u.searchParams.get('v')) return `https://www.youtube.com/embed/${u.searchParams.get('v')}`;
+    if (u.pathname.startsWith('/embed/')) return url;
+    return '';
+  } catch {
+    return '';
+  }
+}
+
+function FlightSection({ quot }) {
+  if (!quot?.has_flights) return null;
+  const fi = quot.flight_info || {};
+  const layovers = Array.isArray(fi.layovers) ? fi.layovers : [];
+  const hasAny = fi.airline || fi.departure_place || fi.arrival_place || fi.departure_date || fi.arrival_date || layovers.length > 0;
+  if (!hasAny) return null;
+
+  return (
+    <div className="mt-6 bg-white rounded-2xl border border-border overflow-hidden shadow-sm" data-testid="public-flight-section">
+      <div className="px-5 py-3 flex items-center gap-2" style={{ background: NAVY, color: '#F5D27A' }}>
+        <Plane className="w-4 h-4" />
+        <h3 className="font-heading font-semibold text-sm tracking-wide uppercase">Información de vuelo</h3>
+      </div>
+      <div className="p-5 space-y-4">
+        {fi.airline && (
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold uppercase tracking-[0.18em] px-2 py-1 rounded-full" style={{ background: NAVY, color: '#F5D27A' }}>Aerolínea</span>
+            <span className="font-semibold text-sm" style={{ color: NAVY }} data-testid="flight-airline-display">{fi.airline}</span>
+          </div>
+        )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="rounded-xl p-4" style={{ background: '#FDF9EC', border: `1px solid ${GOLD}55` }}>
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] mb-1" style={{ color: GOLD_DEEP }}>Salida</p>
+            <p className="font-semibold" style={{ color: NAVY }} data-testid="flight-dep-place-display">{fi.departure_place || '—'}</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {fmtDate(fi.departure_date)}{fi.departure_time ? ` · ${fi.departure_time}` : ''}
+            </p>
+          </div>
+          <div className="rounded-xl p-4" style={{ background: '#FDF9EC', border: `1px solid ${GOLD}55` }}>
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] mb-1" style={{ color: GOLD_DEEP }}>Llegada</p>
+            <p className="font-semibold" style={{ color: NAVY }} data-testid="flight-arr-place-display">{fi.arrival_place || '—'}</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {fmtDate(fi.arrival_date)}{fi.arrival_time ? ` · ${fi.arrival_time}` : ''}
+            </p>
+          </div>
+        </div>
+        {layovers.length > 0 && (
+          <div data-testid="flight-layovers">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] mb-2" style={{ color: GOLD_DEEP }}>Escalas</p>
+            <div className="space-y-2">
+              {layovers.map((lv, i) => (
+                <div key={i} className="flex items-start gap-2 rounded-lg p-3" style={{ background: '#FAF3DD', border: `1px dashed ${GOLD}66` }}>
+                  <MapPin className="w-4 h-4 mt-0.5 shrink-0" style={{ color: GOLD_DEEP }} />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm" style={{ color: NAVY }}>{lv.place || 'Escala'}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {fmtDate(lv.date)}{lv.time ? ` · ${lv.time}` : ''}{lv.duration ? ` · ${lv.duration}` : ''}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {fi.notes && (
+          <p className="text-xs italic text-muted-foreground whitespace-pre-wrap" data-testid="flight-notes-display">{fi.notes}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PackageOverviewSection({ quot }) {
+  const short = quot.package_short_description || '';
+  const desc = quot.package_description || '';
+  const includes = Array.isArray(quot.package_includes) ? quot.package_includes.filter(Boolean) : [];
+  const img = quot.package_image_url || '';
+  if (!short && !desc && includes.length === 0 && !img) return null;
+
+  return (
+    <div className="mt-6 bg-white rounded-2xl border border-border overflow-hidden shadow-sm" data-testid="public-package-overview">
+      <div className="px-5 py-3 flex items-center gap-2" style={{ background: NAVY, color: '#F5D27A' }}>
+        <ImageIcon className="w-4 h-4" />
+        <h3 className="font-heading font-semibold text-sm tracking-wide uppercase">Sobre el viaje</h3>
+      </div>
+      <div className="p-5 space-y-4">
+        {img && (
+          <img src={img} alt={quot.package_title || ''} className="w-full max-h-72 object-cover rounded-xl" onError={(e) => { e.target.style.display = 'none'; }} />
+        )}
+        {short && <p className="text-sm italic text-muted-foreground">{short}</p>}
+        {desc && <p className="text-sm whitespace-pre-wrap leading-relaxed" style={{ color: NAVY }}>{desc}</p>}
+        {includes.length > 0 && (
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] mb-2" style={{ color: GOLD_DEEP }}>El precio incluye</p>
+            <ul className="space-y-1.5">
+              {includes.map((it, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm">
+                  <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" style={{ color: '#16a34a' }} />
+                  <span>{it}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ItinerarySection({ quot }) {
+  const days = Array.isArray(quot.package_itinerary_days) ? quot.package_itinerary_days : [];
+  if (days.length === 0) return null;
+  return (
+    <div className="mt-6 bg-white rounded-2xl border border-border overflow-hidden shadow-sm" data-testid="public-itinerary-section">
+      <div className="px-5 py-3 flex items-center gap-2" style={{ background: NAVY, color: '#F5D27A' }}>
+        <CalendarIcon className="w-4 h-4" />
+        <h3 className="font-heading font-semibold text-sm tracking-wide uppercase">Itinerario día por día</h3>
+      </div>
+      <div className="p-5 space-y-4">
+        {days.map((d, i) => (
+          <div key={i} className="rounded-xl p-4" style={{ background: '#FDF9EC', border: `1px solid ${GOLD}55` }} data-testid={`itinerary-day-${i}`}>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-[10px] font-bold uppercase tracking-[0.18em] px-2 py-1 rounded-full" style={{ background: NAVY, color: '#F5D27A' }}>Día {d.day || i + 1}</span>
+              {d.title && <p className="font-semibold text-sm" style={{ color: NAVY }}>{d.title}</p>}
+            </div>
+            {d.description && (
+              <p className="text-sm whitespace-pre-wrap text-muted-foreground leading-relaxed">{d.description}</p>
+            )}
+            {Array.isArray(d.gallery) && d.gallery.length > 0 && (
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-3">
+                {d.gallery.map((u, j) => (
+                  <a key={j} href={u} target="_blank" rel="noopener noreferrer" className="block aspect-square rounded-lg overflow-hidden" style={{ border: `1px solid ${GOLD}55` }}>
+                    <img src={u} alt={`día ${i + 1} foto ${j + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform" onError={(e) => { e.target.style.opacity = '0.3'; }} />
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function HotelsSection({ quot }) {
+  const hotels = Array.isArray(quot.package_hotels) ? quot.package_hotels : [];
+  if (hotels.length === 0) return null;
+  return (
+    <div className="mt-6 bg-white rounded-2xl border border-border overflow-hidden shadow-sm" data-testid="public-hotels-section">
+      <div className="px-5 py-3 flex items-center gap-2" style={{ background: NAVY, color: '#F5D27A' }}>
+        <HotelIcon className="w-4 h-4" />
+        <h3 className="font-heading font-semibold text-sm tracking-wide uppercase">Hoteles previstos</h3>
+      </div>
+      <div className="p-5 space-y-4">
+        {hotels.map((h, i) => (
+          <div key={i} className="rounded-xl p-4" style={{ background: '#FDF9EC', border: `1px solid ${GOLD}55` }} data-testid={`hotel-${i}`}>
+            <p className="font-semibold text-sm mb-1" style={{ color: NAVY }}>{h.name || `Hotel ${i + 1}`}</p>
+            {h.description && (
+              <p className="text-sm whitespace-pre-wrap text-muted-foreground leading-relaxed">{h.description}</p>
+            )}
+            {Array.isArray(h.gallery) && h.gallery.length > 0 && (
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-3">
+                {h.gallery.map((u, j) => (
+                  <a key={j} href={u} target="_blank" rel="noopener noreferrer" className="block aspect-square rounded-lg overflow-hidden" style={{ border: `1px solid ${GOLD}55` }}>
+                    <img src={u} alt={`${h.name || 'hotel'} foto ${j + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform" onError={(e) => { e.target.style.opacity = '0.3'; }} />
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function GallerySection({ quot }) {
+  const gallery = Array.isArray(quot.package_gallery) ? quot.package_gallery.filter(Boolean) : [];
+  if (gallery.length === 0) return null;
+  return (
+    <div className="mt-6 bg-white rounded-2xl border border-border overflow-hidden shadow-sm" data-testid="public-gallery-section">
+      <div className="px-5 py-3 flex items-center gap-2" style={{ background: NAVY, color: '#F5D27A' }}>
+        <ImageIcon className="w-4 h-4" />
+        <h3 className="font-heading font-semibold text-sm tracking-wide uppercase">Galería</h3>
+      </div>
+      <div className="p-5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {gallery.map((u, i) => (
+            <a key={i} href={u} target="_blank" rel="noopener noreferrer" className="block aspect-square rounded-lg overflow-hidden" style={{ border: `1px solid ${GOLD}55` }}>
+              <img src={u} alt={`galería ${i + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform" onError={(e) => { e.target.style.opacity = '0.3'; }} />
+            </a>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function YouTubeSection({ quot }) {
+  const embed = ytEmbedUrl(quot.package_youtube_url);
+  if (!embed) return null;
+  return (
+    <div className="mt-6 bg-white rounded-2xl border border-border overflow-hidden shadow-sm" data-testid="public-youtube-section">
+      <div className="px-5 py-3 flex items-center gap-2" style={{ background: NAVY, color: '#F5D27A' }}>
+        <Youtube className="w-4 h-4" />
+        <h3 className="font-heading font-semibold text-sm tracking-wide uppercase">Video del destino</h3>
+      </div>
+      <div className="p-5">
+        <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+          <iframe
+            src={embed}
+            title="Video"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            className="absolute inset-0 w-full h-full rounded-xl"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function QuotationExtendedInfo({ quot }) {
+  if (!quot) return null;
+  return (
+    <>
+      <FlightSection quot={quot} />
+      <PackageOverviewSection quot={quot} />
+      <ItinerarySection quot={quot} />
+      <HotelsSection quot={quot} />
+      <GallerySection quot={quot} />
+      <YouTubeSection quot={quot} />
+    </>
+  );
+}
 
 const API = process.env.REACT_APP_BACKEND_URL;
 

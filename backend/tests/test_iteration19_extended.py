@@ -14,7 +14,7 @@ import pytest
 import requests
 from urllib.parse import quote
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://vacation-club-portal.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://travel-crm-portal-2.preview.emergentagent.com").rstrip("/")
 ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@kuxtaltravels.com")
 ADMIN_PASS = os.environ.get("ADMIN_PASSWORD", "KuxtalAdmin2024!")
 DELETE_CODE = "BORRAR YA"

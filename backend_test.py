@@ -4,7 +4,7 @@ import json
 from datetime import datetime
 
 class KuxtalTravelAPITester:
-    def __init__(self, base_url="https://vacation-club-portal.preview.emergentagent.com"):
+    def __init__(self, base_url="https://travel-crm-portal-2.preview.emergentagent.com"):
         self.base_url = base_url
         self.admin_token = None
         self.member_token = None

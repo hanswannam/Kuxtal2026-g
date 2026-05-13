@@ -1,5 +1,12 @@
 # Kuxtal Travel - Club Vacacional PRD
 
+## [2026-02-13] P0 Hotfix — Página pública de cotización crasheaba
+- Bug: `PublicQuotationPage.js` referenciaba `<QuotationExtendedInfo />` sin importarla ni definirla → ErrorBoundary mostraba "Algo salió mal" en TODAS las cotizaciones públicas (`/cotizacion/:token`).
+- Fix: implementado componente `QuotationExtendedInfo` en el mismo archivo con 6 secciones (Vuelo, Sobre el viaje, Itinerario día por día, Hoteles, Galería, YouTube). Estética luxury magazine navy `#0D2B45` + dorado `#D4AF37`.
+- Vuelo renderiza: aerolínea, salida (lugar+fecha+hora), llegada, escalas con duración, notas.
+- Verificado visualmente (Avianca GUA→CTG con escala BOG). PDF público sigue funcionando (HTTP 200, application/pdf, 28KB).
+
+
 ## Problem Statement
 Sistema CRM para club vacacional con web publica estilo Expedia, programa Kuxtal Club con cupones QR, portal socios, CRM admin, portal comercios, referidos, chat, analytics, importacion AI.
 
