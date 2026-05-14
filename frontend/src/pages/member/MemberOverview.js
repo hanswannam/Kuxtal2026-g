@@ -1,7 +1,10 @@
-import React from 'react';
-import { FileText, Bell, MessageSquare } from 'lucide-react';
+import React, { useState } from 'react';
+import { FileText, Bell, MessageSquare, MessageCircle, Loader2 } from 'lucide-react';
 import { MembershipCard } from '../../components/MembershipCard';
 import ImageWithFallback from '../../components/ImageWithFallback';
+import api from '../../lib/api';
+import { toast } from 'sonner';
+import { formatApiError } from '../../lib/errors';
 
 // Elegant gold/mustard palette (matches the membership card art)
 const GOLD = '#D4AF37';
@@ -30,6 +33,22 @@ const counterCardStyle = {
 };
 
 export function MemberOverview({ member, quotations, announcements, vacationRequests, packages, commerces }) {
+  const [optingOut, setOptingOut] = useState(false);
+  const [optedOut, setOptedOut] = useState(!!member?.opt_out_whatsapp);
+
+  const handleOptOut = async () => {
+    if (!window.confirm('¿Confirmás que no querés recibir más mensajes promocionales de Kuxtal por WhatsApp? Seguirás recibiendo respuestas a tus consultas y mensajes operativos.')) return;
+    setOptingOut(true);
+    try {
+      await api.post('/broadcasts/opt-out', {});
+      setOptedOut(true);
+      toast.success('Listo, no recibirás más difusiones masivas.');
+    } catch (e) {
+      toast.error(formatApiError(e, 'No se pudo procesar la solicitud'));
+    }
+    setOptingOut(false);
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       {member && (
@@ -190,6 +209,43 @@ export function MemberOverview({ member, quotations, announcements, vacationRequ
           </div>
         </div>
       )}
+
+      {/* Preferencias de comunicación */}
+      <div
+        className="rounded-2xl p-5 sm:p-6"
+        style={{
+          background: '#fff',
+          border: '1px solid rgba(212,175,55,0.30)',
+          boxShadow: '0 10px 30px -22px rgba(184,147,39,0.4)',
+        }}
+        data-testid="member-comms-prefs"
+      >
+        <h2 className="font-heading text-lg font-semibold flex items-center gap-2" style={{ color: NAVY }}>
+          <MessageCircle className="w-4 h-4" style={{ color: GOLD_DEEP }} />
+          Preferencias de comunicación
+        </h2>
+        <p className="text-xs mt-2 text-muted-foreground">
+          Recibís mensajes promocionales de Kuxtal Travels por WhatsApp con novedades, ofertas exclusivas para socios y boletines.
+        </p>
+        {optedOut ? (
+          <div className="mt-3 rounded-xl bg-secondary/40 p-3 text-xs flex items-center gap-2" data-testid="opt-out-confirmed">
+            <span className="font-semibold text-muted-foreground">✓ Has solicitado no recibir más difusiones masivas.</span>
+          </div>
+        ) : (
+          <button
+            onClick={handleOptOut}
+            disabled={optingOut}
+            className="mt-3 text-xs underline hover:no-underline disabled:opacity-50"
+            style={{ color: GOLD_DEEP }}
+            data-testid="opt-out-whatsapp-btn"
+          >
+            {optingOut ? <Loader2 className="inline w-3 h-3 mr-1 animate-spin" /> : null}
+            No deseo recibir más difusiones de WhatsApp
+          </button>
+        )}
+      </div>
     </div>
   );
 }
+
+// Insert opt-out widget at end of layout (rendered as last block, after packages)

@@ -49,12 +49,14 @@ import jwt
 from routers import auth as auth_router
 from routers import packages as packages_router
 from routers import quotations as quotations_router
+from routers import broadcasts as broadcasts_router
 
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
 app.include_router(auth_router.router)
 app.include_router(packages_router.router)
 app.include_router(quotations_router.router)
+app.include_router(broadcasts_router.router)
 
 # ── Pydantic Models ──
 # LoginRequest / MemberLoginRequest now live in /app/backend/routers/auth.py
@@ -1980,6 +1982,7 @@ FEATURE_KEYS = [
     "dashboard", "members", "clients", "packages", "commerce", "categories",
     "clubs", "regalias", "quotations", "analytics", "announcements",
     "push", "bot", "import", "referrals", "requests", "users", "settings",
+    "broadcasts",
 ]
 
 @api_router.post("/admin/users")
@@ -2810,7 +2813,13 @@ async def kapso_webhook(request: Request):
 
     # Solo nos importan mensajes entrantes
     if event and "message.received" not in event:
-        logger.info("Ignoring event %s", event)
+        # Para status events (sent/delivered/read/failed) → actualizar broadcast tracking
+        try:
+            from routers.broadcasts import handle_webhook_event
+            result = await handle_webhook_event(event, payload)
+            logger.info("Broadcast webhook result: %s", result)
+        except Exception as e:
+            logger.warning("Broadcast webhook handler failed: %s", e)
         return {"ok": True, "ignored_event": event}
 
     inbound = bot_service.extract_inbound_message(payload)
@@ -2822,6 +2831,26 @@ async def kapso_webhook(request: Request):
     text = inbound["text"]
     session_id = f"wa:{sender}"
     logger.info("Inbound: from=%s text=%r", sender, text[:120])
+
+    # Check for opt-out keywords BEFORE running the bot
+    try:
+        from routers.broadcasts import handle_webhook_event, OPT_OUT_KEYWORDS
+        if text.strip().upper() in OPT_OUT_KEYWORDS:
+            result = await handle_webhook_event(event, payload)
+            # Confirm opt-out to the user
+            try:
+                await bot_service.send_whatsapp_message(
+                    kapso_api_key=raw_cfg.get("kapso_api_key", ""),
+                    phone_number_id=raw_cfg.get("kapso_phone_number_id", ""),
+                    to=sender,
+                    text=("Hemos registrado tu solicitud de baja de mensajes promocionales de Kuxtal Travels. "
+                          "No recibirás más difusiones. Si fue un error, contactanos."),
+                )
+            except Exception as e:
+                logger.warning("Opt-out confirmation send failed: %s", e)
+            return {"ok": True, "opted_out": True, "result": result}
+    except Exception as e:
+        logger.warning("Opt-out keyword check failed: %s", e)
 
     # Identificar socio si su número WA coincide con member.phone (productivo o local)
     member = None

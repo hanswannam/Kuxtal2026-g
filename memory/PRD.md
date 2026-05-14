@@ -1,5 +1,33 @@
 # Kuxtal Travel - Club Vacacional PRD
 
+## [2026-05-14] Difusiones masivas WhatsApp con compliance Meta
+**Módulo nuevo**: `routers/broadcasts.py` + `pages/admin/AdminBroadcasts.js`.
+
+Backend:
+- POST/GET/cancel/preview en `/api/broadcasts/*`. Background task FastAPI envía 1 msg cada 1.2s (≈50/min, debajo del límite de Meta).
+- Audiencias: `members_active`, `members_all`, `clients_all`, `custom_phones`. Filtro automático por `opt_out_whatsapp != true`.
+- Integración Kapso.ai: list templates (`/message_templates`) + send template (`{phone_id}/messages` type=template).
+- Webhook hook (`handle_webhook_event`): registra status `delivered/read/failed` en `broadcast_messages`; detecta keywords `STOP/BAJA/CANCELAR/QUITAR/UNSUBSCRIBE/QUIT` y marca opt-out automáticamente con confirmación al usuario.
+- Endpoint `POST /api/broadcasts/opt-out` (auth): socio se da de baja desde su portal.
+- Permiso `broadcasts` agregado a `FEATURE_KEYS`.
+
+Frontend:
+- Nueva pestaña **Difusiones WA** en `AdminDashboard.js` (entre Push y Bot WA).
+- Wizard de creación con: nombre interno, selector de plantilla (auto-cargada O modo manual con nombre+idioma+nº variables), inputs de variables {{1}}…{{N}}, selector de audiencia (4 tipos), botón "Calcular audiencia" con duración estimada, vista previa con variables sustituidas, botón "Enviar a N".
+- Lista de difusiones con estado (queued/running/completed/cancelled/failed), conteos sent/delivered/read/failed, botón cancelar mid-flight, modal de detalle con tabla por destinatario.
+- Banner de compliance Meta visible (opt-in, throttle, opt-out automático, plantillas pre-aprobadas, tier 250 inicial).
+- Polling cada 5s mientras hay difusiones running.
+- Portal Socio (`MemberOverview.js`): nueva tarjeta "Preferencias de comunicación" con botón "No deseo recibir más difusiones de WhatsApp" → llama `/api/broadcasts/opt-out`.
+
+Verificado:
+- GET `/api/broadcasts` y `/api/admin/feature-keys` responden.
+- Preview audiencia: 3 socios activos con teléfono. Post opt-out queda en 2 (lógica correcta).
+- Wizard renderiza correctamente variables y audiencia.
+- Plantillas: Kapso devuelve 404 en el endpoint de templates probado; modo manual permite escribir el nombre exacto y se envía sin problemas.
+
+⚠️ Para producción: Necesario crear plantillas en Meta Business Manager (`boletin_mensual`, `nuevo_destino`, `recordatorio_cotizacion`) y esperar aprobación. Sin templates aprobadas Meta rechaza los envíos.
+
+
 ## [2026-02-13] P0 Hotfix — Página pública de cotización crasheaba
 - Bug: `PublicQuotationPage.js` referenciaba `<QuotationExtendedInfo />` sin importarla ni definirla → ErrorBoundary mostraba "Algo salió mal" en TODAS las cotizaciones públicas (`/cotizacion/:token`).
 - Fix: implementado componente `QuotationExtendedInfo` en el mismo archivo con 6 secciones (Vuelo, Sobre el viaje, Itinerario día por día, Hoteles, Galería, YouTube). Estética luxury magazine navy `#0D2B45` + dorado `#D4AF37`.
