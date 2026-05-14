@@ -3,7 +3,7 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Badge } from '../../components/ui/badge';
-import { Phone, MessageSquare, CreditCard, Clock, TrendingUp, Share2, BookOpen, Download } from 'lucide-react';
+import { Phone, MessageSquare, CreditCard, Clock, TrendingUp, Share2, BookOpen, Download, Database, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../lib/api';
 
@@ -19,6 +19,32 @@ export function AdminSettings({
   const [showRecalcConfirm, setShowRecalcConfirm] = useState(false);
   const [socials, setSocials] = useState({ facebook: '', instagram: '', tiktok: '', twitter: '', youtube: '', linkedin: '', whatsapp: '' });
   const [savingSocials, setSavingSocials] = useState(false);
+  const [backupRunning, setBackupRunning] = useState(false);
+
+  const downloadFullBackup = async () => {
+    if (!window.confirm('Generar un backup completo puede tomar unos segundos. ¿Continuar?')) return;
+    setBackupRunning(true);
+    try {
+      const res = await api.get('/admin/backup/all', { responseType: 'blob' });
+      const blob = new Blob([res.data], { type: 'application/zip' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const now = new Date();
+      const stamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
+      a.download = `backup_kuxtal_${stamp}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      const total = res.headers['x-document-count'] || '';
+      const cols = res.headers['x-collection-count'] || '';
+      toast.success(`Backup descargado · ${cols} colecciones · ${total} documentos`);
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'No se pudo generar el backup. Solo super_admin tiene permiso.');
+    }
+    setBackupRunning(false);
+  };
 
   useEffect(() => {
     api.get('/config/pricing-settings').then(r => setPricing(r.data)).catch(() => {});
@@ -279,6 +305,31 @@ export function AdminSettings({
             </div>
           ))}
         </div>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-border p-5" data-testid="backup-section">
+        <h2 className="font-heading text-lg font-semibold mb-1 flex items-center gap-2">
+          <Database className="w-5 h-5 text-primary" /> Backup completo de la base de datos
+        </h2>
+        <p className="text-sm text-muted-foreground mb-4">
+          Descargá un archivo ZIP con todas las colecciones de MongoDB en formato JSON (socios, comercios, paquetes, cotizaciones, anuncios, etc.). Útil para respaldo, auditoría o migración.
+        </p>
+        <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 mb-3 flex items-start gap-2">
+          <AlertTriangle className="w-4 h-4 text-amber-700 mt-0.5 shrink-0" />
+          <div className="text-xs text-amber-900 leading-relaxed">
+            <p className="font-semibold mb-1">Información sensible</p>
+            <p>El backup contiene datos personales (DPIs, teléfonos, emails, contratos, etc). Guardalo en un lugar seguro y no lo compartas. Solo <strong>super admin</strong> puede generarlo.</p>
+          </div>
+        </div>
+        <Button
+          onClick={downloadFullBackup}
+          disabled={backupRunning}
+          className="rounded-full"
+          data-testid="download-backup-btn"
+        >
+          <Download className="w-4 h-4 mr-2" />
+          {backupRunning ? 'Generando backup…' : 'Descargar backup completo (ZIP)'}
+        </Button>
       </div>
     </div>
   );

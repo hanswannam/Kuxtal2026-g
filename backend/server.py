@@ -2430,6 +2430,7 @@ app.include_router(api_router)
 # ─────────────────────── Bulk Import helpers moved above include_router ───────────────────────
 
 import io as _io
+import zipfile  # noqa: E402
 import csv as _csv
 from openpyxl import Workbook as _Workbook, load_workbook as _load_workbook
 from openpyxl.styles import Font as _Font, PatternFill as _PatternFill, Alignment as _Alignment
@@ -2631,6 +2632,132 @@ async def packages_template(request: Request):
         content=data,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": 'attachment; filename="plantilla_paquetes.xlsx"'},
+    )
+
+
+# ── Members export (full data → Excel) ──
+def _build_members_export_xlsx(members: list) -> bytes:
+    """Generate an .xlsx with all members. Uses the same column schema as the import
+    template so the file is re-importable (round-trip)."""
+    wb = _Workbook()
+    ws = wb.active
+    ws.title = "Socios"
+    header_fill = _PatternFill(start_color="1B325F", end_color="1B325F", fill_type="solid")
+    header_font = _Font(color="FFFFFF", bold=True, size=11)
+    for idx, (_, label, _r, _ex) in enumerate(MEMBER_TEMPLATE_COLS, start=1):
+        cell = ws.cell(row=1, column=idx, value=label)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = _Alignment(horizontal="center", vertical="center", wrap_text=True)
+    ws.row_dimensions[1].height = 32
+    # Add data rows
+    for row_idx, m in enumerate(members, start=2):
+        for col_idx, (key, _lb, _r, _ex) in enumerate(MEMBER_TEMPLATE_COLS, start=1):
+            value = m.get(key)
+            if value is None:
+                value = ""
+            if isinstance(value, (list, dict)):
+                try:
+                    value = json_module.dumps(value, ensure_ascii=False, default=str)
+                except Exception:
+                    value = str(value)
+            elif isinstance(value, datetime):
+                value = value.strftime("%Y-%m-%d")
+            ws.cell(row=row_idx, column=col_idx, value=value)
+    # Auto column width (simple heuristic)
+    for col_idx, (_, label, _r, _ex) in enumerate(MEMBER_TEMPLATE_COLS, start=1):
+        ws.column_dimensions[ws.cell(row=1, column=col_idx).column_letter].width = max(14, min(30, len(label) + 4))
+    ws.freeze_panes = "A2"
+    bio = _io.BytesIO()
+    wb.save(bio)
+    return bio.getvalue()
+
+
+@app.get("/api/admin/members/export")
+async def members_export(request: Request):
+    """Export all members to an Excel file (same schema as import template).
+
+    Only super_admin/admin can use this. The result can be re-imported via
+    `/api/admin/members/bulk-import` to update bulk records.
+    """
+    await require_role("super_admin", "admin", permission="members")(request)
+    members = []
+    async for m in db.members.find({}).sort("contract_number", 1):
+        m.pop("_id", None)
+        members.append(m)
+    data = _build_members_export_xlsx(members)
+    now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    filename = f"socios_kuxtal_{now_str}.xlsx"
+    return Response(
+        content=data,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "X-Total-Members": str(len(members)),
+        },
+    )
+
+
+# ── Full database backup (ZIP with all collections as JSON) ──
+def _json_safe(obj):
+    """Coerce mongo/bson objects to JSON-serializable types."""
+    if isinstance(obj, ObjectId):
+        return str(obj)
+    if isinstance(obj, datetime):
+        return obj.isoformat()
+    if isinstance(obj, bytes):
+        try:
+            return obj.decode("utf-8")
+        except Exception:
+            return obj.hex()
+    return str(obj)
+
+
+@app.get("/api/admin/backup/all")
+async def admin_full_backup(request: Request):
+    """Generate a ZIP containing JSON exports of ALL MongoDB collections.
+
+    Each collection becomes a separate `<collection>.json` file inside the zip.
+    Also includes a `_metadata.json` with generation info.
+
+    Restricted to super_admin only (full data dump is sensitive).
+    """
+    user = await require_role("super_admin")(request)
+    collections = await db.list_collection_names()
+    collections = sorted([c for c in collections if not c.startswith("system.")])
+
+    buf = _io.BytesIO()
+    summary = {"collections": {}, "total_documents": 0}
+    with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+        for coll in collections:
+            cursor = db[coll].find({})
+            docs = []
+            async for doc in cursor:
+                docs.append(doc)
+            summary["collections"][coll] = len(docs)
+            summary["total_documents"] += len(docs)
+            payload = json_module.dumps(docs, default=_json_safe, ensure_ascii=False, indent=2)
+            zf.writestr(f"{coll}.json", payload)
+        metadata = {
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "generated_by": user.get("name") or user.get("email") or "admin",
+            "db_name": os.environ.get("DB_NAME", "unknown"),
+            "summary": summary,
+            "note": ("Backup completo en JSON. Cada archivo es una colección. "
+                     "ObjectId y fechas se serializan como strings."),
+        }
+        zf.writestr("_metadata.json", json_module.dumps(metadata, ensure_ascii=False, indent=2))
+
+    now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H%M%S")
+    filename = f"backup_kuxtal_{now_str}.zip"
+    return Response(
+        content=buf.getvalue(),
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "X-Collection-Count": str(len(collections)),
+            "X-Document-Count": str(summary["total_documents"]),
+        },
     )
 
 # ── User manuals (PDF, branded Kuxtal) ──

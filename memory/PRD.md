@@ -1,5 +1,19 @@
 # Kuxtal Travel - Club Vacacional PRD
 
+## [2026-05-15] Exportar socios + Backup completo de la BD
+
+Backend (`server.py`):
+- `GET /api/admin/members/export` (admin / super_admin) → genera Excel con TODOS los socios usando el mismo schema de columnas que la importación (round-trip). Devuelve archivo `socios_kuxtal_YYYY-MM-DD.xlsx`.
+- `GET /api/admin/backup/all` (solo super_admin) → genera ZIP con todas las colecciones de MongoDB serializadas como JSON, más `_metadata.json` con timestamp, autor, db_name y resumen. ObjectId/datetime se serializan como strings.
+- Added `import zipfile` + `_json_safe` helper para serialización mongo-safe.
+
+Frontend:
+- `AdminMembers.js`: nuevo botón "Exportar Excel" junto a "Importar Excel". Usa `responseType: 'blob'` + crea anchor para descargar.
+- `AdminSettings.js`: nueva tarjeta "Backup completo de la base de datos" con warning de info sensible y botón "Descargar backup completo (ZIP)".
+
+Verificado: export Excel 7.7KB con 14 socios; backup ZIP 34KB con 27 colecciones y 339 documentos.
+
+
 ## [2026-05-14] Cotizaciones: vuelos por imágenes + selector de hotel
 **Cambio breaking**: el formulario estructurado de vuelos (aerolínea, salida, llegada, escalas, notas) fue reemplazado por un **uploader de imágenes** (1+ screenshots de boletos/itinerarios). El admin sube los screenshots del PDF de Air France/Copa/etc. y se muestran tal cual en la cotización pública y PDF.
 

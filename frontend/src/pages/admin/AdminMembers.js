@@ -4,7 +4,7 @@ import { Input } from '../../components/ui/input';
 import { Textarea } from '../../components/ui/textarea';
 import { Label } from '../../components/ui/label';
 import { Badge } from '../../components/ui/badge';
-import { Plus, Edit, Gift, Search, X, Upload, FileSpreadsheet, CheckSquare, Square, Power, PowerOff, Trash2, KeyRound } from 'lucide-react';
+import { Plus, Edit, Gift, Search, X, Upload, Download, FileSpreadsheet, CheckSquare, Square, Power, PowerOff, Trash2, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { DeleteWithCode } from '../../components/DeleteWithCode';
 import BulkImportModal from '../../components/BulkImportModal';
@@ -46,6 +46,28 @@ export function AdminMembers({ members, memberForm, setMemberForm, showMemberFor
   const [selectedRegaliaIds, setSelectedRegaliaIds] = useState([]);
   const [savingRegalias, setSavingRegalias] = useState(false);
   const [showBulkImport, setShowBulkImport] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  const handleExportMembers = async () => {
+    setExporting(true);
+    try {
+      const response = await api.get('/admin/members/export', { responseType: 'blob' });
+      const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const today = new Date().toISOString().slice(0, 10);
+      a.download = `socios_kuxtal_${today}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success(`Exportados ${members.length} socios a Excel`);
+    } catch (e) {
+      toast.error('Error al exportar socios');
+    }
+    setExporting(false);
+  };
 
   // Bulk selection state
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -162,6 +184,16 @@ export function AdminMembers({ members, memberForm, setMemberForm, showMemberFor
             data-testid="bulk-import-members-btn"
           >
             <Upload className="w-4 h-4 mr-2" /> Importar Excel
+          </Button>
+          <Button
+            onClick={handleExportMembers}
+            disabled={exporting || members.length === 0}
+            variant="outline"
+            className="rounded-full"
+            data-testid="export-members-btn"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            {exporting ? 'Exportando…' : 'Exportar Excel'}
           </Button>
           <Button
             onClick={() => { setShowMemberForm(true); setEditingMember(null); setMemberForm(EMPTY_FORM); }}
