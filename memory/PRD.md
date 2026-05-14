@@ -1,5 +1,27 @@
 # Kuxtal Travel - Club Vacacional PRD
 
+## [2026-05-14] Cotizaciones: vuelos por imágenes + selector de hotel
+**Cambio breaking**: el formulario estructurado de vuelos (aerolínea, salida, llegada, escalas, notas) fue reemplazado por un **uploader de imágenes** (1+ screenshots de boletos/itinerarios). El admin sube los screenshots del PDF de Air France/Copa/etc. y se muestran tal cual en la cotización pública y PDF.
+
+Backend (`routers/quotations.py`):
+- Nuevos campos en `allowed_fields`: `flight_images: List[str]`, `selected_hotel_index: Optional[int]`.
+- Legacy `flight_info` / `has_flights` se mantienen para no romper cotizaciones existentes.
+
+Frontend:
+- `AdminQuotations.js`:
+  - `FlightSection` ahora es un uploader múltiple (POST `/api/upload` por archivo), con reorder ←→ y eliminar.
+  - Nueva `HotelSelectorSection`: radio buttons para elegir UNA opción de hotel del paquete (o "todas"). Solo aparece cuando el paquete tiene ≥1 hotel.
+- `PublicQuotationPage.js`:
+  - `FlightSection` renderiza la galería de imágenes en tamaño completo (full-width, click to open).
+  - `HotelsSection` filtra por `selected_hotel_index` (cuando no es null/empty muestra solo ese hotel).
+
+PDF (`quotation_pdf.py`):
+- `_render_flights` prioriza `flight_images` (lista de imágenes embebidas, page-break safe). Fallback al formato estructurado legacy.
+- `_render_hotels` filtra por `selected_hotel_index` y cambia el heading de "Hoteles previstos" → "Hotel" cuando hay solo uno.
+
+Verificado: PDF 499KB con imágenes embedded; preview público muestra 2 imágenes de vuelo + 1 hotel filtrado correctamente.
+
+
 ## [2026-05-14] Difusiones masivas WhatsApp con compliance Meta
 **Módulo nuevo**: `routers/broadcasts.py` + `pages/admin/AdminBroadcasts.js`.
 

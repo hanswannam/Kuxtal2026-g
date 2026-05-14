@@ -115,6 +115,22 @@ def _fmt_money(v) -> str:
 
 
 def _render_flights(q: dict) -> str:
+    """Render flight section as a stack of uploaded screenshots (boletos / itinerarios).
+
+    Legacy structured flight_info is kept as fallback for older quotations.
+    """
+    images = q.get("flight_images") or []
+    if isinstance(images, list) and images:
+        items = "".join(
+            f'<div style="margin-bottom:10pt;page-break-inside:avoid;">'
+            f'<img src="{_escape(u)}" style="width:100%;max-width:100%;display:block;border-radius:4pt;" />'
+            f'</div>'
+            for u in images if u
+        )
+        if items:
+            return f'<h2>Información de vuelo</h2><div class="box" style="background:#fff;border:1px solid #e6c878;">{items}</div>'
+
+    # Fallback: legacy structured layout
     if not q.get("has_flights"):
         return ""
     fi = q.get("flight_info") or {}
@@ -144,7 +160,7 @@ def _render_flights(q: dict) -> str:
             time = _escape(lv.get("time") or "")
             dur = _escape(lv.get("duration") or "")
             rows.append(
-                f'<div class="layover"><strong>🛬 {place}</strong>'
+                f'<div class="layover"><strong>{place}</strong>'
                 f'<div class="muted" style="margin-top:2pt;">{date} {time}'
                 f'{(" · " + dur) if dur else ""}</div></div>'
             )
@@ -225,6 +241,14 @@ def _render_hotels(source: dict) -> str:
     hotels = source.get("hotels") or source.get("package_hotels") or []
     if not hotels:
         return ""
+    # If a specific hotel was selected for this quote, filter to that one only
+    idx = source.get("selected_hotel_index")
+    try:
+        idx_int = int(idx)
+        if 0 <= idx_int < len(hotels):
+            hotels = [hotels[idx_int]]
+    except (TypeError, ValueError):
+        pass  # idx is None / empty / invalid → show all
     rows = []
     for i, h in enumerate(hotels):
         name = _escape(h.get("name") or f"Hotel {i + 1}")
@@ -235,10 +259,11 @@ def _render_hotels(source: dict) -> str:
             imgs = "".join(f'<img src="{_escape(u)}" />' for u in gal[:6])
             gallery_html = f'<div class="gallery">{imgs}</div>'
         rows.append(
-            f'<div class="hotel"><h3 style="margin:0 0 4pt 0;">🏨 {name}</h3>'
+            f'<div class="hotel"><h3 style="margin:0 0 4pt 0;">{name}</h3>'
             f'<p style="margin:0 0 4pt 0;">{desc}</p>{gallery_html}</div>'
         )
-    return f'<h2>Hoteles previstos</h2>{"".join(rows)}'
+    heading = "Hotel" if len(hotels) == 1 else "Hoteles previstos"
+    return f'<h2>{heading}</h2>{"".join(rows)}'
 
 
 def _render_gallery(source: dict) -> str:

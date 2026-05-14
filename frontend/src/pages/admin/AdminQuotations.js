@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Button } from '../../components/ui/button';
 import { Textarea } from '../../components/ui/textarea';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Badge } from '../../components/ui/badge';
-import { Send, Phone, Edit2, Eye, MessageCircle, Search, X, Plus, Minus, ClipboardCopy, Check, Clock, User, FileDown, Plane, MapPin } from 'lucide-react';
+import { Send, Phone, Edit2, Eye, MessageCircle, Search, X, Plus, Minus, ClipboardCopy, Check, Clock, User, FileDown, Plane, MapPin, Upload, Image as ImageIcon, Hotel } from 'lucide-react';
 import { toast } from 'sonner';
 import api from '../../lib/api';
 import { QuotationPreviewModal } from './QuotationPreview';
@@ -20,113 +20,153 @@ const STATUS_META = {
 };
 
 function FlightSection({ form, setForm }) {
-  const fi = form.flight_info || {};
-  const setFi = (patch) => setForm(f => ({ ...f, flight_info: { ...(f.flight_info || {}), ...patch } }));
-  const updLayover = (i, patch) => {
-    const arr = [...((fi.layovers) || [])];
-    arr[i] = { ...arr[i], ...patch };
-    setFi({ layovers: arr });
+  const fileRef = useRef(null);
+  const [uploading, setUploading] = useState(false);
+  const images = Array.isArray(form.flight_images) ? form.flight_images : [];
+
+  const onPick = () => fileRef.current?.click();
+  const onFiles = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    setUploading(true);
+    try {
+      const uploaded = [];
+      for (const file of files) {
+        const fd = new FormData();
+        fd.append('file', file);
+        const { data } = await api.post('/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        if (data?.url) uploaded.push(data.url);
+      }
+      if (uploaded.length > 0) {
+        setForm(f => ({
+          ...f,
+          flight_images: [...(Array.isArray(f.flight_images) ? f.flight_images : []), ...uploaded],
+          has_flights: true,
+        }));
+        toast.success(`${uploaded.length} imagen(es) subida(s)`);
+      }
+    } catch (err) {
+      toast.error('Error al subir imágenes');
+    }
+    setUploading(false);
+    e.target.value = '';
   };
-  const addLayover = () => setFi({ layovers: [...((fi.layovers) || []), { place: '', date: '', time: '', duration: '' }] });
-  const removeLayover = (i) => setFi({ layovers: ((fi.layovers) || []).filter((_, idx) => idx !== i) });
+  const removeImg = (idx) => {
+    const next = images.filter((_, i) => i !== idx);
+    setForm(f => ({ ...f, flight_images: next, has_flights: next.length > 0 }));
+  };
+  const moveImg = (idx, dir) => {
+    const j = idx + dir;
+    if (j < 0 || j >= images.length) return;
+    const next = [...images];
+    [next[idx], next[j]] = [next[j], next[idx]];
+    setForm(f => ({ ...f, flight_images: next }));
+  };
 
   return (
     <div className="mt-5 rounded-xl p-4" style={{ background: '#FDF9EC', border: '1px solid rgba(212,175,55,0.35)' }} data-testid="flight-section">
       <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
         <div className="flex items-center gap-2">
           <Plane className="w-4 h-4" style={{ color: '#B89327' }} />
-          <p className="text-sm font-semibold" style={{ color: '#0D2B45' }}>Información de vuelos</p>
+          <p className="text-sm font-semibold" style={{ color: '#0D2B45' }}>Imágenes de vuelo / itinerario</p>
         </div>
-        <label className="inline-flex items-center gap-2 text-xs font-medium cursor-pointer">
-          <input
-            type="checkbox"
-            checked={!!form.has_flights}
-            onChange={(e) => setForm(f => ({ ...f, has_flights: e.target.checked }))}
-            data-testid="flight-has"
-          />
-          ¿Esta cotización incluye vuelos?
-        </label>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="rounded-full"
+          onClick={onPick}
+          disabled={uploading}
+          data-testid="flight-upload-btn"
+        >
+          <Upload className="w-3.5 h-3.5 mr-1.5" />
+          {uploading ? 'Subiendo…' : 'Subir imágenes'}
+        </Button>
+        <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={onFiles} data-testid="flight-file-input" />
       </div>
 
-      {form.has_flights && (
-        <div className="space-y-3 bg-white rounded-lg p-3" style={{ border: '1px solid rgba(212,175,55,0.30)' }}>
-          <div>
-            <Label className="text-[10px] uppercase tracking-wider font-bold">Aerolínea</Label>
-            <Input
-              value={fi.airline || ''}
-              onChange={(e) => setFi({ airline: e.target.value })}
-              placeholder="Avianca, Copa, Delta..."
-              className="rounded-xl mt-1"
-              data-testid="flight-airline"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="rounded-lg p-3" style={{ background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.25)' }}>
-              <p className="text-[10px] uppercase tracking-widest font-bold mb-2" style={{ color: '#B89327' }}>Salida</p>
-              <Input value={fi.departure_place || ''} onChange={(e) => setFi({ departure_place: e.target.value })} placeholder="Lugar (ej: Guatemala GUA)" className="rounded-xl mb-2" data-testid="flight-dep-place" />
-              <div className="grid grid-cols-2 gap-2">
-                <Input type="date" value={fi.departure_date || ''} onChange={(e) => setFi({ departure_date: e.target.value })} className="rounded-xl" data-testid="flight-dep-date" />
-                <Input type="time" value={fi.departure_time || ''} onChange={(e) => setFi({ departure_time: e.target.value })} className="rounded-xl" data-testid="flight-dep-time" />
+      {images.length === 0 ? (
+        <p className="text-[11px] text-muted-foreground italic px-1">
+          Cargá los screenshots de los boletos / itinerarios (1 o más imágenes). Se mostrarán al cliente en la cotización pública y en el PDF.
+        </p>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+          {images.map((url, i) => (
+            <div key={url + i} className="relative group rounded-lg overflow-hidden bg-white" style={{ border: '1px solid rgba(212,175,55,0.30)' }} data-testid={`flight-img-${i}`}>
+              <img src={url} alt={`Vuelo ${i + 1}`} className="w-full h-32 object-cover" />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition flex items-end justify-between p-1">
+                <div className="flex gap-1 opacity-0 group-hover:opacity-100">
+                  <button type="button" onClick={() => moveImg(i, -1)} className="bg-white/90 rounded p-1" title="Mover ←" data-testid={`flight-img-left-${i}`}>
+                    <span className="text-xs">←</span>
+                  </button>
+                  <button type="button" onClick={() => moveImg(i, 1)} className="bg-white/90 rounded p-1" title="Mover →" data-testid={`flight-img-right-${i}`}>
+                    <span className="text-xs">→</span>
+                  </button>
+                </div>
+                <button type="button" onClick={() => removeImg(i)} className="bg-red-600 text-white rounded p-1 opacity-0 group-hover:opacity-100" title="Quitar" data-testid={`flight-img-remove-${i}`}>
+                  <X className="w-3 h-3" />
+                </button>
               </div>
+              <span className="absolute top-1 left-1 text-[10px] font-bold bg-white/90 rounded px-1.5 py-0.5">{i + 1}</span>
             </div>
-            <div className="rounded-lg p-3" style={{ background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.25)' }}>
-              <p className="text-[10px] uppercase tracking-widest font-bold mb-2" style={{ color: '#B89327' }}>Llegada</p>
-              <Input value={fi.arrival_place || ''} onChange={(e) => setFi({ arrival_place: e.target.value })} placeholder="Lugar (ej: Cartagena CTG)" className="rounded-xl mb-2" data-testid="flight-arr-place" />
-              <div className="grid grid-cols-2 gap-2">
-                <Input type="date" value={fi.arrival_date || ''} onChange={(e) => setFi({ arrival_date: e.target.value })} className="rounded-xl" data-testid="flight-arr-date" />
-                <Input type="time" value={fi.arrival_time || ''} onChange={(e) => setFi({ arrival_time: e.target.value })} className="rounded-xl" data-testid="flight-arr-time" />
-              </div>
-            </div>
-          </div>
-
-          {/* Escalas */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <Label className="text-[10px] uppercase tracking-wider font-bold">Escalas</Label>
-              <Button type="button" size="sm" variant="outline" onClick={addLayover} className="rounded-full text-xs" data-testid="flight-add-layover">
-                <Plus className="w-3 h-3 mr-1" /> Añadir escala
-              </Button>
-            </div>
-            {((fi.layovers) || []).length === 0 ? (
-              <p className="text-[11px] text-muted-foreground italic">Sin escalas. El vuelo es directo.</p>
-            ) : (
-              <div className="space-y-2">
-                {(fi.layovers || []).map((lv, i) => (
-                  <div key={i} className="rounded-lg p-2 bg-secondary/40 border" data-testid={`flight-layover-${i}`}>
-                    <div className="flex items-center justify-between gap-2 mb-2">
-                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider" style={{ background: '#0D2B45', color: '#F5D27A' }}>
-                        <MapPin className="w-3 h-3" /> Escala {i + 1}
-                      </span>
-                      <button type="button" onClick={() => removeLayover(i)} className="text-red-700 hover:bg-red-50 rounded p-1" data-testid={`flight-remove-layover-${i}`}>
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                    <Input value={lv.place || ''} onChange={(e) => updLayover(i, { place: e.target.value })} placeholder="Lugar (ej: Bogotá BOG)" className="rounded-xl mb-1" data-testid={`flight-layover-place-${i}`} />
-                    <div className="grid grid-cols-3 gap-1.5">
-                      <Input type="date" value={lv.date || ''} onChange={(e) => updLayover(i, { date: e.target.value })} className="rounded-xl text-xs" data-testid={`flight-layover-date-${i}`} />
-                      <Input type="time" value={lv.time || ''} onChange={(e) => updLayover(i, { time: e.target.value })} className="rounded-xl text-xs" data-testid={`flight-layover-time-${i}`} />
-                      <Input value={lv.duration || ''} onChange={(e) => updLayover(i, { duration: e.target.value })} placeholder="Duración (2h 30m)" className="rounded-xl text-xs" data-testid={`flight-layover-duration-${i}`} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div>
-            <Label className="text-[10px] uppercase tracking-wider font-bold">Notas del vuelo</Label>
-            <Textarea
-              value={fi.notes || ''}
-              onChange={(e) => setFi({ notes: e.target.value })}
-              rows={2}
-              placeholder="Equipaje, restricciones, número de vuelo..."
-              className="rounded-xl mt-1"
-              data-testid="flight-notes"
-            />
-          </div>
+          ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function HotelSelectorSection({ form, setForm }) {
+  const hotels = Array.isArray(form.package_hotels) ? form.package_hotels : [];
+  if (hotels.length === 0) return null;
+  const selectedIndex = form.selected_hotel_index;
+  const isAll = selectedIndex === null || selectedIndex === undefined || selectedIndex === '';
+
+  return (
+    <div className="mt-5 rounded-xl p-4" style={{ background: '#FDF9EC', border: '1px solid rgba(212,175,55,0.35)' }} data-testid="hotel-selector-section">
+      <div className="flex items-center gap-2 mb-3">
+        <Hotel className="w-4 h-4" style={{ color: '#B89327' }} />
+        <p className="text-sm font-semibold" style={{ color: '#0D2B45' }}>Hotel seleccionado para esta cotización</p>
+      </div>
+      <p className="text-[11px] text-muted-foreground mb-3">
+        El paquete tiene {hotels.length} opción(es) de hotel. Elegí cuál mostrar al cliente en esta cotización.
+      </p>
+      <div className="space-y-2">
+        <label className="flex items-start gap-2 rounded-lg p-2 cursor-pointer hover:bg-white/60" style={{ border: isAll ? '2px solid #0D2B45' : '1px solid rgba(212,175,55,0.30)' }}>
+          <input
+            type="radio"
+            checked={isAll}
+            onChange={() => setForm(f => ({ ...f, selected_hotel_index: null }))}
+            className="mt-1"
+            data-testid="hotel-radio-all"
+          />
+          <div>
+            <p className="text-xs font-semibold">Mostrar todas las opciones</p>
+            <p className="text-[10px] text-muted-foreground">El cliente verá las {hotels.length} alternativas.</p>
+          </div>
+        </label>
+        {hotels.map((h, i) => {
+          const checked = !isAll && Number(selectedIndex) === i;
+          return (
+            <label key={i} className="flex items-start gap-2 rounded-lg p-2 cursor-pointer hover:bg-white/60" style={{ border: checked ? '2px solid #0D2B45' : '1px solid rgba(212,175,55,0.30)' }} data-testid={`hotel-option-${i}`}>
+              <input
+                type="radio"
+                checked={checked}
+                onChange={() => setForm(f => ({ ...f, selected_hotel_index: i }))}
+                className="mt-1"
+                data-testid={`hotel-radio-${i}`}
+              />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold">{h.name || `Hotel ${i + 1}`}</p>
+                {h.description && <p className="text-[10px] text-muted-foreground line-clamp-2">{h.description}</p>}
+              </div>
+              {Array.isArray(h.gallery) && h.gallery[0] && (
+                <img src={h.gallery[0]} alt={h.name || ''} className="w-12 h-12 rounded object-cover shrink-0" />
+              )}
+            </label>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -362,6 +402,9 @@ function QuotationEditor({ quot, onClose, onSaved }) {
       airline: '', departure_date: '', departure_time: '', departure_place: '',
       arrival_date: '', arrival_time: '', arrival_place: '', notes: '', layovers: [],
     },
+    flight_images: Array.isArray(quot.flight_images) ? quot.flight_images : [],
+    package_hotels: Array.isArray(quot.package_hotels) ? quot.package_hotels : [],
+    selected_hotel_index: quot.selected_hotel_index ?? null,
   });
   const [extraInput, setExtraInput] = useState({ name: '', price: 0 });
   const [newNote, setNewNote] = useState('');
@@ -545,6 +588,7 @@ function QuotationEditor({ quot, onClose, onSaved }) {
         </div>
 
         <FlightSection form={form} setForm={setForm} />
+        <HotelSelectorSection form={form} setForm={setForm} />
 
         <div className="flex gap-3 pt-5 mt-5 border-t border-border">
           <Button variant="outline" onClick={onClose} className="flex-1 rounded-xl">Cancelar</Button>

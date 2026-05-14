@@ -416,12 +416,14 @@ async def update_quotation(quotation_id: str, request: Request):
         "discount", "extras", "internal_notes", "customer_notes", "package_id",
         "package_title", "package_country", "package_duration_days", "response", "response_html",
         "valid_until",
-        # Vuelos
-        "has_flights", "flight_info",
+        # Vuelos (legacy estructurado) + nuevo: imágenes de itinerarios de vuelo
+        "has_flights", "flight_info", "flight_images",
         # Snapshot extendido del paquete (admin puede editar para personalizar)
         "package_description", "package_short_description",
         "package_includes", "package_gallery", "package_youtube_url",
         "package_itinerary_days", "package_hotels", "package_image_url",
+        # Hotel seleccionado dentro del paquete (índice 0-based; None = mostrar todos)
+        "selected_hotel_index",
     }
     updates = {k: v for k, v in body.items() if k in allowed_fields}
 
