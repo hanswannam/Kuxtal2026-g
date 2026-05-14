@@ -69,6 +69,7 @@ def default_config() -> Dict[str, Any]:
         "openai_model": "gpt-4o-mini",
         "kapso_api_key": "",
         "kapso_phone_number_id": "",
+        "kapso_business_account_id": "",
         "kapso_webhook_secret": "",
         "system_prompt": DEFAULT_SYSTEM_PROMPT,
         "knowledge_base": "",
@@ -130,7 +131,8 @@ async def save_bot_config(db, updates: Dict[str, Any]) -> Dict[str, Any]:
     # Estos campos NUNCA se sobrescriben con string vacío — solo si vienen con valor real.
     preserve_if_empty = (
         "openai_api_key", "kapso_api_key", "kapso_webhook_secret", "external_admin_token",
-        "openai_model", "kapso_phone_number_id", "external_api_base_url", "system_prompt",
+        "openai_model", "kapso_phone_number_id", "kapso_business_account_id",
+        "external_api_base_url", "system_prompt",
         "public_site_url",
     )
     for k, v in updates.items():

@@ -67,6 +67,7 @@ export function AdminBot() {
         enabled: config.enabled,
         openai_model: config.openai_model,
         kapso_phone_number_id: config.kapso_phone_number_id || '',
+        kapso_business_account_id: config.kapso_business_account_id || '',
         system_prompt: config.system_prompt,
         knowledge_base: config.knowledge_base || '',
         include_packages: !!config.include_packages,
@@ -255,6 +256,15 @@ export function AdminBot() {
                 placeholder="647015955153740"
                 className="rounded-xl font-mono"
                 data-testid="kapso-phone-id"
+              />
+            </Field>
+            <Field label="WhatsApp Business Account ID (WABA)" hint="Necesario para listar plantillas y enviar difusiones. Lo encontrás en Meta Business Manager → tu WABA → ID, o en Kapso → Settings.">
+              <Input
+                value={config.kapso_business_account_id || ''}
+                onChange={e => update({ kapso_business_account_id: e.target.value })}
+                placeholder="123456789012345"
+                className="rounded-xl font-mono"
+                data-testid="kapso-waba-id"
               />
             </Field>
             <Field label="Webhook secret" hint="El secret que generaste cuando creaste el webhook en Kapso. Lo usamos para verificar HMAC-SHA256.">

@@ -147,35 +147,36 @@ async def _build_audience(audience: AudienceFilter) -> List[Dict[str, Any]]:
 async def _kapso_list_templates(cfg: Dict[str, Any]) -> List[Dict[str, Any]]:
     """List approved templates for the WABA via Kapso's relay of Meta's templates endpoint.
 
-    Kapso wraps Meta's Graph API. Templates live at the WABA level. Several
-    Kapso deployments expose them through the phone-number scope; we try both.
+    Meta's Graph API exposes templates at the WhatsApp Business Account (WABA) level:
+        GET /meta/whatsapp/v24.0/{business_account_id}/message_templates
+
+    Phone-number-id is NOT valid here. The admin must configure
+    `kapso_business_account_id` in Bot WA settings.
     """
     api_key = cfg.get("kapso_api_key", "")
-    phone_number_id = cfg.get("kapso_phone_number_id", "")
+    waba_id = cfg.get("kapso_business_account_id", "")
+    if not waba_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Falta el WhatsApp Business Account ID. Configuralo en Admin → Bot WA → 'Business Account ID'. Lo encontrás en el panel de Kapso o en Meta Business Manager.",
+        )
     headers = {"X-API-Key": api_key, "Content-Type": "application/json"}
-    candidates = [
-        f"{KAPSO_BASE}/{KAPSO_API_VERSION}/{phone_number_id}/message_templates",
-        f"{KAPSO_BASE}/{KAPSO_API_VERSION}/message_templates",
-        f"{KAPSO_BASE}/{KAPSO_API_VERSION}/{phone_number_id}/templates",
-    ]
-    last_err: Optional[str] = None
+    url = f"{KAPSO_BASE}/{KAPSO_API_VERSION}/{waba_id}/message_templates"
     async with httpx.AsyncClient(timeout=20.0) as client:
-        for url in candidates:
-            try:
-                r = await client.get(url, headers=headers, params={"limit": 200})
-                if r.status_code == 200:
-                    body = r.json()
-                    data = body.get("data") if isinstance(body, dict) else body
-                    if isinstance(data, list):
-                        return data
-                last_err = f"{r.status_code}: {r.text[:200]}"
-            except Exception as e:
-                last_err = str(e)
-                continue
-    raise HTTPException(
-        status_code=502,
-        detail=f"No se pudieron obtener las plantillas de Kapso. {last_err or ''}",
-    )
+        try:
+            r = await client.get(url, headers=headers, params={"limit": 200})
+            if r.status_code == 200:
+                body = r.json()
+                data = body.get("data") if isinstance(body, dict) else body
+                if isinstance(data, list):
+                    return data
+                return []
+            raise HTTPException(
+                status_code=502,
+                detail=f"Kapso devolvió {r.status_code}: {r.text[:300]}",
+            )
+        except httpx.HTTPError as e:
+            raise HTTPException(status_code=502, detail=f"Error de conexión con Kapso: {e}") from e
 
 
 async def _kapso_send_template(
