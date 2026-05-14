@@ -2712,6 +2712,7 @@ class BotConfigUpdate(BaseModel):
     openai_model: Optional[str] = None
     kapso_api_key: Optional[str] = None
     kapso_phone_number_id: Optional[str] = None
+    kapso_business_account_id: Optional[str] = None
     kapso_webhook_secret: Optional[str] = None
     system_prompt: Optional[str] = None
     knowledge_base: Optional[str] = None
