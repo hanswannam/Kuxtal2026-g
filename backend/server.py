@@ -792,7 +792,7 @@ async def list_commerce(category: Optional[str] = None, search: Optional[str] = 
             {"description": {"$regex": search, "$options": "i"}}
         ]
     results = []
-    async for c in db.commerce.find(query).sort("name", 1).limit(200):
+    async for c in db.commerce.find(query).sort("name", 1):
         results.append(serialize_doc(c))
     return results
 
@@ -819,8 +819,8 @@ async def create_commerce(req: CommerceCreate, request: Request):
     doc["created_by"] = created_by
     # Only super_admin/admin can create an already-active commerce. Everyone else goes to pending.
     doc["status"] = doc.get("status") if is_admin and doc.get("status") else ("active" if is_admin else "pending")
-    # New commerces ALWAYS start in "off" state (switch apagado); admin or the commerce owner must turn it on
-    doc["is_active"] = False
+    # Nuevos comercios quedan ENCENDIDOS por defecto (switch on). Admin puede apagarlos manualmente luego.
+    doc["is_active"] = True
     if not doc["validation_code"]:
         doc["validation_code"] = str(uuid.uuid4())[:8].upper()
     result = await db.commerce.insert_one(doc)
