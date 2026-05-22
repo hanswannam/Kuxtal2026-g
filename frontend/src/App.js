@@ -11,6 +11,7 @@ import InstallPrompt from "./components/InstallPrompt";
 import PWAReinstallBanner from "./components/PWAReinstallBanner";
 import UpdatePrompt from "./components/UpdatePrompt";
 import ImpersonationBanner from "./components/ImpersonationBanner";
+import IOSBackButton from "./components/IOSBackButton";
 import { Loader2 } from "lucide-react";
 
 // Eager: critical path pages
@@ -57,6 +58,7 @@ function App() {
       <AuthProvider>
         <ErrorBoundary>
           <Toaster position="top-right" richColors />
+          <IOSBackButton />
           <Suspense fallback={<PageLoader />}>
             <Routes>
               <Route path="/login" element={<LoginPage />} />
