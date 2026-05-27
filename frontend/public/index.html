@@ -1,10 +1,15 @@
 <!doctype html>
-<html lang="en">
+<html lang="es" translate="no">
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <meta name="theme-color" content="#1B325F" />
         <meta name="description" content="Kuxtal Travel - Club Vacacional Premium. Viajes diseñados a tu medida con destinos exclusivos en Latinoamérica y el mundo." />
+
+        <!-- Prevenir traducción automática del navegador (Chrome/Safari/Edge):
+             evita el crash de React 'insertBefore' cuando Google Translate modifica los nodos del DOM. -->
+        <meta name="google" content="notranslate" />
+        <meta http-equiv="Content-Language" content="es" />
         <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
         <link rel="icon" type="image/png" sizes="192x192" href="%PUBLIC_URL%/icons/icon-192.png" />
         <link rel="icon" type="image/png" sizes="512x512" href="%PUBLIC_URL%/icons/icon-512.png" />
@@ -51,7 +56,7 @@
         <title>Kuxtal Travel - Club Vacacional</title>
         <script>window.addEventListener("error",function(e){if(e.error instanceof DOMException&&e.error.name==="DataCloneError"&&e.message&&e.message.includes("PerformanceServerTiming")){e.stopImmediatePropagation();e.preventDefault()}},true);</script>
     </head>
-    <body>
+    <body class="notranslate" translate="no">
         <noscript>You need to enable JavaScript to run this app.</noscript>
         <div id="root"></div>
         <script>
