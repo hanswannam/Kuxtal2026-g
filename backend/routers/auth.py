@@ -1,4 +1,5 @@
 """Authentication routes: admin + member login, logout, session check."""
+import re
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -54,21 +55,55 @@ async def admin_login(req: LoginRequest, response: Response):
 
 
 async def _resolve_member_auth(req: MemberLoginRequest):
-    """Return (member, is_family, family_doc_or_None) or raise 401 if credentials are wrong."""
-    member = await db.members.find_one({"contract_number": req.contract_number.strip()})
+    """Return (member, is_family, family_doc_or_None) or raise 401 if credentials are wrong.
+
+    Contract lookup is FORGIVING — tries multiple normalizations so users can type:
+      '3772', 'KT-3772', 'kt-3772', '3772 ' (trailing space), '0003772', etc.
+    """
+    raw_contract = (req.contract_number or "").strip()
+    raw_dpi = (req.dpi or "").strip()
+    if not raw_contract or not raw_dpi:
+        raise HTTPException(status_code=400, detail="Faltan número de contrato y DPI")
+
+    member = None
+    # Try multiple lookup strategies, in order of specificity:
+    # 1. Exact match
+    member = await db.members.find_one({"contract_number": raw_contract})
+    # 2. Uppercase match (e.g. user typed 'kt-3772' but stored as 'KT-3772')
+    if not member:
+        upper = raw_contract.upper()
+        if upper != raw_contract:
+            member = await db.members.find_one({"contract_number": upper})
+    # 3. Strip 'KT-' prefix and try just the digits (user typed '3772' but stored as 'KT-3772')
+    if not member and "-" not in raw_contract:
+        member = await db.members.find_one({
+            "contract_number": {"$regex": f"^[A-Za-z]+-?0*{re.escape(raw_contract)}$"}
+        })
+    # 4. Add 'KT-' prefix (user typed '3772', stored as 'KT-3772')
+    if not member:
+        prefixed = f"KT-{raw_contract}" if not raw_contract.upper().startswith("KT") else raw_contract
+        member = await db.members.find_one({"contract_number": prefixed})
+    # 5. Case-insensitive exact match as final fallback
+    if not member:
+        member = await db.members.find_one({
+            "contract_number": {"$regex": f"^{re.escape(raw_contract)}$", "$options": "i"}
+        })
+
     if not member:
         raise HTTPException(status_code=401, detail="Número de contrato no encontrado")
 
-    if member.get("dpi", "") == req.dpi.strip():
+    # DPI: stored vs typed — strip whitespace on both sides
+    stored_dpi = str(member.get("dpi", "")).strip()
+    if stored_dpi == raw_dpi:
         return member, False, None
 
     family_doc = await db.family_members.find_one({
-        "contract_number": req.contract_number.strip(),
-        "dpi": req.dpi.strip(),
+        "contract_number": member.get("contract_number"),
+        "dpi": raw_dpi,
     })
     if family_doc:
         return member, True, family_doc
-    raise HTTPException(status_code=401, detail="DPI incorrecto")
+    raise HTTPException(status_code=401, detail="DPI incorrecto. Verificá que sea exactamente el mismo DPI registrado en tu contrato.")
 
 
 async def _find_or_create_member_user(
