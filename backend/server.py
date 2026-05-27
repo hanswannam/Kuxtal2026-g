@@ -2700,6 +2700,32 @@ def _coerce_date(val):
 # Fields that should be parsed as ISO dates (used by member bulk import)
 DATE_FIELDS_MEMBER = {"membership_start", "membership_end", "contract_date", "termination_date"}
 
+@app.post("/api/admin/members/normalize-statuses")
+async def members_normalize_statuses(request: Request):
+    """One-time fix: convert any non-canonical 'status' value (e.g. 'Activo', 'ACTIVE', '1', 'true')
+    to the canonical 'active' / 'inactive'. Use this if some imported members appear inactive
+    in the list or can't log in despite looking active in the detail view.
+    Returns counts of changes per before-state.
+    """
+    user = await require_role("super_admin", "admin", permission="members")(request)
+    fixed = {"to_active": 0, "to_inactive": 0, "already_ok": 0}
+    cursor = db.members.find({}, {"_id": 1, "status": 1, "contract_number": 1})
+    async for m in cursor:
+        raw = m.get("status")
+        if raw in ("active", "inactive"):
+            fixed["already_ok"] += 1
+            continue
+        normalized = _normalize_member_status(raw)
+        await db.members.update_one({"_id": m["_id"]}, {"$set": {"status": normalized}})
+        if normalized == "active":
+            fixed["to_active"] += 1
+        else:
+            fixed["to_inactive"] += 1
+    fixed["total_members"] = sum(fixed.values())
+    fixed["performed_by"] = user.get("name") or user.get("email", "")
+    return fixed
+
+
 @app.get("/api/admin/members/template")
 async def members_template(request: Request):
     await require_role("super_admin", "admin")(request)
@@ -3228,6 +3254,26 @@ def _validate_member_row(row: dict) -> tuple:
     return contract, name, dpi, None
 
 
+def _normalize_member_status(val) -> str:
+    """Normalize any user-provided status (Excel import or form) to canonical 'active' or 'inactive'.
+
+    Accepts: 'active', 'Activo', 'ACTIVE', '1', 'true', 'si', 'sí', 'yes' → 'active'
+             'inactive', 'Inactivo', '0', 'false', 'no' → 'inactive'
+             Anything else (including empty) → 'active' (safer default for imports).
+    """
+    if val is None:
+        return "active"
+    s = str(val).strip().lower()
+    if not s:
+        return "active"
+    if s in ("inactive", "inactivo", "inactiva", "0", "false", "no", "off", "apagado"):
+        return "inactive"
+    if s in ("active", "activo", "activa", "1", "true", "yes", "si", "sí", "y", "on", "encendido"):
+        return "active"
+    # Unknown value → fall back to 'active' for imports to avoid blocking logins.
+    return "active"
+
+
 def _build_member_doc_from_row(row: dict, contract: str, name: str, dpi: str) -> dict:
     """Coerce typed fields for a single member row."""
     num_fields = {"service_years": int, "age": int, "family_members_allowed": int, "investment_amount": float}
@@ -3239,7 +3285,9 @@ def _build_member_doc_from_row(row: dict, contract: str, name: str, dpi: str) ->
         val = row.get(key)
         if val is None or val == "":
             continue
-        if key in DATE_FIELDS_MEMBER:
+        if key == "status":
+            doc["status"] = _normalize_member_status(val)
+        elif key in DATE_FIELDS_MEMBER:
             iso = _coerce_date(val)
             if iso:
                 doc[key] = iso

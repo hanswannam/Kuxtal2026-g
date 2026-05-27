@@ -108,7 +108,10 @@ async def _find_or_create_member_user(
 @router.post("/member-login")
 async def member_login(req: MemberLoginRequest, response: Response):
     member, is_family, family_doc = await _resolve_member_auth(req)
-    if member.get("status") != "active":
+    # Normalize legacy/imported statuses ("Activo", "ACTIVE", "1", true, etc.) before checking
+    raw_status = str(member.get("status") or "").strip().lower()
+    is_inactive = raw_status in ("inactive", "inactivo", "inactiva", "0", "false", "no", "off")
+    if is_inactive:
         raise HTTPException(status_code=403, detail="Membresía inactiva")
 
     login_name = family_doc["name"] if is_family else member["name"]

@@ -163,6 +163,23 @@ export function AdminMembers({ members, memberForm, setMemberForm, showMemberFor
     setSavingRegalias(false);
   };
 
+  const handleNormalizeStatuses = async () => {
+    if (!window.confirm('Esto corregirá cualquier socio con "estado" mal escrito (ej. "Activo" en español) y lo dejará como "active" o "inactive" canónico. ¿Continuar?')) return;
+    try {
+      const { data } = await api.post('/admin/members/normalize-statuses');
+      const fixed = (data.to_active || 0) + (data.to_inactive || 0);
+      if (fixed === 0) {
+        toast.success('Todos los socios ya estaban bien (0 cambios)');
+      } else {
+        toast.success(`Corregidos ${fixed} socios (${data.to_active} → activos, ${data.to_inactive} → inactivos)`);
+        // Reload list
+        window.location.reload();
+      }
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Error al normalizar estados');
+    }
+  };
+
   const handleSave = async (e) => {
     e.preventDefault();
     await saveMember(e);
@@ -194,6 +211,15 @@ export function AdminMembers({ members, memberForm, setMemberForm, showMemberFor
           >
             <Download className="w-4 h-4 mr-2" />
             {exporting ? 'Exportando…' : 'Exportar Excel'}
+          </Button>
+          <Button
+            onClick={handleNormalizeStatuses}
+            variant="outline"
+            className="rounded-full"
+            title="Corrige socios con estado mal escrito (ej. 'Activo' en español → 'active')"
+            data-testid="normalize-statuses-btn"
+          >
+            <KeyRound className="w-4 h-4 mr-2" /> Reparar estados
           </Button>
           <Button
             onClick={() => { setShowMemberForm(true); setEditingMember(null); setMemberForm(EMPTY_FORM); }}
