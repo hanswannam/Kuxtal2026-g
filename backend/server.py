@@ -2449,7 +2449,7 @@ MEMBER_TEMPLATE_COLS = [
     ("investment_amount", "Monto inversión Q", False, 45000),
     ("investment_plan", "Plan de inversión", False, "5 años"),
     ("status", "Estado (active/inactive)", False, "active"),
-    ("contract_date", "Fecha contrato", False, "2024-01-15"),
+    ("contract_date", "Fecha contrato (AAAA-MM-DD)", False, "2024-01-15"),
     ("age", "Edad", False, 38),
     ("marital_status", "Estado civil", False, "Casado"),
     ("nationality", "Nacionalidad", False, "Guatemalteca"),
@@ -2464,7 +2464,7 @@ MEMBER_TEMPLATE_COLS = [
     ("vigencia", "Vigencia", False, ""),
     ("cuotas", "Cuotas", False, ""),
     ("bank", "Banco", False, ""),
-    ("termination_date", "Fecha terminación", False, ""),
+    ("termination_date", "Fecha terminación (AAAA-MM-DD)", False, ""),
     ("tc", "TC", False, ""),
     ("nit", "NIT", False, ""),
     ("billing_name", "Nombre facturación", False, ""),
@@ -2497,38 +2497,72 @@ PACKAGE_TEMPLATE_COLS = [
     ("promo_end", "Promo fin (AAAA-MM-DD)", False, ""),
 ]
 
-def _build_template_xlsx(title: str, columns) -> bytes:
+def _build_template_xlsx(title: str, columns, *, extra_examples=None, date_keys: set = None) -> bytes:
+    """Build an Excel template with header, sample rows and an instructions sheet.
+
+    Args:
+        columns: list of (key, label, required, example) tuples.
+        extra_examples: optional list of dicts → additional example rows after the first.
+        date_keys: set of keys that should be formatted as dates (yyyy-mm-dd) in Excel.
+    """
+    date_keys = date_keys or set()
     wb = _Workbook()
     ws = wb.active
     ws.title = title[:31]
     header_fill = _PatternFill(start_color="1B325F", end_color="1B325F", fill_type="solid")
     header_font = _Font(color="FFFFFF", bold=True, size=11)
     required_font = _Font(color="FFFFFF", bold=True, size=11, italic=True)
+    example_fill = _PatternFill(start_color="FDF9EC", end_color="FDF9EC", fill_type="solid")
+    example_font = _Font(color="6B5524", italic=True, size=10)
+
     for idx, (_, label, required, _ex) in enumerate(columns, start=1):
         cell = ws.cell(row=1, column=idx, value=label)
         cell.fill = header_fill
         cell.font = required_font if required else header_font
         cell.alignment = _Alignment(horizontal="center", vertical="center", wrap_text=True)
         ws.column_dimensions[cell.column_letter].width = max(16, min(40, len(str(label)) + 2))
-    # Example row
-    for idx, (_, _lb, _r, ex) in enumerate(columns, start=1):
-        ws.cell(row=2, column=idx, value=ex)
-    ws.row_dimensions[1].height = 32
+
+    # Example row(s)
+    all_examples = [{key: ex for key, _lb, _r, ex in columns}]
+    if extra_examples:
+        all_examples.extend(extra_examples)
+
+    for row_offset, ex_row in enumerate(all_examples):
+        for idx, (key, _lb, _r, _ex_default) in enumerate(columns, start=1):
+            val = ex_row.get(key, "")
+            cell = ws.cell(row=2 + row_offset, column=idx, value=val)
+            cell.fill = example_fill
+            cell.font = example_font
+            # Apply date number format on date columns
+            if key in date_keys:
+                cell.number_format = "yyyy-mm-dd"
+
+    ws.row_dimensions[1].height = 36
     # Freeze header
     ws.freeze_panes = "A2"
+
     # Instructions sheet
     info = wb.create_sheet("Instrucciones")
     info.append(["Cómo llenar la plantilla"])
     info.append([""])
-    info.append(["1. Las columnas con asterisco (*) son obligatorias."])
+    info.append(["1. Las columnas con asterisco (*) son OBLIGATORIAS."])
     info.append(["2. No cambies el orden ni el nombre de las columnas de la cabecera."])
-    info.append(["3. Borra la fila de ejemplo (fila 2) antes de llenar tus datos reales."])
-    info.append(["4. Para campos que aceptan listas (ej. Incluye, Galería), separa los valores con el carácter |"])
-    info.append(["5. Las fechas deben escribirse en formato AAAA-MM-DD (ej. 2024-01-15)."])
-    info.append(["6. Al subir el archivo, el sistema te mostrará una vista previa antes de importar."])
+    info.append(["3. Borrá las filas de ejemplo (fondo crema) antes de cargar tus datos reales."])
+    info.append(["4. Para campos que aceptan listas (ej. Incluye, Galería), separá los valores con el carácter |"])
+    info.append(["5. FECHAS: usá formato AAAA-MM-DD (ej. 2024-01-15). También aceptamos DD/MM/AAAA."])
+    info.append(["6. Si Excel auto-formatea la fecha y se ve raro (ej. 45230), seleccioná la celda → Formato → 'yyyy-mm-dd'."])
+    info.append(["7. Teléfonos: con o sin +502, se normalizan automáticamente."])
+    info.append(["8. Al subir el archivo, el sistema te muestra una vista previa antes de importar."])
+    info.append([""])
+    info.append(["Campos de fecha en esta plantilla:"])
+    if date_keys:
+        for key, label, _r, _ex in columns:
+            if key in date_keys:
+                info.append([f"   • {label}"])
     for cell in info["1:1"]:
         cell.font = _Font(bold=True, size=13, color="1B325F")
     info.column_dimensions["A"].width = 90
+
     buf = _io.BytesIO()
     wb.save(buf)
     buf.seek(0)
@@ -2614,10 +2648,139 @@ def _coerce(val, typ):
     except Exception:
         return None
 
+
+def _coerce_date(val):
+    """Normalize ANY date-like value to ISO 'YYYY-MM-DD' (or '' if blank).
+
+    Supports:
+      * datetime / date objects (Excel cells formatted as date → openpyxl returns datetime)
+      * 'YYYY-MM-DD', 'YYYY/MM/DD'
+      * 'DD/MM/YYYY', 'DD-MM-YYYY'
+      * 'D/M/YYYY' (single digits)
+      * Excel serial numbers (rare, openpyxl usually converts already)
+    Returns '' if blank, original string if unparseable (so user can fix).
+    """
+    if val is None or val == "":
+        return ""
+    # datetime / date object (most common from Excel)
+    if isinstance(val, datetime):
+        return val.strftime("%Y-%m-%d")
+    try:
+        from datetime import date as _date
+        if isinstance(val, _date):
+            return val.strftime("%Y-%m-%d")
+    except Exception:
+        pass
+    # numeric Excel serial date
+    if isinstance(val, (int, float)) and val > 1000:
+        try:
+            from datetime import timedelta as _td
+            # Excel epoch (with the famous 1900 leap-year bug compensated)
+            base = datetime(1899, 12, 30)
+            return (base + _td(days=float(val))).strftime("%Y-%m-%d")
+        except Exception:
+            pass
+    s = str(val).strip()
+    if not s:
+        return ""
+    # ISO with optional time
+    if "T" in s:
+        s = s.split("T", 1)[0]
+    if " " in s:
+        s = s.split(" ", 1)[0]
+    from datetime import datetime as _dt
+    for fmt in ("%Y-%m-%d", "%Y/%m/%d", "%d/%m/%Y", "%d-%m-%Y", "%m/%d/%Y", "%d.%m.%Y"):
+        try:
+            return _dt.strptime(s, fmt).strftime("%Y-%m-%d")
+        except ValueError:
+            continue
+    return s  # leave as-is; user can fix manually
+
+
+# Fields that should be parsed as ISO dates (used by member bulk import)
+DATE_FIELDS_MEMBER = {"membership_start", "membership_end", "contract_date", "termination_date"}
+
 @app.get("/api/admin/members/template")
 async def members_template(request: Request):
     await require_role("super_admin", "admin")(request)
-    data = _build_template_xlsx("Socios", MEMBER_TEMPLATE_COLS)
+    extra = [
+        {
+            "contract_number": "KT-0101",
+            "name": "María García Castillo",
+            "dpi": "9876543210101",
+            "email": "maria.garcia@ejemplo.com",
+            "phone": "+50244445555",
+            "service_years": 3,
+            "membership_start": "2025-03-10",
+            "membership_end": "2030-03-10",
+            "family_members_allowed": 2,
+            "investment_amount": 32000,
+            "investment_plan": "3 años",
+            "status": "active",
+            "contract_date": "2025-03-10",
+            "age": 42,
+            "marital_status": "Soltera",
+            "nationality": "Guatemalteca",
+            "profession": "Contadora",
+            "address": "12 calle 8-30 zona 14",
+            "coowner_name": "",
+            "coowner_nationality": "",
+            "coowner_profession": "",
+            "coowner_phone": "",
+            "coowner_email": "",
+            "coowner_investment": "",
+            "vigencia": "",
+            "cuotas": "",
+            "bank": "Banrural",
+            "termination_date": "",
+            "tc": "",
+            "nit": "789456-2",
+            "billing_name": "María García Castillo",
+            "dpi_words": "",
+            "observations": "Sin copropietario",
+        },
+        {
+            "contract_number": "KT-0102",
+            "name": "Carlos Mejía Solís",
+            "dpi": "5555666677701",
+            "email": "carlos@ejemplo.com",
+            "phone": "+50233332222",
+            "service_years": 7,
+            "membership_start": "2023-08-20",
+            "membership_end": "2030-08-20",
+            "family_members_allowed": 4,
+            "investment_amount": 75000,
+            "investment_plan": "7 años",
+            "status": "active",
+            "contract_date": "2023-08-20",
+            "age": 55,
+            "marital_status": "Casado",
+            "nationality": "Guatemalteca",
+            "profession": "Empresario",
+            "address": "Carretera a El Salvador km 14.5",
+            "coowner_name": "Lucía Méndez de Mejía",
+            "coowner_nationality": "Guatemalteca",
+            "coowner_profession": "Diseñadora",
+            "coowner_phone": "+50233332223",
+            "coowner_email": "lucia@ejemplo.com",
+            "coowner_investment": "50%",
+            "vigencia": "Vitalicia",
+            "cuotas": "Pagado",
+            "bank": "BAC",
+            "termination_date": "",
+            "tc": "Visa",
+            "nit": "123654-K",
+            "billing_name": "Carlos Mejía Solís",
+            "dpi_words": "",
+            "observations": "Plan familiar",
+        },
+    ]
+    data = _build_template_xlsx(
+        "Socios",
+        MEMBER_TEMPLATE_COLS,
+        extra_examples=extra,
+        date_keys=DATE_FIELDS_MEMBER,
+    )
     return Response(
         content=data,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -2627,7 +2790,7 @@ async def members_template(request: Request):
 @app.get("/api/admin/packages/template")
 async def packages_template(request: Request):
     await require_role("super_admin", "admin")(request)
-    data = _build_template_xlsx("Paquetes", PACKAGE_TEMPLATE_COLS)
+    data = _build_template_xlsx("Paquetes", PACKAGE_TEMPLATE_COLS, date_keys={"promo_start", "promo_end"})
     return Response(
         content=data,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -3076,7 +3239,11 @@ def _build_member_doc_from_row(row: dict, contract: str, name: str, dpi: str) ->
         val = row.get(key)
         if val is None or val == "":
             continue
-        if key in num_fields:
+        if key in DATE_FIELDS_MEMBER:
+            iso = _coerce_date(val)
+            if iso:
+                doc[key] = iso
+        elif key in num_fields:
             coerced = _coerce(val, num_fields[key])
             if coerced is not None:
                 doc[key] = coerced
