@@ -32,6 +32,16 @@ const counterCardStyle = {
   boxShadow: '0 6px 18px -14px rgba(184,147,39,0.40)',
 };
 
+// Strip any time component from a date-ish value → "YYYY-MM-DD" (or "—" if blank)
+function fmtDateOnly(val) {
+  if (!val) return '—';
+  const s = String(val).trim();
+  // Already ISO date or datetime → take first 10 chars
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  // Other formats — return as-is
+  return s.split(' ')[0].split('T')[0];
+}
+
 export function MemberOverview({ member, quotations, announcements, vacationRequests, packages, commerces }) {
   const [optingOut, setOptingOut] = useState(false);
   const [optedOut, setOptedOut] = useState(!!member?.opt_out_whatsapp);
@@ -94,11 +104,15 @@ export function MemberOverview({ member, quotations, announcements, vacationRequ
             </div>
             <div className="p-3 sm:p-4 rounded-xl" style={cardBoxStyle}>
               <p className="text-[10px] sm:text-xs uppercase font-semibold mb-1" style={labelStyle}>Vigencia</p>
-              <p className="font-semibold text-xs sm:text-sm" style={valueStyle}>{member.membership_start} - {member.membership_end}</p>
+              <p className="font-semibold text-xs sm:text-sm" style={valueStyle}>{fmtDateOnly(member.membership_start)} - {fmtDateOnly(member.membership_end)}</p>
             </div>
             <div className="p-3 sm:p-4 rounded-xl" style={cardBoxStyle}>
-              <p className="text-[10px] sm:text-xs uppercase font-semibold mb-1" style={labelStyle}>Familiares</p>
-              <p className="font-semibold text-base sm:text-lg" style={valueStyle}>{member.family_members_allowed} personas</p>
+              <p className="text-[10px] sm:text-xs uppercase font-semibold mb-1" style={labelStyle}>Copropietario</p>
+              {member.coowner_name ? (
+                <p className="font-semibold text-sm sm:text-base" style={valueStyle} data-testid="coowner-name">{member.coowner_name}</p>
+              ) : (
+                <p className="text-xs italic" style={{ ...valueStyle, opacity: 0.6 }} data-testid="coowner-empty">Sin copropietario</p>
+              )}
             </div>
 
             {(member.investment_amount > 0 || member.investment_plan) && (
