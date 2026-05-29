@@ -133,7 +133,7 @@ export function MemberOverview({ member, quotations, announcements, vacationRequ
                 {member.observations && (
                   <div className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(212,175,55,0.30)' }} data-testid="member-observations">
                     <p className="text-[10px] sm:text-xs uppercase font-bold mb-1" style={{ color: '#F5D27A', letterSpacing: '0.22em' }}>
-                      Observaciones
+                      Beneficios Adicionales
                     </p>
                     <p className="text-xs sm:text-sm whitespace-pre-wrap leading-relaxed" style={{ color: 'rgba(255,255,255,0.92)' }}>
                       {member.observations}
@@ -145,7 +145,7 @@ export function MemberOverview({ member, quotations, announcements, vacationRequ
 
             {!(member.investment_amount > 0 || member.investment_plan) && member.observations && (
               <div className="p-4 rounded-xl col-span-2" style={cardBoxStyle} data-testid="member-observations">
-                <p className="text-[10px] sm:text-xs uppercase font-semibold mb-1" style={labelStyle}>Observaciones</p>
+                <p className="text-[10px] sm:text-xs uppercase font-semibold mb-1" style={labelStyle}>Beneficios Adicionales</p>
                 <p className="text-xs sm:text-sm whitespace-pre-wrap leading-relaxed" style={valueStyle}>{member.observations}</p>
               </div>
             )}
