@@ -141,6 +141,74 @@ async def _build_audience(audience: AudienceFilter) -> List[Dict[str, Any]]:
                 })
         return recipients
 
+    if audience.audience_type == "coowners":
+        # 1) Copropietarios embebidos en el documento del socio
+        async for m in db.members.find(
+            {"coowner_phone": {"$nin": ["", None]}, "opt_out_whatsapp": {"$ne": True}, "status": "active"},
+            {"coowner_phone": 1, "coowner_name": 1, "contract_number": 1, "_id": 1},
+        ):
+            phone = _normalize_phone(m.get("coowner_phone", ""))
+            if phone and phone not in seen_phones:
+                seen_phones.add(phone)
+                recipients.append({
+                    "phone": phone,
+                    "name": m.get("coowner_name", "") or f"Copropietario de {m.get('contract_number','')}",
+                    "member_id": str(m["_id"]),
+                    "source": "coowner",
+                })
+        # 2) Copropietarios en la colección legacy family_members
+        async for f in db.family_members.find(
+            {"phone": {"$nin": ["", None]}, "opt_out_whatsapp": {"$ne": True}},
+            {"phone": 1, "name": 1, "contract_number": 1, "_id": 1},
+        ):
+            phone = _normalize_phone(f.get("phone", ""))
+            if phone and phone not in seen_phones:
+                seen_phones.add(phone)
+                recipients.append({
+                    "phone": phone,
+                    "name": f.get("name", "") or f"Copropietario de {f.get('contract_number','')}",
+                    "family_id": str(f["_id"]),
+                    "source": "coowner",
+                })
+        return recipients
+
+    if audience.audience_type == "members_and_coowners":
+        # Sockets activos + sus copropietarios — útil para campañas tipo "boletín mensual del club"
+        async for m in db.members.find(
+            {"status": "active", "opt_out_whatsapp": {"$ne": True}},
+            {"phone": 1, "name": 1, "coowner_phone": 1, "coowner_name": 1, "contract_number": 1, "_id": 1},
+        ):
+            mid = str(m["_id"])
+            ph_main = _normalize_phone(m.get("phone", ""))
+            if ph_main and ph_main not in seen_phones:
+                seen_phones.add(ph_main)
+                recipients.append({
+                    "phone": ph_main, "name": m.get("name", ""),
+                    "member_id": mid, "source": "member",
+                })
+            ph_co = _normalize_phone(m.get("coowner_phone", ""))
+            if ph_co and ph_co not in seen_phones:
+                seen_phones.add(ph_co)
+                recipients.append({
+                    "phone": ph_co,
+                    "name": m.get("coowner_name", "") or f"Copropietario de {m.get('contract_number','')}",
+                    "member_id": mid, "source": "coowner",
+                })
+        # Family members legacy también
+        async for f in db.family_members.find(
+            {"phone": {"$nin": ["", None]}, "opt_out_whatsapp": {"$ne": True}},
+            {"phone": 1, "name": 1, "contract_number": 1, "_id": 1},
+        ):
+            phone = _normalize_phone(f.get("phone", ""))
+            if phone and phone not in seen_phones:
+                seen_phones.add(phone)
+                recipients.append({
+                    "phone": phone,
+                    "name": f.get("name", "") or f"Copropietario de {f.get('contract_number','')}",
+                    "family_id": str(f["_id"]), "source": "coowner",
+                })
+        return recipients
+
     return recipients
 
 

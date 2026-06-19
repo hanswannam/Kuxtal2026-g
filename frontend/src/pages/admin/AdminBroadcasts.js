@@ -18,6 +18,8 @@ const GOLD = '#B89327';
 const AUDIENCE_OPTIONS = [
   { id: 'members_active', label: 'Socios activos', icon: Users },
   { id: 'members_all', label: 'Todos los socios', icon: Users },
+  { id: 'coowners', label: 'Solo copropietarios', icon: Users },
+  { id: 'members_and_coowners', label: 'Socios + Copropietarios', icon: Users },
   { id: 'clients_all', label: 'Todos los clientes', icon: Users },
   { id: 'custom_phones', label: 'Teléfonos personalizados', icon: Smartphone },
 ];
